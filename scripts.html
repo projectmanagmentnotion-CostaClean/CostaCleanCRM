@@ -1,0 +1,798 @@
+﻿<!-- =========================
+ARCHIVO: scripts.html
+Lógica UI (mock) + router de acciones + listas + detalle
+========================= -->
+<script>
+/* =========================
+   Helpers DOM
+========================= */
+const qs  = (sel, root=document) => root.querySelector(sel);
+const qsa = (sel, root=document) => Array.from(root.querySelectorAll(sel));
+
+/* =========================
+   Estado UI
+========================= */
+const state = {
+  useMock: true,
+  currentEntity: 'clientes',        // entidad activa en listas
+  listFilterClientId: null,         // filtro por cliente (historial)
+  detail: { entity:null, id:null, clientId:null },
+  lastScreen: 'screen-home'
+};
+
+/* =========================
+   Mock: LISTAS
+   (Asegúrate de que los IDs coincidan con tus capturas)
+========================= */
+const MOCK = {
+  clientes: [
+    { id:'CLI-2025-0007', title:'Marta R.', sub:'NIF: X1234567A · Barcelona', right:'Activo',
+      email:'marta@email.com', phone:'+34 600 123 123', city:'Barcelona', status:'Activo' },
+    { id:'CLI-2025-0008', title:'Comunidad Pineda', sub:'NIF: B66778899 · Pineda de Mar', right:'Lead',
+      email:'admin@pineda.com', phone:'+34 611 222 333', city:'Pineda de Mar', status:'Lead' }
+  ],
+  leads: [
+    { id:'L0009', title:'Comunidad Pineda (Lead)', sub:'Email: admin@pineda.com · Pineda de Mar', right:'Nuevo',
+      email:'admin@pineda.com', phone:'+34 611 222 333', city:'Pineda de Mar', status:'Nuevo' }
+  ],
+  facturas: [
+    { id:'F-2025-0123', title:'Factura F-2025-0123', sub:'CLI-2025-0007 · Pendiente', right:'120 €',
+      clientId:'CLI-2025-0007', status:'Pendiente', amount:120 },
+    { id:'F-2025-0124', title:'Factura F-2025-0124', sub:'CLI-2025-0008 · Pagada', right:'240 €',
+      clientId:'CLI-2025-0008', status:'Pagada', amount:240 }
+  ],
+  proformas: [
+    { id:'PRO-2025-0009', title:'Proforma PRO-2025-0009', sub:'CLI-2025-0007 · Enviada', right:'290,40 €',
+      clientId:'CLI-2025-0007', status:'Enviada', amount:290.40 }
+  ],
+  gastos: [
+    { id:'G-2025-0042', title:'Gasto G-2025-0042', sub:'Operación · Gasolina', right:'48,00 €',
+      clientId:'CLI-2025-0007', status:'Ok', amount:48.00 }
+  ]
+};
+
+/* =========================
+   Mock: DETALLE
+   (Si no existe aquí, mostramos fallback)
+========================= */
+const MOCK_DETAIL = {
+  clientes: {
+    'CLI-2025-0007': {
+      id:'CLI-2025-0007',
+      title:'Marta R.',
+      sub:'NIF: X1234567A · Barcelona',
+      status:'Activo',
+      email:'marta@email.com',
+      phone:'+34 600 123 123',
+      address:'Barcelona'
+    },
+    'CLI-2025-0008': {
+      id:'CLI-2025-0008',
+      title:'Comunidad Pineda',
+      sub:'NIF: B66778899 · Pineda de Mar',
+      status:'Lead',
+      email:'admin@pineda.com',
+      phone:'+34 611 222 333',
+      address:'Pineda de Mar'
+    }
+  },
+  leads: {
+    'L0009': {
+      id:'L0009',
+      title:'Comunidad Pineda (Lead)',
+      sub:'Email: admin@pineda.com · Pineda de Mar',
+      status:'Nuevo',
+      email:'admin@pineda.com',
+      phone:'+34 611 222 333',
+      address:'Pineda de Mar'
+    }
+  },
+  facturas: {
+    'F-2025-0123': {
+      id:'F-2025-0123',
+      title:'Factura F-2025-0123',
+      sub:'CLI-2025-0007 · Pendiente',
+      status:'Pendiente',
+      amount:120,
+      clientId:'CLI-2025-0007'
+    },
+    'F-2025-0124': {
+      id:'F-2025-0124',
+      title:'Factura F-2025-0124',
+      sub:'CLI-2025-0008 · Pagada',
+      status:'Pagada',
+      amount:240,
+      clientId:'CLI-2025-0008'
+    }
+  },
+  proformas: {
+    'PRO-2025-0009': {
+      id:'PRO-2025-0009',
+      title:'Proforma PRO-2025-0009',
+      sub:'CLI-2025-0007 · Enviada',
+      status:'Enviada',
+      amount:290.40,
+      clientId:'CLI-2025-0007'
+    }
+  },
+  gastos: {
+    'G-2025-0042': {
+      id:'G-2025-0042',
+      title:'Gasto G-2025-0042',
+      sub:'Operación · Gasolina',
+      status:'Ok',
+      amount:48.00,
+      clientId:'CLI-2025-0007'
+    }
+  }
+};
+
+/* =========================
+   UI: Toasts
+========================= */
+function toast(title, msg, tone='ok'){
+  const host = qs('.cc-toasts');
+  if (!host) return;
+
+  const el = document.createElement('div');
+  el.className = `cc-toast cc-toast--${tone}`;
+  el.innerHTML = `
+    <div class="cc-toastTitle">${escapeHtml(title)}</div>
+    <div class="cc-toastMsg">${escapeHtml(msg)}</div>
+  `;
+  host.appendChild(el);
+
+  setTimeout(() => el.classList.add('is-in'), 10);
+  setTimeout(() => {
+    el.classList.remove('is-in');
+    setTimeout(() => el.remove(), 200);
+  }, 2500);
+}
+
+function escapeHtml(s){
+  return String(s ?? '')
+    .replaceAll('&','&amp;')
+    .replaceAll('<','&lt;')
+    .replaceAll('>','&gt;')
+    .replaceAll('"','&quot;')
+    .replaceAll("'","&#039;");
+}
+
+/* =========================
+   UI: Navegación por pantallas
+========================= */
+function showScreen(screenId){
+  qsa('.cc-screen').forEach(s => s.classList.toggle('is-active', s.id === screenId));
+  state.lastScreen = screenId;
+}
+
+function setNavActive(entity){
+  qsa('.cc-navItem').forEach(b => b.classList.toggle('is-active', b.dataset.entity === entity));
+}
+
+function setActiveTab(entity){
+  state.currentEntity = entity;
+  qsa('.cc-tab').forEach(b => b.classList.toggle('is-active', b.dataset.entity === entity));
+}
+
+/* =========================
+   DASHBOARD (mock simple)
+========================= */
+function loadDashboard(){
+  // KPI simples (mock)
+  if (qs('#kpiVentasMes')) qs('#kpiVentasMes').textContent = '—';
+  if (qs('#kpiCobrado')) qs('#kpiCobrado').textContent = '—';
+  if (qs('#kpiPendiente')) qs('#kpiPendiente').textContent = '—';
+
+  if (qs('#kpiFactPendientes')) qs('#kpiFactPendientes').textContent = '—';
+  if (qs('#kpiFactPendientesSub')) qs('#kpiFactPendientesSub').textContent = '—';
+
+  if (qs('#kpiIvaNeto')) qs('#kpiIvaNeto').textContent = '—';
+  if (qs('#kpiRepercutido')) qs('#kpiRepercutido').textContent = '—';
+  if (qs('#kpiSoportado')) qs('#kpiSoportado').textContent = '—';
+
+  if (qs('#kpiGastoDeducible')) qs('#kpiGastoDeducible').textContent = '—';
+  if (qs('#kpiCompras')) qs('#kpiCompras').textContent = '—';
+  if (qs('#kpiOperacion')) qs('#kpiOperacion').textContent = '—';
+}
+
+/* =========================
+   LISTAS
+========================= */
+function renderListItems(entity, rows){
+  const box = qs('#listContainer');
+  const empty = qs('#listEmpty');
+  if (!box) return;
+
+  if (!rows || !rows.length){
+    box.innerHTML = '';
+    if (empty) empty.style.display = 'block';
+    return;
+  }
+  if (empty) empty.style.display = 'none';
+
+  box.innerHTML = rows.map(r => `
+    <button class="cc-item" type="button" data-entity="${escapeHtml(entity)}" data-id="${escapeHtml(r.id)}">
+      <div class="cc-itemMain">
+        <div class="cc-itemTitle">${escapeHtml(r.title || r.id)}</div>
+        <div class="cc-itemSub">${escapeHtml(r.sub || '')}</div>
+      </div>
+      <div class="cc-itemRight">${escapeHtml(r.right || '')}</div>
+    </button>
+  `).join('');
+}
+
+function loadList(entity){
+  const q = (qs('#q')?.value || '').toLowerCase().trim();
+  let rows = (MOCK[entity] || []);
+
+  // Filtro por cliente (historial)
+  if (state.listFilterClientId && entity !== 'clientes'){
+    rows = rows.filter(r => (r.clientId || '').toLowerCase() === state.listFilterClientId.toLowerCase());
+  }
+
+  // Filtro por búsqueda
+  if (q){
+    rows = rows.filter(r => {
+      const hay = `${r.id} ${r.title||''} ${r.sub||''} ${r.right||''}`.toLowerCase();
+      return hay.includes(q);
+    });
+  }
+
+  renderListItems(entity, rows);
+}
+
+/* =========================
+   DETALLE (render reusable)
+========================= */
+function loadDetail(entity, id){
+  state.detail.entity = entity;
+  state.detail.id = id;
+
+  const data = (MOCK_DETAIL?.[entity]?.[id]) || null;
+
+  // Head
+  qs('#detailId') && (qs('#detailId').textContent = id || '—');
+  qs('#detailTitle') && (qs('#detailTitle').textContent = data?.title || data?.id || 'No hay mock para este ID');
+  qs('#detailSub') && (qs('#detailSub').textContent = data?.sub || 'Añádelo en MOCK_DETAIL para verlo dinámico');
+
+  // Type pill
+  const pill = qs('#detailTypePill');
+  if (pill){
+    pill.textContent = entity;
+  }
+
+  // Status pill
+  const statusPill = qs('#detailStatusPill');
+  if (statusPill){
+    const st = data?.status;
+    statusPill.style.display = st ? 'inline-flex' : 'none';
+    statusPill.textContent = st || '—';
+  }
+
+  // Amount
+  const amountEl = qs('#detailAmount');
+  if (amountEl){
+    const amt = (typeof data?.amount === 'number') ? data.amount : null;
+    amountEl.style.display = amt != null ? 'block' : 'none';
+    amountEl.textContent = amt != null ? `${amt.toLocaleString('es-ES', {minimumFractionDigits:0, maximumFractionDigits:2})} €` : '';
+  }
+
+  // Acciones principales + meta + quick
+  renderDetail(entity, id, data);
+
+  // Líneas (mock vacío)
+  qs('#detailLines') && (qs('#detailLines').innerHTML = '');
+  qs('#detailLinesEmpty') && (qs('#detailLinesEmpty').textContent = 'Sin líneas.');
+
+  // Ajusta nav activo
+  if (entity === 'clientes') setNavActive('clientes');
+  if (entity === 'leads') setNavActive('clientes');
+  if (entity === 'facturas') setNavActive('facturas');
+  if (entity === 'proformas') setNavActive('proformas');
+  if (entity === 'gastos') setNavActive('gastos');
+}
+
+function renderDetail(entity, id, data){
+  const actionsMain = qs('#detailActions');
+  const meta = qs('#detailMeta');
+  const quick = qs('#detailQuickActions');
+
+  if (actionsMain) actionsMain.innerHTML = '';
+  if (meta) meta.innerHTML = '';
+  if (quick) quick.innerHTML = '';
+
+  // LEAD
+  if (entity === 'leads'){
+    const email = data?.email || '-';
+    const phone = data?.phone || '-';
+    const address = data?.address || '-';
+
+    if (actionsMain){
+      actionsMain.innerHTML = `
+        <button class="cc-btn cc-btn--primary cc-btn--wide" type="button" data-action="crear_presupuesto_lead" data-entity="leads" data-id="${escapeHtml(id)}">
+          <span aria-hidden="true">+</span> Crear presupuesto
+        </button>
+      `;
+    }
+
+    if (meta){
+      meta.innerHTML = `
+        <div class="cc-metaCard">
+          <div class="cc-metaLabel">EMAIL</div>
+          <div class="cc-metaValue">${escapeHtml(email)}</div>
+        </div>
+        <div class="cc-metaCard">
+          <div class="cc-metaLabel">TELEFONO</div>
+          <div class="cc-metaValue">${escapeHtml(phone)}</div>
+        </div>
+        <div class="cc-metaCard">
+          <div class="cc-metaLabel">DIRECCION</div>
+          <div class="cc-metaValue">${escapeHtml(address)}</div>
+        </div>
+      `;
+    }
+
+    if (quick){
+      quick.innerHTML = `
+        <button class="cc-quickItem" type="button" data-action="volver" data-entity="${escapeHtml(entity)}" data-id="${escapeHtml(id)}">
+          <div class="cc-quickLeft">
+            <div class="cc-quickTitle">Volver</div>
+            <div class="cc-quickSub">Regresar a listas</div>
+          </div>
+          <div class="cc-quickRight" aria-hidden="true">&larr;</div>
+        </button>
+      `;
+    }
+
+    return;
+  }
+
+  // CLIENTE
+  if (entity === 'clientes'){
+    const email = data?.email || '—';
+    const phone = data?.phone || '—';
+    const address = data?.address || '—';
+
+    // Acciones principales grandes (como la versión que quieres)
+    if (actionsMain){
+      actionsMain.innerHTML = `
+        <button class="cc-btn cc-btn--primary cc-btn--wide" type="button" data-action="crear_proforma" data-entity="clientes" data-id="${escapeHtml(id)}">
+          <span aria-hidden="true">➕</span> Crear proforma
+        </button>
+        <button class="cc-btn cc-btn--primary cc-btn--wide" type="button" data-action="crear_factura" data-entity="clientes" data-id="${escapeHtml(id)}">
+          <span aria-hidden="true">🧾</span> Crear factura
+        </button>
+        <button class="cc-btn cc-btn--wide" type="button" data-action="ver_historial" data-entity="clientes" data-id="${escapeHtml(id)}">
+          <span aria-hidden="true">📚</span> Ver historial
+        </button>
+      `;
+    }
+
+    // Meta cards (Email / Teléfono / Dirección)
+    if (meta){
+      meta.innerHTML = `
+        <div class="cc-metaCard">
+          <div class="cc-metaLabel">EMAIL</div>
+          <div class="cc-metaValue">${escapeHtml(email)}</div>
+        </div>
+        <div class="cc-metaCard">
+          <div class="cc-metaLabel">TELÉFONO</div>
+          <div class="cc-metaValue">${escapeHtml(phone)}</div>
+        </div>
+        <div class="cc-metaCard">
+          <div class="cc-metaLabel">DIRECCIÓN</div>
+          <div class="cc-metaValue">${escapeHtml(address)}</div>
+        </div>
+      `;
+    }
+
+    // Quick actions (lista)
+    if (quick){
+      quick.innerHTML = `
+        <button class="cc-quickItem" type="button" data-action="wa_chat" data-entity="clientes" data-id="${escapeHtml(id)}">
+          <div class="cc-quickLeft">
+            <div class="cc-quickTitle">WhatsApp</div>
+            <div class="cc-quickSub">Abrir chat rápido</div>
+          </div>
+          <div class="cc-quickRight" aria-hidden="true">↗</div>
+        </button>
+
+        <button class="cc-quickItem" type="button" data-action="call_phone" data-entity="clientes" data-id="${escapeHtml(id)}">
+          <div class="cc-quickLeft">
+            <div class="cc-quickTitle">Llamar</div>
+            <div class="cc-quickSub">Marcar teléfono</div>
+          </div>
+          <div class="cc-quickRight" aria-hidden="true">↗</div>
+        </button>
+
+        <button class="cc-quickItem" type="button" data-action="send_email" data-entity="clientes" data-id="${escapeHtml(id)}">
+          <div class="cc-quickLeft">
+            <div class="cc-quickTitle">Email</div>
+            <div class="cc-quickSub">Enviar correo</div>
+          </div>
+          <div class="cc-quickRight" aria-hidden="true">↗</div>
+        </button>
+
+        <button class="cc-quickItem" type="button" data-action="copy_id" data-entity="clientes" data-id="${escapeHtml(id)}">
+          <div class="cc-quickLeft">
+            <div class="cc-quickTitle">Copiar datos</div>
+            <div class="cc-quickSub">ID + contacto</div>
+          </div>
+          <div class="cc-quickRight" aria-hidden="true">⧉</div>
+        </button>
+
+        <button class="cc-quickItem" type="button" data-action="ver_proformas" data-entity="clientes" data-id="${escapeHtml(id)}">
+          <div class="cc-quickLeft">
+            <div class="cc-quickTitle">Ver proformas</div>
+            <div class="cc-quickSub">Filtrar por cliente</div>
+          </div>
+          <div class="cc-quickRight" aria-hidden="true">→</div>
+        </button>
+
+        <button class="cc-quickItem" type="button" data-action="ver_gastos" data-entity="clientes" data-id="${escapeHtml(id)}">
+          <div class="cc-quickLeft">
+            <div class="cc-quickTitle">Ver gastos</div>
+            <div class="cc-quickSub">Filtrar por cliente</div>
+          </div>
+          <div class="cc-quickRight" aria-hidden="true">→</div>
+        </button>
+      `;
+    }
+
+    return;
+  }
+
+  // FACTURA / PROFORMA / GASTO
+  const clientId = data?.clientId || null;
+  state.detail.clientId = clientId;
+
+  if (actionsMain){
+    // Botones principales para documentos
+    if (entity === 'facturas'){
+      actionsMain.innerHTML = `
+        <button class="cc-btn cc-btn--primary cc-btn--wide" type="button" data-action="abrir_pdf" data-entity="facturas" data-id="${escapeHtml(id)}">
+          <span aria-hidden="true">📄</span> Abrir PDF
+        </button>
+        <button class="cc-btn cc-btn--wide" type="button" data-action="marcar_pagada" data-entity="facturas" data-id="${escapeHtml(id)}">
+          <span aria-hidden="true">✅</span> Marcar pagada
+        </button>
+        <button class="cc-btn cc-btn--wide" type="button" data-action="volver_cliente" data-entity="facturas" data-id="${escapeHtml(id)}" data-clientid="${escapeHtml(clientId||'')}">
+          <span aria-hidden="true"><</span> Volver a cliente
+        </button>
+      `;
+    } else if (entity === 'proformas'){
+      actionsMain.innerHTML = `
+        <button class="cc-btn cc-btn--primary cc-btn--wide" type="button" data-action="abrir_pdf" data-entity="proformas" data-id="${escapeHtml(id)}">
+          <span aria-hidden="true">📄</span> Abrir PDF
+        </button>
+        <button class="cc-btn cc-btn--wide" type="button" data-action="aceptar_proforma" data-entity="proformas" data-id="${escapeHtml(id)}">
+          <span aria-hidden="true">✅</span> Aceptar
+        </button>
+        <button class="cc-btn cc-btn--wide" type="button" data-action="convertir_factura" data-entity="proformas" data-id="${escapeHtml(id)}">
+          <span aria-hidden="true">🧾</span> Convertir a factura
+        </button>
+        <button class="cc-btn cc-btn--wide" type="button" data-action="perder_proforma" data-entity="proformas" data-id="${escapeHtml(id)}">
+          <span aria-hidden="true">❌</span> Marcar perdida
+        </button>
+      `;
+    } else if (entity === 'gastos'){
+      actionsMain.innerHTML = `
+        <button class="cc-btn cc-btn--primary cc-btn--wide" type="button" data-action="adjuntar_pdf" data-entity="gastos" data-id="${escapeHtml(id)}">
+          <span aria-hidden="true">📎</span> Adjuntar PDF
+        </button>
+        <button class="cc-btn cc-btn--wide" type="button" data-action="editar_gasto" data-entity="gastos" data-id="${escapeHtml(id)}">
+          <span aria-hidden="true">✏️</span> Editar gasto
+        </button>
+        <button class="cc-btn cc-btn--wide" type="button" data-action="eliminar_gasto" data-entity="gastos" data-id="${escapeHtml(id)}">
+          <span aria-hidden="true">🗑</span> Eliminar
+        </button>
+      `;
+    }
+  }
+
+  // Meta info del documento
+  if (meta){
+    meta.innerHTML = `
+      <div class="cc-metaCard">
+        <div class="cc-metaLabel">CLIENTE</div>
+        <div class="cc-metaValue">${escapeHtml(clientId || '—')}</div>
+      </div>
+      <div class="cc-metaCard">
+        <div class="cc-metaLabel">ESTADO</div>
+        <div class="cc-metaValue">${escapeHtml(data?.status || '—')}</div>
+      </div>
+      <div class="cc-metaCard">
+        <div class="cc-metaLabel">IMPORTE</div>
+        <div class="cc-metaValue">${escapeHtml((typeof data?.amount === 'number') ? `${data.amount.toFixed(2)} €` : '—')}</div>
+      </div>
+    `;
+  }
+
+  // Quick actions mínimas para docs
+  if (quick){
+    quick.innerHTML = `
+      <button class="cc-quickItem" type="button" data-action="volver" data-entity="${escapeHtml(entity)}" data-id="${escapeHtml(id)}">
+        <div class="cc-quickLeft">
+          <div class="cc-quickTitle">Volver</div>
+          <div class="cc-quickSub">Regresar a listas</div>
+        </div>
+        <div class="cc-quickRight" aria-hidden="true">←</div>
+      </button>
+    `;
+  }
+}
+
+/* =========================
+   Router de acciones (ÚNICO)
+   Maneja SOLO elementos con [data-action]
+========================= */
+function runAction(action, entity, id, dataset){
+  const a = (action || '').toLowerCase().trim();
+
+  // Toggle mock
+  if (a === 'toggle_mock'){
+    state.useMock = !state.useMock;
+    toast('Mock', state.useMock ? 'Activado' : 'Desactivado', 'info');
+    return;
+  }
+
+  // Dashboard shortcuts
+  if (a === 'go_form_cliente'){ openForm('Cliente'); return; }
+  if (a === 'go_form_factura'){ openForm('Factura'); return; }
+  if (a === 'go_form_proforma'){ openForm('Proforma'); return; }
+  if (a === 'go_form_gasto'){ openForm('Gasto'); return; }
+
+  // Cierre / ver todo / filtros (mock)
+  if (a === 'cierre_trimestre'){ toast('Cierre', 'Mock: iniciar cierre de trimestre', 'info'); return; }
+  if (a === 'ver_todo'){ toast('Movimientos', 'Mock: ver todo', 'info'); return; }
+  if (a === 'abrir_filtro'){ toast('Filtro', 'Mock: panel de filtros', 'info'); return; }
+
+  // Acciones de CLIENTE (detalle)
+  if (a === 'crear_proforma'){
+    toast('Listo', `Crear proforma desde ${id} (mock)`, 'ok');
+    goToList('proformas', id);
+    return;
+  }
+  if (a === 'crear_factura'){
+    toast('Listo', `Crear factura desde ${id} (mock)`, 'ok');
+    goToList('facturas', id);
+    return;
+  }
+  if (a === 'crear_presupuesto_lead'){
+    if (state.useMock){
+      toast('Listo', `Crear presupuesto para ${id} (mock)`, 'ok');
+      goToList('proformas', null);
+      return;
+    }
+    if (!id){
+      toast('Error', 'Lead_ID vacio', 'info');
+      return;
+    }
+    google.script.run
+      .withSuccessHandler((res) => {
+        const presId = res && res.presId ? res.presId : '(sin id)';
+        toast('Listo', `Presupuesto creado: ${presId}`, 'ok');
+        goToList('proformas', null);
+      })
+      .withFailureHandler((err) => {
+        toast('Error', err && err.message ? err.message : String(err), 'info');
+      })
+      .apiCrearPresupuestoLead(id);
+    return;
+  }
+  if (a === 'ver_historial'){
+    toast('Historial', `Mostrando facturas de ${id} (mock)`, 'info');
+    goToList('facturas', id);
+    return;
+  }
+
+  if (a === 'ver_proformas'){
+    goToList('proformas', id);
+    return;
+  }
+  if (a === 'ver_gastos'){
+    goToList('gastos', id);
+    return;
+  }
+
+  // Quick actions cliente
+  if (a === 'wa_chat'){
+    toast('WhatsApp', `Mock: abrir chat de ${id}`, 'info');
+    return;
+  }
+  if (a === 'call_phone'){
+    toast('Llamar', `Mock: llamar a ${id}`, 'info');
+    return;
+  }
+  if (a === 'send_email'){
+    toast('Email', `Mock: enviar email a ${id}`, 'info');
+    return;
+  }
+  if (a === 'copy_id'){
+    // Intento copiar
+    const d = MOCK_DETAIL?.clientes?.[id];
+    const txt = `ID: ${id}\nEmail: ${d?.email || '—'}\nTel: ${d?.phone || '—'}`;
+    navigator.clipboard?.writeText(txt).then(
+      () => toast('Copiado', 'Datos copiados al portapapeles', 'ok'),
+      () => toast('Copiar', 'No se pudo copiar (permiso del navegador)', 'info')
+    );
+    return;
+  }
+
+  // Acciones de FACTURA / PROFORMA / GASTO (detalle)
+  if (a === 'abrir_pdf'){ toast('PDF', `Mock: abrir PDF de ${id}`, 'ok'); return; }
+  if (a === 'marcar_pagada'){ toast('Listo', `Factura ${id} marcada como pagada (mock)`, 'ok'); return; }
+  if (a === 'aceptar_proforma'){ toast('Listo', `Proforma ${id} aceptada (mock)`, 'ok'); return; }
+  if (a === 'convertir_factura'){ toast('Listo', `Convertir ${id} a factura (mock)`, 'ok'); return; }
+  if (a === 'perder_proforma'){ toast('Listo', `Proforma ${id} marcada como perdida (mock)`, 'ok'); return; }
+  if (a === 'adjuntar_pdf'){ toast('Listo', `Adjuntar PDF a ${id} (mock)`, 'ok'); return; }
+  if (a === 'editar_gasto'){ toast('Editar', `Editar gasto ${id} (mock)`, 'info'); return; }
+  if (a === 'eliminar_gasto'){ toast('Eliminado', `Gasto ${id} eliminado (mock)`, 'ok'); return; }
+
+  // Volver a cliente (desde factura)
+  if (a === 'volver_cliente'){
+    const cid = dataset?.clientid || state.detail.clientId;
+    if (!cid){ toast('Cliente', 'No hay clientId en el mock', 'info'); return; }
+    showScreen('screen-detalle');
+    loadDetail('clientes', cid);
+    return;
+  }
+
+  // Volver / cancelar / guardar form
+  if (a === 'volver'){
+    // vuelve a listas si venías de detalle o form; si no, home
+    if (state.lastScreen === 'screen-detalle' || state.lastScreen === 'screen-form'){
+      showScreen('screen-listas');
+      setNavActive(state.currentEntity);
+      loadList(state.currentEntity);
+    } else {
+      showScreen('screen-home');
+      setNavActive('home');
+      loadDashboard();
+    }
+    return;
+  }
+  if (a === 'guardar_form'){
+    toast('Guardado', 'Mock: registro guardado', 'ok');
+    showScreen('screen-home');
+    setNavActive('home');
+    return;
+  }
+
+  // fuente / pendientes etc
+  if (a === 'ver_fuente'){ toast('Fuente', 'Mock: abrir spreadsheet', 'info'); return; }
+  if (a === 'ir_facturas_pendientes'){ goToList('facturas', null); return; }
+
+  // default
+  toast('Info', `Acción no implementada: ${action}`, 'info');
+}
+
+/* =========================
+   Navegación a listas
+========================= */
+function goToList(entity, filterClientId){
+  state.currentEntity = entity;
+  state.listFilterClientId = filterClientId || null;
+
+  // UI
+  showScreen('screen-listas');
+  setNavActive(entity);
+  setActiveTab(entity);
+
+  // limpia búsqueda si filtramos por cliente (opcional)
+  if (qs('#q')) qs('#q').value = '';
+
+  loadList(entity);
+}
+
+/* =========================
+   Form mock
+========================= */
+function openForm(kind){
+  showScreen('screen-form');
+  setNavActive('home');
+  if (qs('#formTitle')) qs('#formTitle').textContent = `Crear ${kind} (ejemplo)`;
+  if (qs('#formSub')) qs('#formSub').textContent = `${kind.toUpperCase()}-2025-xxxx`;
+  toast('Formulario', `Mock: ${kind}`, 'info');
+}
+
+/* =========================
+   INIT: listeners
+========================= */
+function initNav(){
+  qsa('.cc-navItem').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const screenId = btn.dataset.screen;
+      const entity = btn.dataset.entity;
+
+      if (!screenId) return;
+
+      // Home
+      if (screenId === 'screen-home'){
+        state.listFilterClientId = null;
+        showScreen('screen-home');
+        setNavActive('home');
+        loadDashboard();
+        return;
+      }
+
+      // Listas
+      if (screenId === 'screen-listas'){
+        goToList(entity || 'clientes', null);
+        return;
+      }
+
+      showScreen(screenId);
+      setNavActive(entity || 'home');
+    });
+  });
+}
+
+function initListTabs(){
+  qsa('.cc-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const entity = btn.dataset.entity;
+      if (!entity) return;
+      state.listFilterClientId = null;
+      setActiveTab(entity);
+      setNavActive(entity);
+      loadList(entity);
+    });
+  });
+}
+
+/* =========================
+   Listener global:
+   - [data-action] => runAction
+   - .cc-item (lista) => abrir detalle
+========================= */
+document.addEventListener('click', (e) => {
+  // 1) Actions
+  const actEl = e.target.closest('[data-action]');
+  if (actEl){
+    e.preventDefault();
+    const action = actEl.dataset.action;
+    const entity = (actEl.dataset.entity || '').trim();
+    const id = (actEl.dataset.id || '').trim();
+    runAction(action, entity, id, actEl.dataset);
+    return;
+  }
+
+  // 2) Click en item de lista
+  const item = e.target.closest('.cc-item');
+  if (item){
+    const entity = item.dataset.entity;
+    const id = item.dataset.id;
+    if (!entity || !id) return;
+    e.preventDefault();
+
+    showScreen('screen-detalle');
+    loadDetail(entity, id);
+    return;
+  }
+});
+
+/* =========================
+   Search input (filtro)
+========================= */
+document.addEventListener('input', (e) => {
+  if (e.target && e.target.id === 'q'){
+    loadList(state.currentEntity);
+  }
+});
+
+/* =========================
+   INIT APP
+========================= */
+document.addEventListener('DOMContentLoaded', () => {
+  loadDashboard();
+  initNav();
+  initListTabs();
+
+  // estado inicial
+  showScreen('screen-home');
+  setNavActive('home');
+});
+</script>
+

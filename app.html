@@ -1,0 +1,385 @@
+<!-- =========================
+ARCHIVO: app.html
+CostaClean CRM App (UI)
+Requiere: styles.html y scripts.html + función include() en Code.gs
+========================= -->
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <base target="_top">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0b1014" />
+    <title>CostaClean CRM</title>
+
+    <!-- =========================
+      CSS (separado)
+      Archivo: styles.html
+    ========================= -->
+    <?!= include('styles'); ?>
+  </head>
+
+  <body class="cc-body">
+
+    <!-- =========================
+      TOASTS
+    ========================= -->
+    <div class="cc-toasts" aria-live="polite" aria-atomic="true"></div>
+
+    <!-- =========================
+      APP SHELL
+    ========================= -->
+    <div class="cc-shell">
+
+      <!-- =========================
+        TOP BAR
+      ========================= -->
+      <header class="cc-topbar" role="banner">
+        <div class="cc-topbar__brand">
+          <div class="cc-logo" aria-hidden="true">CC</div>
+          <div class="cc-brandText">
+            <div class="cc-brandTitle">Costa Clean CRM</div>
+            <div class="cc-brandSub">Proyecto: Costa Clean / CostaClean BCN</div>
+          </div>
+        </div>
+
+        <div class="cc-topbar__chips">
+          <button class="cc-chip" type="button" data-action="ver_fuente">
+            <span class="cc-chipIcon" aria-hidden="true">🧾</span>
+            Spreadsheet único
+          </button>
+          <button class="cc-chip cc-chip--ok" type="button" data-action="toggle_mock">
+            <span class="cc-dot" aria-hidden="true"></span>
+            Mock data
+          </button>
+        </div>
+      </header>
+
+      <!-- =========================
+        MAIN
+      ========================= -->
+      <main class="cc-main" role="main">
+
+        <!-- ==========================================================
+          SCREEN: HOME / DASHBOARD
+        =========================================================== -->
+        <section class="cc-screen is-active" id="screen-home" aria-label="Dashboard">
+          <div class="cc-screenHead">
+            <h1 class="cc-h1">Dashboard</h1>
+            <div class="cc-screenHint">Resumen operativo y fiscal (IVA/IRPF) — Costa Clean</div>
+          </div>
+
+          <!-- KPIs -->
+          <div class="cc-grid2">
+            <article class="cc-card">
+              <div class="cc-cardHead">
+                <div class="cc-cardTitle">Ventas mes (Costa Clean)</div>
+                <div class="cc-pill cc-pill--ok">+12%</div>
+              </div>
+              <div class="cc-kpiValue" id="kpiVentasMes">—</div>
+              <div class="cc-kpiSub">
+                Cobrado: <span id="kpiCobrado">—</span> · Pendiente: <span id="kpiPendiente">—</span>
+              </div>
+            </article>
+
+            <article class="cc-card">
+              <div class="cc-cardHead">
+                <div class="cc-cardTitle">Facturas pendientes</div>
+                <button class="cc-pill" type="button" data-action="ir_facturas_pendientes">Acción</button>
+              </div>
+              <div class="cc-kpiValue" id="kpiFactPendientes">—</div>
+              <div class="cc-kpiSub" id="kpiFactPendientesSub">—</div>
+            </article>
+
+            <article class="cc-card">
+              <div class="cc-cardHead">
+                <div class="cc-cardTitle">IVA neto trimestre</div>
+                <div class="cc-pill">IVA</div>
+              </div>
+              <div class="cc-kpiValue" id="kpiIvaNeto">—</div>
+              <div class="cc-kpiSub">
+                Repercutido: <span id="kpiRepercutido">—</span> · Soportado: <span id="kpiSoportado">—</span>
+              </div>
+            </article>
+
+            <article class="cc-card">
+              <div class="cc-cardHead">
+                <div class="cc-cardTitle">Gasto deducible trimestre</div>
+                <div class="cc-pill">IRPF</div>
+              </div>
+              <div class="cc-kpiValue" id="kpiGastoDeducible">—</div>
+              <div class="cc-kpiSub">
+                Compras: <span id="kpiCompras">—</span> · Operación: <span id="kpiOperacion">—</span>
+              </div>
+            </article>
+          </div>
+
+          <!-- Quick actions -->
+          <div class="cc-blockHead">
+            <h2 class="cc-h2">Acciones rápidas</h2>
+            <button class="cc-linkBtn" type="button" data-action="toggle_quick_create">Crear registros nuevos (mock)</button>
+          </div>
+
+          <div class="cc-grid2">
+            <button class="cc-itemBtn" type="button" data-action="go_form_cliente">
+              <div class="cc-itemBtnIcon" aria-hidden="true">👤</div>
+              <div class="cc-itemBtnMain">
+                <div class="cc-itemBtnTitle">Cliente</div>
+                <div class="cc-itemBtnSub">Nuevo CLI-2025-xxxx</div>
+              </div>
+            </button>
+
+            <button class="cc-itemBtn" type="button" data-action="go_form_factura">
+              <div class="cc-itemBtnIcon" aria-hidden="true">🧾</div>
+              <div class="cc-itemBtnMain">
+                <div class="cc-itemBtnTitle">Factura</div>
+                <div class="cc-itemBtnSub">Nueva F-2025-xxxx</div>
+              </div>
+            </button>
+
+            <button class="cc-itemBtn" type="button" data-action="go_form_proforma">
+              <div class="cc-itemBtnIcon" aria-hidden="true">📄</div>
+              <div class="cc-itemBtnMain">
+                <div class="cc-itemBtnTitle">Proforma</div>
+                <div class="cc-itemBtnSub">Nueva PRO-2025-xxxx</div>
+              </div>
+            </button>
+
+            <button class="cc-itemBtn" type="button" data-action="go_form_gasto">
+              <div class="cc-itemBtnIcon" aria-hidden="true">🧺</div>
+              <div class="cc-itemBtnMain">
+                <div class="cc-itemBtnTitle">Gasto</div>
+                <div class="cc-itemBtnSub">Nueva compra / recibo</div>
+              </div>
+            </button>
+          </div>
+
+          <div class="cc-blockHead">
+            <h2 class="cc-h2">Cerrar Trimestre (IVA/IRPF)</h2>
+            <button class="cc-btn cc-btn--primary" type="button" data-action="cierre_trimestre">Iniciar cierre</button>
+          </div>
+          <div class="cc-card cc-card--flat">
+            <div class="cc-muted">Genera un resumen de cierre con totales y alertas.</div>
+          </div>
+
+          <div class="cc-blockHead">
+            <h2 class="cc-h2">Últimos movimientos</h2>
+            <button class="cc-linkBtn" type="button" data-action="ver_todo">Ver todo</button>
+          </div>
+
+          <!-- (opcional) mini lista de últimos movimientos (placeholder) -->
+          <div class="cc-card cc-card--flat">
+            <div class="cc-muted">—</div>
+          </div>
+        </section>
+
+        <!-- ==========================================================
+          SCREEN: LISTAS
+        =========================================================== -->
+        <section class="cc-screen" id="screen-listas" aria-label="Listas">
+          <div class="cc-screenHead">
+            <h1 class="cc-h1">Listas</h1>
+            <div class="cc-screenHint">Clientes, Facturas, Proformas y Gastos (mock)</div>
+          </div>
+
+          <div class="cc-searchRow">
+            <div class="cc-search">
+              <span class="cc-searchIcon" aria-hidden="true">🔎</span>
+              <input class="cc-searchInput" id="q" type="search" placeholder="Buscar por ID, cliente, ciudad, estado…" autocomplete="off" />
+            </div>
+            <button class="cc-btnIcon" type="button" data-action="abrir_filtro" aria-label="Filtro">
+              ⚙️
+            </button>
+          </div>
+
+          <div class="cc-tabs" role="tablist" aria-label="Entidades">
+            <button class="cc-tab is-active" type="button" data-entity="clientes" role="tab">Clientes</button>
+            <button class="cc-tab" type="button" data-entity="leads" role="tab">Leads</button>
+            <button class="cc-tab" type="button" data-entity="facturas" role="tab">Facturas</button>
+            <button class="cc-tab" type="button" data-entity="proformas" role="tab">Proformas</button>
+            <button class="cc-tab" type="button" data-entity="gastos" role="tab">Gastos</button>
+          </div>
+
+          <div id="listEmpty" class="cc-empty" style="display:none;">Sin registros.</div>
+
+          <div class="cc-list" id="listContainer" aria-label="Resultados">
+            <!-- render dinámico -->
+          </div>
+        </section>
+
+        <!-- ==========================================================
+          SCREEN: DETALLE
+        =========================================================== -->
+        <section class="cc-screen" id="screen-detalle" aria-label="Detalle">
+          <div class="cc-screenHead">
+            <h1 class="cc-h1">Detalle</h1>
+            <div class="cc-screenHint">Plantilla reusable (Factura / Proforma / Cliente)</div>
+          </div>
+
+          <!-- Tarjeta principal -->
+          <article class="cc-card cc-detailCard">
+            <div class="cc-detailTop">
+              <div class="cc-detailLeft">
+                <div class="cc-detailId" id="detailId">—</div>
+                <div class="cc-detailTitle" id="detailTitle">—</div>
+                <div class="cc-detailSub" id="detailSub">—</div>
+              </div>
+
+              <div class="cc-detailRight">
+                <div class="cc-pill" id="detailTypePill">—</div>
+                <div class="cc-pill cc-pill--ok" id="detailStatusPill" style="display:none;">—</div>
+                <div class="cc-detailAmount" id="detailAmount" style="display:none;">—</div>
+              </div>
+            </div>
+
+            <!-- Acciones principales (GRANDES) -->
+            <div class="cc-blockHead">
+              <h2 class="cc-h2">Acciones</h2>
+              <button class="cc-btnIcon" type="button" data-action="minimizar_detalle" aria-label="Minimizar">➖</button>
+            </div>
+
+            <div class="cc-actionsMain" id="detailActions">
+              <!-- render dinámico -->
+            </div>
+
+            <!-- Metadatos (Email/Teléfono/Dirección o info doc) -->
+            <div class="cc-metaGrid" id="detailMeta">
+              <!-- render dinámico -->
+            </div>
+          </article>
+
+          <!-- Acciones rápidas (LISTA) -->
+          <div class="cc-blockHead">
+            <h2 class="cc-h2">Acciones rápidas</h2>
+          </div>
+          <div class="cc-quickList" id="detailQuickActions">
+            <!-- render dinámico -->
+          </div>
+
+          <!-- Líneas -->
+          <div class="cc-blockHead">
+            <h2 class="cc-h2">Líneas</h2>
+          </div>
+          <div class="cc-card cc-card--flat">
+            <div class="cc-muted" id="detailLinesEmpty">Sin líneas.</div>
+            <div id="detailLines"></div>
+          </div>
+        </section>
+
+        <!-- ==========================================================
+          SCREEN: FORM (mock)
+        =========================================================== -->
+        <section class="cc-screen" id="screen-form" aria-label="Formularios">
+          <form class="cc-card" onsubmit="return false;">
+            <div class="cc-cardHead">
+              <div>
+                <h3 class="cc-h3" id="formTitle">Crear Cliente (ejemplo)</h3>
+                <span class="cc-muted cc-small" id="formSub">CLI-2025-xxxx</span>
+              </div>
+            </div>
+
+            <div class="cc-formGrid">
+              <div class="cc-field">
+                <label class="cc-label" for="f_nombre">Nombre / Razón social</label>
+                <input class="cc-input" id="f_nombre" type="text" placeholder="Ej: Comunidad Pineda" />
+                <div class="cc-help">Usa el nombre tal como debe salir en facturas.</div>
+              </div>
+
+              <div class="cc-field">
+                <label class="cc-label" for="f_nif">NIF/CIF</label>
+                <input class="cc-input" id="f_nif" type="text" placeholder="Ej: B66778899" />
+                <div class="cc-help">Obligatorio para facturación.</div>
+              </div>
+
+              <div class="cc-field cc-span2">
+                <label class="cc-label" for="f_dir">Dirección</label>
+                <input class="cc-input" id="f_dir" type="text" placeholder="C/ Exemple 123, 2º 1ª" />
+              </div>
+
+              <div class="cc-field">
+                <label class="cc-label" for="f_cp">CP</label>
+                <input class="cc-input" id="f_cp" type="text" inputmode="numeric" placeholder="08013" />
+              </div>
+
+              <div class="cc-field">
+                <label class="cc-label" for="f_ciudad">Ciudad</label>
+                <select class="cc-select" id="f_ciudad">
+                  <option>Barcelona</option>
+                  <option>Pineda de Mar</option>
+                  <option>Badalona</option>
+                  <option>Hospitalet</option>
+                </select>
+              </div>
+
+              <div class="cc-field">
+                <label class="cc-label" for="f_estado">Estado</label>
+                <select class="cc-select" id="f_estado">
+                  <option>Activo</option>
+                  <option>Lead</option>
+                  <option>Inactivo</option>
+                </select>
+              </div>
+
+              <div class="cc-field">
+                <label class="cc-label" for="f_email">Email</label>
+                <input class="cc-input" id="f_email" type="email" placeholder="cliente@email.com" />
+              </div>
+
+              <div class="cc-field cc-span2">
+                <label class="cc-label" for="f_notas">Notas</label>
+                <textarea class="cc-textarea" id="f_notas" rows="3"
+                          placeholder="Ej: Limpieza zonas comunes sin ascensor. Incluye cristales."></textarea>
+                <div class="cc-help">Opcional. Visible solo internamente.</div>
+              </div>
+            </div>
+
+            <div class="cc-formActions">
+              <button class="cc-btn cc-btn--primary" type="button" data-action="guardar_form">Guardar</button>
+              <button class="cc-btn" type="button" data-action="volver">Cancelar</button>
+            </div>
+          </form>
+        </section>
+
+      </main>
+
+      <!-- ==========================================================
+        BOTTOM NAV (sticky)
+      =========================================================== -->
+      <div id="cc-bottomNavBar" class="cc-bottomNavBar" role="presentation">
+        <nav class="cc-bottomNav" role="navigation" aria-label="Navegación principal">
+          <button class="cc-navItem is-active" type="button" data-screen="screen-home" data-entity="home" aria-current="page">
+            <span class="cc-navIcon" aria-hidden="true">⌂</span>
+            <span class="cc-navLabel">Inicio</span>
+          </button>
+
+          <button class="cc-navItem" type="button" data-screen="screen-listas" data-entity="clientes">
+            <span class="cc-navIcon" aria-hidden="true">👥</span>
+            <span class="cc-navLabel">Clientes</span>
+          </button>
+
+          <button class="cc-navItem" type="button" data-screen="screen-listas" data-entity="facturas">
+            <span class="cc-navIcon" aria-hidden="true">🧾</span>
+            <span class="cc-navLabel">Facturas</span>
+          </button>
+
+          <button class="cc-navItem" type="button" data-screen="screen-listas" data-entity="proformas">
+            <span class="cc-navIcon" aria-hidden="true">📄</span>
+            <span class="cc-navLabel">Proformas</span>
+          </button>
+
+          <button class="cc-navItem" type="button" data-screen="screen-listas" data-entity="gastos">
+            <span class="cc-navIcon" aria-hidden="true">🧺</span>
+            <span class="cc-navLabel">Gastos</span>
+          </button>
+        </nav>
+      </div>
+
+    </div>
+
+    <!-- =========================
+      SCRIPTS (separado)
+      Archivo: scripts.html
+    ========================= -->
+    <?!= include('scripts'); ?>
+  </body>
+</html>
