@@ -35,8 +35,8 @@ const SH_AI_CONFIG = 'AI_CONFIG';
 const SH_AI_LOG    = 'AI_LOG';
 const PROP_OPENAI_KEY = 'OPENAI_API_KEY';
 
-// Estados dropdown
-const PRES_ESTADOS = ['Borrador', 'Enviado', 'Aceptado', 'Rechazado', 'Archivado'];
+// Estados dropdown (hoja PRESUPUESTOS)
+const PRES_ESTADOS = ['BORRADOR', 'ENVIADO', 'ACEPTADO', 'PERDIDO'];
 
 // Cabeceras esperadas (según tu estructura A..T y añadimos U=Archivado_el para profesionalizar)
 const PRES_HEADERS = [
@@ -63,7 +63,7 @@ function menuPresupuestos_() {
     .addSeparator()
     .addItem('✅ Marcar como Enviado (fila seleccionada)', 'uiMarcarPresupuestoEnviado')
     .addItem('✅ Marcar como Aceptado (fila seleccionada)', 'uiMarcarPresupuestoAceptado')
-    .addItem('⛔ Marcar como Rechazado (fila seleccionada)', 'uiMarcarPresupuestoRechazado')
+    .addItem('⛔ Marcar como Perdido (fila seleccionada)', 'uiMarcarPresupuestoPerdido')
     .addSeparator()
     .addItem('🧾 Convertir a factura (desde HISTORIAL, fila seleccionada)', 'uiConvertirPresupuestoAFactura')
     .addSeparator()
@@ -100,9 +100,8 @@ function presAsegurarEstructura_() {
   if (!shH) shH = ss.insertSheet(SH_PRES_HIST);
   presAsegurarHeaders_(shH, PRES_HEADERS);
 
-  // Validación Estado (col E) en PRESUPUESTOS y HISTORIAL
-  presAsegurarValidacionEstado_(sh, 5);
-  presAsegurarValidacionEstado_(shH, 5);
+  // Validaciones dinámicas
+  presApplyValidations_();
 }
 
 function presAsegurarHeaders_(sh, headers) {
@@ -138,6 +137,60 @@ function presAsegurarValidacionEstado_(sh, col) {
   sh.getRange(2, col, Math.max(1, sh.getMaxRows()-1), 1).setDataValidation(rule);
 }
 
+function presApplyValidations_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const shPres = ss.getSheetByName(SH_PRES);
+  const shHist = ss.getSheetByName(SH_PRES_HIST);
+  const shCli = ss.getSheetByName('CLIENTES');
+  const shLeads = ss.getSheetByName('LEADS');
+
+  [shPres, shHist].forEach((sheet) => {
+    if (!sheet) return;
+    const { map } = presGetHeaderMap_(sheet);
+    const maxRows = Math.max(1, sheet.getMaxRows() - 1);
+
+    if (map['Estado']) {
+      const ruleEstado = SpreadsheetApp.newDataValidation()
+        .requireValueInList(PRES_ESTADOS, true)
+        .setAllowInvalid(true)
+        .build();
+      sheet.getRange(2, map['Estado'], maxRows, 1).setDataValidation(ruleEstado);
+    }
+
+    const cliRule = presBuildValidationRuleFromSheet_(shCli, 'Cliente_ID');
+    if (map['Cliente_ID'] && cliRule) {
+      sheet.getRange(2, map['Cliente_ID'], maxRows, 1).setDataValidation(cliRule);
+    } else if (map['Cliente_ID']) {
+      sheet.getRange(2, map['Cliente_ID'], maxRows, 1).clearDataValidations();
+    }
+
+    const leadRule = presBuildValidationRuleFromSheet_(shLeads, 'Lead_ID');
+    if (map['Lead_ID'] && leadRule) {
+      sheet.getRange(2, map['Lead_ID'], maxRows, 1).setDataValidation(leadRule);
+    } else if (map['Lead_ID']) {
+      sheet.getRange(2, map['Lead_ID'], maxRows, 1).clearDataValidations();
+    }
+  });
+}
+
+function presBuildValidationRuleFromSheet_(sheet, headerName) {
+  if (!sheet) return null;
+  const { map } = presGetHeaderMap_(sheet);
+  const col = map[headerName] || 0;
+  const lastRow = sheet.getLastRow();
+  if (!col || lastRow < 2) return null;
+
+  return SpreadsheetApp.newDataValidation()
+    .requireValueInRange(sheet.getRange(2, col, lastRow - 1, 1), true)
+    .setAllowInvalid(true)
+    .build();
+}
+
+function setupValidationsPresupuestos() {
+  presAsegurarEstructura_();
+  presApplyValidations_();
+}
+
 function presGetHeaders_(sh) {
   const lastCol = Math.max(1, sh.getLastColumn());
   return sh.getRange(1, 1, 1, lastCol).getValues()[0].map(String);
@@ -150,6 +203,106 @@ function presGetHeaderMap_(sh) {
     map[h] = i + 1;
   });
   return { headers, map };
+}
+
+function presBuildSheetCache_(sh, keyHeader, extraKeys) {
+  if (!sh) return { headers: [], headerMap: {}, byId: {}, extra: {} };
+
+  const { headers, map } = presGetHeaderMap_(sh);
+  const keyCol = map[keyHeader] || 0;
+  if (!keyCol) return { headers, headerMap: map, byId: {}, extra: {} };
+
+  const lastRow = sh.getLastRow();
+  if (lastRow < 2) return { headers, headerMap: map, byId: {}, extra: {} };
+
+  const data = sh.getRange(2, 1, lastRow - 1, sh.getLastColumn()).getValues();
+  const byId = {};
+  const extra = {};
+  (extraKeys || []).forEach((k) => { extra[k] = {}; });
+
+  data.forEach((row, idx) => {
+    const id = String(row[keyCol - 1] || '').trim();
+    if (!id) return;
+    const entry = { row: idx + 2, values: row };
+    byId[id] = entry;
+
+    (extraKeys || []).forEach((k) => {
+      const col = map[k] || 0;
+      if (!col) return;
+      const val = String(row[col - 1] || '').trim();
+      if (val) extra[k][val] = entry;
+    });
+  });
+
+  return { headers, headerMap: map, byId, extra };
+}
+
+function presBuildClientesCache_(ss) {
+  const shCli = ss.getSheetByName('CLIENTES');
+  return presBuildSheetCache_(shCli, 'Cliente_ID', []);
+}
+
+function presBuildLeadsCache_(ss) {
+  const shLeads = ss.getSheetByName('LEADS');
+  const cache = presBuildSheetCache_(shLeads, 'Lead_ID', ['RowKey']);
+  return {
+    headers: cache.headers,
+    headerMap: cache.headerMap,
+    byId: cache.byId,
+    byRowKey: cache.extra.RowKey || {}
+  };
+}
+
+function presExtractClienteFromCache_(entry, headerMap) {
+  if (!entry || !headerMap) return null;
+  const row = entry.values;
+  return {
+    clienteId: String(row[(headerMap['Cliente_ID'] || 1) - 1] || '').trim(),
+    nombre: String(row[(headerMap['Nombre'] || 2) - 1] || '').trim(),
+    email: String(row[(headerMap['Email'] || 8) - 1] || '').trim(),
+    nif: String(row[(headerMap['NIF'] || 3) - 1] || '').trim(),
+    direccion: String(row[(headerMap['Direccion'] || 4) - 1] || '').trim(),
+    cp: String(row[(headerMap['CP'] || 5) - 1] || '').trim(),
+    ciudad: String(row[(headerMap['Ciudad'] || 6) - 1] || '').trim(),
+    telefono: String(row[(headerMap['Telefono'] || 7) - 1] || '').trim()
+  };
+}
+
+function presExtractLeadFromCache_(entry, headerMap) {
+  if (!entry || !headerMap) return null;
+  const row = entry.values;
+  const get = (h, defIdx) => String(row[(headerMap[h] || defIdx) - 1] || '').trim();
+
+  return {
+    leadId: get('Lead_ID', 1),
+    rowKey: get('RowKey', 26),
+    nombre: get('Nombre', 3),
+    email: get('Email', 4),
+    telefono: get('Telefono', 5),
+    nif: get('NIF/CIF', 6),
+    direccion: get('Direccion', 7),
+    cp: get('CP', 8),
+    ciudad: get('Poblacion', 9),
+    clienteId: get('Cliente_ID', 23)
+  };
+}
+
+function presSetValuesByHeaders_(sh, row, headerMap, values) {
+  if (!sh || !headerMap || !values) return;
+  Object.keys(values).forEach((header) => {
+    const col = headerMap[header];
+    if (!col) return;
+    sh.getRange(row, col).setValue(values[header]);
+  });
+}
+
+function presClearByHeaders_(sh, row, headerMap, headers) {
+  if (!sh || !headerMap || !headers || !headers.length) return;
+  headers.forEach((h) => {
+    const col = headerMap[h];
+    if (!col) return;
+    sh.getRange(row, col).clearContent();
+  });
 }
 
 function presBuildRow_(headers, values) {
@@ -310,7 +463,7 @@ function crearPresupuestoParaLead_(leadRowOrId) {
       Fecha: hoy,
       Validez_dias: cfg.validezDefault,
       Vence_el: vence,
-      Estado: 'Borrador',
+      Estado: 'BORRADOR',
       Cliente_ID: '',
       Cliente: lead.nombre,
       Email_cliente: lead.email,
@@ -331,11 +484,14 @@ function crearPresupuestoParaLead_(leadRowOrId) {
     shPres.appendRow(rowValues);
 
     const r = shPres.getLastRow();
-    const rule = SpreadsheetApp.newDataValidation()
-      .requireValueInList(PRES_ESTADOS, true)
-      .setAllowInvalid(true)
-      .build();
-    shPres.getRange(r, 5).setDataValidation(rule);
+    const colEstado = headerInfo.map['Estado'];
+    if (colEstado) {
+      const rule = SpreadsheetApp.newDataValidation()
+        .requireValueInList(PRES_ESTADOS, true)
+        .setAllowInvalid(true)
+        .build();
+      shPres.getRange(r, colEstado).setDataValidation(rule);
+    }
 
     reservarLineasPres_(presId, PRES_LINEAS_PRECREADAS);
 
@@ -382,7 +538,7 @@ function crearPresupuesto() {
     Fecha: hoy,
     Validez_dias: validezDefault,
     Vence_el: vence,
-    Estado: 'Borrador',
+    Estado: 'BORRADOR',
     Cliente_ID: '',
     Cliente: leadInfo ? leadInfo.nombre : '',
     Email_cliente: leadInfo ? leadInfo.email : '',
@@ -401,13 +557,15 @@ function crearPresupuesto() {
 
   sh.appendRow(rowValues);
 
-  // aplicar validación Estado a la fila nueva (por si no estaba)
   const r = sh.getLastRow();
-  const rule = SpreadsheetApp.newDataValidation()
-    .requireValueInList(PRES_ESTADOS, true)
-    .setAllowInvalid(true)
-    .build();
-  sh.getRange(r, 5).setDataValidation(rule);
+  const colEstado = headerInfo.map['Estado'];
+  if (colEstado) {
+    const rule = SpreadsheetApp.newDataValidation()
+      .requireValueInList(PRES_ESTADOS, true)
+      .setAllowInvalid(true)
+      .build();
+    sh.getRange(r, colEstado).setDataValidation(rule);
+  }
 
   // Reservar líneas
   reservarLineasPres_(presId, PRES_LINEAS_PRECREADAS);
@@ -470,53 +628,178 @@ function onEditPresupuestos_(e) {
   const row = e.range.getRow();
   const col = e.range.getColumn();
   if (row < 2) return;
+  if (e.range.getNumRows() > 1 || e.range.getNumColumns() > 1) return;
 
-  // Cliente_ID (F=6)
-  if (col === 6) {
-    const cliId = String(e.range.getDisplayValue()).trim();
-    if (!cliId) {
-      sh.getRange(row,7,1,6).clearContent();
-      return;
+  const cache = CacheService.getDocumentCache();
+  const guardKey = 'pres_onedit_guard';
+  if (cache && cache.get(guardKey)) return;
+
+  const headerInfo = presGetHeaderMap_(sh);
+  const colClienteId = headerInfo.map['Cliente_ID'] || 0;
+  const colLeadId = headerInfo.map['Lead_ID'] || 0;
+  const colEstado = headerInfo.map['Estado'] || 0;
+  const relevantCols = [colClienteId, colLeadId, colEstado].filter(Boolean);
+  if (relevantCols.indexOf(col) === -1) return;
+
+  const lock = LockService.getUserLock();
+  if (!lock.tryLock(5000)) return;
+  if (cache) cache.put(guardKey, '1', 5);
+
+  try {
+    const ss = sh.getParent() || SpreadsheetApp.getActiveSpreadsheet();
+    const caches = { clientes: null, leads: null };
+    const ensureClientes = () => (caches.clientes || (caches.clientes = presBuildClientesCache_(ss)));
+    const ensureLeads = () => (caches.leads || (caches.leads = presBuildLeadsCache_(ss)));
+
+    if (col === colClienteId) {
+      const cliId = String(e.range.getDisplayValue() || '').trim();
+      presHandleClienteSelection_(sh, row, cliId, ensureClientes(), headerInfo.map);
     }
-    rellenarClienteEnPresupuesto_(sh, row, cliId);
+
+    if (col === colLeadId) {
+      const leadId = String(e.range.getDisplayValue() || '').trim();
+      presHandleLeadSelection_(sh, row, leadId, ensureLeads(), ensureClientes(), headerInfo.map);
+    }
+
+    if (col === colEstado) {
+      const estado = String(e.range.getDisplayValue() || '').trim();
+      presHandleEstadoChange_(sh, row, estado, headerInfo.map, ensureLeads(), ensureClientes());
+    }
+  } finally {
+    lock.releaseLock();
+    if (cache) cache.remove(guardKey);
+  }
+}
+
+function presHandleClienteSelection_(shPres, row, cliId, clientesCache, headerMapPres) {
+  const targetHeaders = ['Cliente', 'Email_cliente', 'NIF', 'Direccion', 'CP', 'Ciudad'];
+  const clearHeaders = targetHeaders.concat(['Tipo_destinatario']);
+  const normalizedId = String(cliId || '').trim();
+
+  if (!normalizedId) {
+    presClearByHeaders_(shPres, row, headerMapPres, clearHeaders);
+    return;
   }
 
-  // Estado (E=5) -> si aceptado, fecha_aceptacion (T=20)
-  if (col === 5) {
-    const estado = String(e.range.getDisplayValue()).toLowerCase();
-    if (estado === 'aceptado') {
-      sh.getRange(row,20).setValue(new Date());
-      presAutoConvertLeadOnAccept_(sh, row);
+  const entry = clientesCache && clientesCache.byId[normalizedId];
+  if (!entry) {
+    presClearByHeaders_(shPres, row, headerMapPres, clearHeaders);
+    return;
+  }
+
+  const cliente = presExtractClienteFromCache_(entry, clientesCache.headerMap);
+  if (!cliente) {
+    presClearByHeaders_(shPres, row, headerMapPres, clearHeaders);
+    return;
+  }
+
+  presSetValuesByHeaders_(shPres, row, headerMapPres, {
+    Cliente_ID: normalizedId,
+    Cliente: cliente.nombre,
+    Email_cliente: cliente.email,
+    NIF: cliente.nif,
+    Direccion: cliente.direccion,
+    CP: cliente.cp,
+    Ciudad: cliente.ciudad
+  });
+
+  if (headerMapPres['Tipo_destinatario']) {
+    presSetValuesByHeaders_(shPres, row, headerMapPres, { Tipo_destinatario: 'CLIENTE' });
+  }
+}
+
+function presHandleLeadSelection_(shPres, row, leadId, leadCache, clientesCache, headerMapPres) {
+  const leadFields = ['Lead_RowKey', 'Lead_Nombre', 'Lead_Email', 'Lead_NIF', 'Lead_Telefono', 'Lead_Direccion'];
+  const normalizedId = String(leadId || '').trim();
+
+  if (!normalizedId) {
+    presClearByHeaders_(shPres, row, headerMapPres, leadFields.concat(['Tipo_destinatario']));
+    return;
+  }
+
+  const entry = leadCache && leadCache.byId[normalizedId];
+  if (!entry) {
+    presClearByHeaders_(shPres, row, headerMapPres, leadFields);
+    return;
+  }
+
+  const lead = presExtractLeadFromCache_(entry, leadCache.headerMap) || {};
+  presSetValuesByHeaders_(shPres, row, headerMapPres, {
+    Lead_ID: lead.leadId,
+    Lead_RowKey: lead.rowKey,
+    Lead_Nombre: lead.nombre,
+    Lead_Email: lead.email,
+    Lead_NIF: lead.nif,
+    Lead_Telefono: lead.telefono,
+    Lead_Direccion: lead.direccion
+  });
+
+  if (headerMapPres['Tipo_destinatario']) {
+    presSetValuesByHeaders_(shPres, row, headerMapPres, { Tipo_destinatario: 'LEAD' });
+  }
+
+  presSetValuesByHeaders_(shPres, row, headerMapPres, {
+    Cliente: lead.nombre,
+    Email_cliente: lead.email,
+    NIF: lead.nif,
+    Direccion: lead.direccion,
+    CP: lead.cp,
+    Ciudad: lead.ciudad
+  });
+
+  if (lead.clienteId) {
+    presSetValuesByHeaders_(shPres, row, headerMapPres, { Cliente_ID: lead.clienteId });
+    const cliEntry = clientesCache && clientesCache.byId[lead.clienteId];
+    if (cliEntry) {
+      const cli = presExtractClienteFromCache_(cliEntry, clientesCache.headerMap);
+      if (cli) {
+        presSetValuesByHeaders_(shPres, row, headerMapPres, {
+          Cliente: cli.nombre || lead.nombre,
+          Email_cliente: cli.email || lead.email,
+          NIF: cli.nif || lead.nif,
+          Direccion: cli.direccion || lead.direccion,
+          CP: cli.cp || lead.cp,
+          Ciudad: cli.ciudad || lead.ciudad
+        });
+      }
     }
   }
 }
 
-function presAutoConvertLeadOnAccept_(shPres, rowPres) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+function presHandleEstadoChange_(shPres, row, estadoRaw, headerMapPres, leadCache, clientesCache) {
+  const estadoInput = String(estadoRaw || '').trim();
+  const estadoUpper = estadoInput.toUpperCase();
+
+  if (estadoUpper && headerMapPres['Estado'] && estadoUpper !== estadoInput) {
+    shPres.getRange(row, headerMapPres['Estado']).setValue(estadoUpper);
+  }
+
+  if (estadoUpper.toLowerCase() === 'aceptado') {
+    if (headerMapPres['Fecha_aceptacion']) {
+      shPres.getRange(row, headerMapPres['Fecha_aceptacion']).setValue(new Date());
+    }
+    presAutoConvertLeadOnAccept_(shPres, row, leadCache, clientesCache);
+  }
+}
+
+function presAutoConvertLeadOnAccept_(shPres, rowPres, leadCache, clientesCache) {
+  const ss = shPres.getParent ? shPres.getParent() : SpreadsheetApp.getActiveSpreadsheet();
   const headerInfo = presGetHeaderMap_(shPres);
   const colTipo = headerInfo.map['Tipo_destinatario'];
   const colLeadId = headerInfo.map['Lead_ID'];
   const colLeadKey = headerInfo.map['Lead_RowKey'];
-  const colClienteId = headerInfo.map['Cliente_ID'] || 6;
-
-  if (!colTipo) return;
-
-  const tipo = String(shPres.getRange(rowPres, colTipo).getValue()).trim().toUpperCase();
-  if (tipo !== 'LEAD') return;
-
-  const clienteIdActual = String(shPres.getRange(rowPres, colClienteId).getValue()).trim();
-  if (clienteIdActual) return;
+  const colClienteId = headerInfo.map['Cliente_ID'] || 0;
 
   const leadId = colLeadId ? String(shPres.getRange(rowPres, colLeadId).getValue()).trim() : '';
   const leadRowKey = colLeadKey ? String(shPres.getRange(rowPres, colLeadKey).getValue()).trim() : '';
   const leadRef = leadId || leadRowKey || String(rowPres);
+  const clienteIdActual = colClienteId ? String(shPres.getRange(rowPres, colClienteId).getValue()).trim() : '';
 
-  if (!leadId && !leadRowKey) {
-    if (typeof logEvent_ === 'function') {
-      logEvent_(ss, 'PRESUPUESTOS', 'AUTO_CONVERT', 'LEAD', rowPres, 'ERROR', 'missing Lead_ID and Lead_RowKey', null);
-    }
-    return;
-  }
+  if (!leadId && !leadRowKey) return;
+  if (clienteIdActual) return;
+
+  const tipo = colTipo ? String(shPres.getRange(rowPres, colTipo).getValue()).trim().toUpperCase() : '';
+  if (tipo && tipo !== 'LEAD') return;
 
   const lock = LockService.getDocumentLock();
   if (!lock.tryLock(20000)) {
@@ -527,37 +810,46 @@ function presAutoConvertLeadOnAccept_(shPres, rowPres) {
   }
 
   try {
-    const currentClienteId = String(shPres.getRange(rowPres, colClienteId).getValue()).trim();
+    const currentClienteId = colClienteId ? String(shPres.getRange(rowPres, colClienteId).getValue()).trim() : '';
     if (currentClienteId) return;
 
-    const shLeads = ss.getSheetByName('LEADS');
-    if (!shLeads) throw new Error('No existe hoja LEADS');
+    const leadsCache = leadCache || presBuildLeadsCache_(ss);
+    const leadEntry = leadId ? leadsCache.byId[leadId] : (leadRowKey ? leadsCache.byRowKey[leadRowKey] : null);
+    if (!leadEntry) throw new Error('Lead no encontrado en LEADS');
 
-    const leadRow = leadId ? presFindLeadRowById_(shLeads, leadId) : presFindLeadRowByRowKey_(shLeads, leadRowKey);
-    if (!leadRow) throw new Error('Lead no encontrado en LEADS');
+    const leadData = presExtractLeadFromCache_(leadEntry, leadsCache.headerMap) || {};
+    if (leadData.clienteId) {
+      if (colClienteId) shPres.getRange(rowPres, colClienteId).setValue(leadData.clienteId);
+      rellenarClienteEnPresupuesto_(shPres, rowPres, leadData.clienteId, clientesCache);
+      if (typeof logEvent_ === 'function') {
+        logEvent_(ss, 'PRESUPUESTOS', 'AUTO_CONVERT', 'CLIENTE', leadData.clienteId, 'SKIP', 'cliente ya existente para lead', { leadId: leadData.leadId });
+      }
+      return;
+    }
 
     if (typeof logEvent_ === 'function') {
-      logEvent_(ss, 'PRESUPUESTOS', 'AUTO_CONVERT', 'LEAD', leadRef, 'START', '', { leadRow: leadRow });
+      logEvent_(ss, 'PRESUPUESTOS', 'AUTO_CONVERT', 'LEAD', leadRef, 'START', '', { leadRow: leadEntry.row });
     }
 
     if (typeof convertirLeadEnCliente_ !== 'function') {
       throw new Error('No existe convertirLeadEnCliente_');
     }
 
-    convertirLeadEnCliente_(ss, leadRow);
+    convertirLeadEnCliente_(ss, leadEntry.row);
 
-    const newClienteId = String(shLeads.getRange(leadRow, 23).getValue()).trim();
+    const shLeads = ss.getSheetByName('LEADS');
+    if (!shLeads) throw new Error('No existe hoja LEADS');
+
+    const leadRowValues = shLeads.getRange(leadEntry.row, 1, 1, shLeads.getLastColumn()).getValues()[0];
+    const colCliLead = leadsCache.headerMap['Cliente_ID'] || 23;
+    const newClienteId = String(leadRowValues[colCliLead - 1] || '').trim();
     if (!newClienteId) throw new Error('Cliente_ID no generado en LEADS');
 
-    shPres.getRange(rowPres, colClienteId).setValue(newClienteId);
-    if (!String(shLeads.getRange(leadRow, 23).getValue()).trim()) {
-      shLeads.getRange(leadRow, 23).setValue(newClienteId);
-    }
-
-    rellenarClienteEnPresupuesto_(shPres, rowPres, newClienteId);
+    if (colClienteId) shPres.getRange(rowPres, colClienteId).setValue(newClienteId);
+    rellenarClienteEnPresupuesto_(shPres, rowPres, newClienteId, null);
 
     if (typeof logEvent_ === 'function') {
-      logEvent_(ss, 'PRESUPUESTOS', 'AUTO_CONVERT', 'CLIENTE', newClienteId, 'OK', '', { leadId: leadId, leadRowKey: leadRowKey });
+      logEvent_(ss, 'PRESUPUESTOS', 'AUTO_CONVERT', 'CLIENTE', newClienteId, 'OK', '', { leadId: leadData.leadId, leadRowKey: leadRowKey || leadData.rowKey });
     }
   } catch (err) {
     if (typeof logEvent_ === 'function') {
@@ -568,28 +860,14 @@ function presAutoConvertLeadOnAccept_(shPres, rowPres) {
   }
 }
 
-function presGetClienteDataById_(ss, clienteId) {
-  const shCli = ss.getSheetByName('CLIENTES');
-  if (!shCli) return null;
-
-  const lastRow = shCli.getLastRow();
-  if (lastRow < 2) return null;
-
-  const data = shCli.getRange(2, 1, lastRow - 1, 8).getValues();
-  const row = data.find(r => String(r[0] || '').trim() === String(clienteId || '').trim());
-  if (!row) return null;
-
-  return {
-    nombre: String(row[1] || '').trim(),
-    email: String(row[7] || '').trim(),
-    nif: String(row[2] || '').trim(),
-    direccion: String(row[3] || '').trim(),
-    cp: String(row[4] || '').trim(),
-    ciudad: String(row[5] || '').trim()
-  };
+function presGetClienteDataById_(ss, clienteId, clientesCache) {
+  const cache = clientesCache || presBuildClientesCache_(ss);
+  const entry = cache.byId[String(clienteId || '').trim()];
+  if (!entry) return null;
+  return presExtractClienteFromCache_(entry, cache.headerMap);
 }
 
-function presVincularPresupuestosPorLead_(ss, leadId, clienteId) {
+function presVincularPresupuestosPorLead_(ss, leadId, clienteId, clientesCache) {
   if (!leadId || !clienteId) return 0;
   try {
     const shPres = ss.getSheetByName(SH_PRES);
@@ -597,13 +875,13 @@ function presVincularPresupuestosPorLead_(ss, leadId, clienteId) {
 
     const headerInfo = presGetHeaderMap_(shPres);
     const colLeadId = headerInfo.map['Lead_ID'];
-    const colClienteId = headerInfo.map['Cliente_ID'] || 6;
-    if (!colLeadId) return 0;
+    const colClienteId = headerInfo.map['Cliente_ID'] || 0;
+    if (!colLeadId || !colClienteId) return 0;
 
     const lastRow = shPres.getLastRow();
     if (lastRow < 2) return 0;
 
-    const clienteData = presGetClienteDataById_(ss, clienteId);
+    const clienteData = presGetClienteDataById_(ss, clienteId, clientesCache);
     if (typeof logEvent_ === 'function') {
       logEvent_(ss, 'PRESUPUESTOS', 'LINK', 'LEAD', leadId, 'START', '', { clienteId: clienteId });
     }
@@ -661,35 +939,32 @@ function presVincularPresupuestosPorLead_(ss, leadId, clienteId) {
   }
 }
 
-function rellenarClienteEnPresupuesto_(shPres, rowPres, cliId) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const shCli = ss.getSheetByName('CLIENTES');
-  if (!shCli) throw new Error('No existe hoja CLIENTES');
+function rellenarClienteEnPresupuesto_(shPres, rowPres, cliId, clientesCache) {
+  const ss = shPres.getParent ? shPres.getParent() : SpreadsheetApp.getActiveSpreadsheet();
+  const cache = clientesCache || presBuildClientesCache_(ss);
+  const headerInfo = presGetHeaderMap_(shPres);
+  const targetHeaders = ['Cliente', 'Email_cliente', 'NIF', 'Direccion', 'CP', 'Ciudad'];
 
-  const last = shCli.getLastRow();
-  if (last < 2) {
-    shPres.getRange(rowPres,7,1,6).clearContent();
+  const entry = cache.byId[String(cliId || '').trim()];
+  if (!entry) {
+    presClearByHeaders_(shPres, rowPres, headerInfo.map, targetHeaders);
     return;
   }
 
-  // CLIENTES: A..H (8 cols) según tu sistema
-  const data = shCli.getRange(2,1,last-1,8).getValues();
-  const found = data.find(r => String(r[0]).trim() === String(cliId).trim());
-
-  if (!found) {
-    shPres.getRange(rowPres,7,1,6).clearContent();
+  const cliente = presExtractClienteFromCache_(entry, cache.headerMap);
+  if (!cliente) {
+    presClearByHeaders_(shPres, rowPres, headerInfo.map, targetHeaders);
     return;
   }
 
-  // PRESUPUESTOS: G..L
-  shPres.getRange(rowPres,7,1,6).setValues([[
-    found[1] || '',  // Cliente
-    found[7] || '',  // Email_cliente
-    found[2] || '',  // NIF
-    found[3] || '',  // Direccion
-    found[4] || '',  // CP
-    found[5] || ''   // Ciudad
-  ]]);
+  presSetValuesByHeaders_(shPres, rowPres, headerInfo.map, {
+    Cliente: cliente.nombre,
+    Email_cliente: cliente.email,
+    NIF: cliente.nif,
+    Direccion: cliente.direccion,
+    CP: cliente.cp,
+    Ciudad: cliente.ciudad
+  });
 }
 
 /** =========================
@@ -1088,26 +1363,40 @@ function uiMarcarPresupuestoEnviado() {
   presAsegurarEstructura_();
 
   const { sh, row } = presGetSelectedRowAny_([SH_PRES, SH_PRES_HIST]);
-  sh.getRange(row, 5).setValue('Enviado');      // Estado
-  sh.getRange(row, 19).setValue(new Date());    // Fecha_envio (S)
-  SpreadsheetApp.getUi().alert('✅ Marcado como Enviado.');
+  const headerInfo = presGetHeaderMap_(sh);
+  const colEstado = headerInfo.map['Estado'];
+  const colFechaEnvio = headerInfo.map['Fecha_envio'];
+
+  if (colEstado) sh.getRange(row, colEstado).setValue('ENVIADO');
+  if (colFechaEnvio) sh.getRange(row, colFechaEnvio).setValue(new Date());
+  SpreadsheetApp.getUi().alert('✅ Marcado como ENVIADO.');
 }
 
 function uiMarcarPresupuestoAceptado() {
   presAsegurarEstructura_();
 
   const { sh, row } = presGetSelectedRowAny_([SH_PRES, SH_PRES_HIST]);
-  sh.getRange(row, 5).setValue('Aceptado');     // Estado
-  sh.getRange(row, 20).setValue(new Date());    // Fecha_aceptacion (T)
-  SpreadsheetApp.getUi().alert('✅ Marcado como Aceptado.');
+  const headerInfo = presGetHeaderMap_(sh);
+  const colEstado = headerInfo.map['Estado'];
+  const colFechaAcept = headerInfo.map['Fecha_aceptacion'];
+
+  if (colEstado) sh.getRange(row, colEstado).setValue('ACEPTADO');
+  if (colFechaAcept) sh.getRange(row, colFechaAcept).setValue(new Date());
+  SpreadsheetApp.getUi().alert('✅ Marcado como ACEPTADO.');
 }
 
 function uiMarcarPresupuestoRechazado() {
+  return uiMarcarPresupuestoPerdido();
+}
+
+function uiMarcarPresupuestoPerdido() {
   presAsegurarEstructura_();
 
   const { sh, row } = presGetSelectedRowAny_([SH_PRES, SH_PRES_HIST]);
-  sh.getRange(row, 5).setValue('Rechazado');    // Estado
-  SpreadsheetApp.getUi().alert('✅ Marcado como Rechazado.');
+  const headerInfo = presGetHeaderMap_(sh);
+  const colEstado = headerInfo.map['Estado'];
+  if (colEstado) sh.getRange(row, colEstado).setValue('PERDIDO');
+  SpreadsheetApp.getUi().alert('✅ Marcado como PERDIDO.');
 }
 
 /** =========================
@@ -1233,7 +1522,7 @@ function uiConvertirPresupuestoAFactura() {
 
   const estado = String(o['Estado'] || '').trim().toLowerCase();
   if (estado !== 'aceptado') {
-    SpreadsheetApp.getUi().alert('Este presupuesto no está en estado "Aceptado".\nCámbialo a Aceptado en el historial y vuelve a intentar.');
+    SpreadsheetApp.getUi().alert('Este presupuesto no está en estado "ACEPTADO".\nCámbialo a ACEPTADO en el historial y vuelve a intentar.');
     return;
   }
 
@@ -1606,7 +1895,7 @@ function onFormSubmitPresupuesto(e)
 
     // Fila PRESUPUESTOS (A..U = 21 columnas)
     const row = [
-      presId, hoy, cfg.validezDefault || 15, vence, 'Borrador',
+      presId, hoy, cfg.validezDefault || 15, vence, 'BORRADOR',
       '', // Cliente_ID (si luego quieres enlazar a CLIENTES)
       cliente, email, nif, dir, cp, ciudad,
       '', '', '', notas, '', '', '', '', '' // Base, IVA_total, Total, PDF_link, Factura_ID, Fechas..., Archivado_el
@@ -1621,8 +1910,8 @@ function onFormSubmitPresupuesto(e)
     // Rellenar líneas automáticas según respuestas
     crearLineasDesdeForm_(presId, obj);
 
-    // Opcional: marcar como Enviado automáticamente si quieres
-    // shPres.getRange(presRow, 5).setValue('Enviado');
+    // Opcional: marcar como ENVIADO automáticamente si quieres
+    // shPres.getRange(presRow, 5).setValue('ENVIADO');
     // shPres.getRange(presRow, 19).setValue(new Date());
 
     // Opcional: generar PDF automático y archivar

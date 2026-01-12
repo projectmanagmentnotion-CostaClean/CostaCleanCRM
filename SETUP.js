@@ -56,7 +56,7 @@
     ensureHeaders_(ensureSheet_(ss, 'LOG'), headersLog);
 
     applyListValidation_(ss.getSheetByName('LEADS'), 22, ['Nuevo','Ganado','Perdido']);
-    applyListValidation_(shPres, 5, ['Borrador','Enviado','Aceptado','Rechazado','Archivado']);
+    setupValidationsPresupuestos();
 
     installTriggers_(ss);
 
