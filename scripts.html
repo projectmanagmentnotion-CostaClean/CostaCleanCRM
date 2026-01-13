@@ -13,11 +13,23 @@ const qsa = (sel, root=document) => Array.from(root.querySelectorAll(sel));
    Estado UI
 ========================= */
 const state = {
-  useMock: true,
+  useMock: false,
   currentEntity: 'clientes',        // entidad activa en listas
   listFilterClientId: null,         // filtro por cliente (historial)
   detail: { entity:null, id:null, clientId:null },
   lastScreen: 'screen-home'
+};
+
+const STORAGE_KEYS = {
+  useMock: 'cc_use_mock',
+  legacyUseMock: 'cc_useMock'
+};
+
+const store = {
+  presupuestos: [],
+  presDetalle: {},
+  clientes: [],
+  leads: []
 };
 
 /* =========================
@@ -158,6 +170,140 @@ function escapeHtml(s){
     .replaceAll("'","&#039;");
 }
 
+function loadMockPreference_(){
+  try {
+    const saved = localStorage.getItem(STORAGE_KEYS.useMock);
+    if (saved !== null) {
+      state.useMock = saved === 'true';
+      return;
+    }
+    const legacy = localStorage.getItem(STORAGE_KEYS.legacyUseMock);
+    if (legacy !== null) {
+      state.useMock = legacy === 'true';
+      localStorage.setItem(STORAGE_KEYS.useMock, String(state.useMock));
+      localStorage.removeItem(STORAGE_KEYS.legacyUseMock);
+    }
+  } catch (_) {}
+}
+
+function saveMockPreference_(){
+  try {
+    localStorage.setItem(STORAGE_KEYS.useMock, String(state.useMock));
+  } catch (_) {}
+}
+
+function updateMockChip_(){
+  const chip = qs('[data-action="toggle_mock"]');
+  if (!chip) return;
+  chip.classList.toggle('cc-chip--ok', state.useMock);
+  chip.setAttribute('aria-pressed', state.useMock ? 'true' : 'false');
+}
+
+function callServer(fnName, ...args){
+  return new Promise((resolve, reject) => {
+    const runner = google?.script?.run;
+    if (!runner) {
+      reject(new Error('API no disponible (google.script.run)'));
+      return;
+    }
+    const call = runner.withSuccessHandler(resolve).withFailureHandler(err => {
+      const msg = err?.message || err?.toString() || 'Error desconocido';
+      reject(new Error(msg));
+    });
+    call[fnName].apply(call, args || []);
+  });
+}
+
+function formatMoney(v){
+  const n = Number(v);
+  if (isNaN(n)) return '-';
+  return `${n.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
+}
+
+function formatDateText(v){
+  if (!v) return '-';
+  const d = new Date(v);
+  if (isNaN(d.getTime())) return String(v);
+  return d.toLocaleDateString('es-ES');
+}
+
+function pickValue_(obj, keys){
+  if (!obj) return '';
+  for (let i = 0; i < keys.length; i++) {
+    const v = obj[keys[i]];
+    if (v !== undefined && v !== null && String(v).trim() !== '') return v;
+  }
+  return '';
+}
+
+function toNumber_(v){
+  const n = Number(v);
+  return isNaN(n) ? null : n;
+}
+
+function joinParts_(parts){
+  return parts.filter(Boolean).join(' | ');
+}
+
+function setListState(mode, msg){
+  const status = qs('#listState');
+  const empty = qs('#listEmpty');
+  const box = qs('#listContainer');
+  if (!status || !empty || !box) return;
+
+  if (mode === 'loading'){
+    status.textContent = msg || 'Cargando...';
+    status.style.display = 'block';
+    status.style.color = 'inherit';
+    empty.style.display = 'none';
+    box.innerHTML = '';
+    return;
+  }
+
+  if (mode === 'error'){
+    status.textContent = msg || 'Error al cargar';
+    status.style.display = 'block';
+    status.style.color = '#b3261e';
+    empty.style.display = 'none';
+    box.innerHTML = '';
+    return;
+  }
+
+  if (mode === 'empty'){
+    status.style.display = 'none';
+    status.style.color = 'inherit';
+    empty.textContent = msg || 'Sin registros.';
+    empty.style.display = 'block';
+    box.innerHTML = '';
+    return;
+  }
+
+  status.style.display = 'none';
+  status.style.color = 'inherit';
+  status.textContent = '';
+  empty.style.display = 'none';
+}
+
+function setDetailState(mode, msg){
+  const stateEl = qs('#detailState');
+  if (!stateEl) return;
+  if (mode === 'loading'){
+    stateEl.textContent = msg || 'Cargando...';
+    stateEl.style.display = 'block';
+    stateEl.style.color = 'inherit';
+    return;
+  }
+  if (mode === 'error'){
+    stateEl.textContent = msg || 'No se pudo cargar el detalle';
+    stateEl.style.display = 'block';
+    stateEl.style.color = '#b3261e';
+    return;
+  }
+  stateEl.style.display = 'none';
+  stateEl.style.color = 'inherit';
+  stateEl.textContent = '';
+}
+
 /* =========================
    UI: Navegación por pantallas
 ========================= */
@@ -180,9 +326,9 @@ function setActiveTab(entity){
 ========================= */
 function loadDashboard(){
   // KPI simples (mock)
-  if (qs('#kpiVentasMes')) qs('#kpiVentasMes').textContent = '—';
-  if (qs('#kpiCobrado')) qs('#kpiCobrado').textContent = '—';
-  if (qs('#kpiPendiente')) qs('#kpiPendiente').textContent = '—';
+  if (qs('#kpiVentasMes')) qs('#kpiVentasMes').textContent = '-';
+  if (qs('#kpiCobrado')) qs('#kpiCobrado').textContent = '-';
+  if (qs('#kpiPendiente')) qs('#kpiPendiente').textContent = '-';
 
   if (qs('#kpiFactPendientes')) qs('#kpiFactPendientes').textContent = '—';
   if (qs('#kpiFactPendientesSub')) qs('#kpiFactPendientesSub').textContent = '—';
@@ -191,9 +337,280 @@ function loadDashboard(){
   if (qs('#kpiRepercutido')) qs('#kpiRepercutido').textContent = '—';
   if (qs('#kpiSoportado')) qs('#kpiSoportado').textContent = '—';
 
-  if (qs('#kpiGastoDeducible')) qs('#kpiGastoDeducible').textContent = '—';
-  if (qs('#kpiCompras')) qs('#kpiCompras').textContent = '—';
-  if (qs('#kpiOperacion')) qs('#kpiOperacion').textContent = '—';
+  if (qs('#kpiGastoDeducible')) qs('#kpiGastoDeducible').textContent = '-';
+  if (qs('#kpiCompras')) qs('#kpiCompras').textContent = '-';
+  if (qs('#kpiOperacion')) qs('#kpiOperacion').textContent = '-';
+}
+
+/* =========================
+   PRESUPUESTOS (API)
+========================= */
+function mapPresupuestoToView(p){
+  if (!p) return null;
+  const amount = (typeof p.total === 'number') ? p.total : (typeof p.base === 'number' ? p.base : null);
+  return {
+    id: p.id || p.Pres_ID,
+    title: p.cliente || p.clienteId || p.id,
+    sub: `${formatDateText(p.fecha || p.fechaRaw)} | ${p.estado || '-'}`,
+    status: p.estado || '',
+    amount,
+    clientId: p.clienteId || '',
+    email: p.email || '',
+    phone: p.telefono || '',
+    address: p.direccion || '',
+    base: p.base ?? null,
+    total: p.total ?? null,
+    pdfUrl: p.pdfUrl || p.PDF_link || (p.raw && p.raw.PDF_link) || '',
+    fecha: p.fecha || p.fechaRaw || '',
+    notas: p.notas || '',
+    lineas: Array.isArray(p.lineas) ? p.lineas : []
+  };
+}
+
+function mapEntityListRow_(entity, row){
+  if (!row) return null;
+
+  if (entity === 'clientes' || entity === 'leads'){
+    const id = row.id || pickValue_(row, ['Cliente_ID', 'Lead_ID', 'ID']);
+    const name = row.nombre || pickValue_(row, ['Nombre', 'Cliente', 'Lead_Nombre']);
+    const email = row.email || pickValue_(row, ['Email', 'Email_cliente', 'Lead_Email']);
+    const phone = row.telefono || pickValue_(row, ['Telefono', 'Lead_Telefono', 'Phone']);
+    const status = row.estado || pickValue_(row, ['Estado', 'Status']);
+    return {
+      id,
+      title: name || id,
+      sub: joinParts_([
+        email ? `Email: ${email}` : '',
+        phone ? `Tel: ${phone}` : ''
+      ]),
+      right: status || '',
+      status: status || ''
+    };
+  }
+
+  if (entity === 'facturas'){
+    const id = pickValue_(row, ['Factura_ID', 'Numero_factura', 'ID']);
+    const cliente = pickValue_(row, ['Cliente', 'Cliente_nombre', 'Nombre']);
+    const clienteId = pickValue_(row, ['Cliente_ID', 'ClienteId', 'Lead_ID']);
+    const status = pickValue_(row, ['Estado', 'Status']);
+    const total = toNumber_(pickValue_(row, ['Total', 'Importe_total', 'Total_con_IVA', 'Importe']));
+    const base = toNumber_(pickValue_(row, ['Base', 'Subtotal', 'Base_imponible']));
+    const amount = total != null ? total : base;
+    return {
+      id,
+      title: id ? `Factura ${id}` : (cliente || 'Factura'),
+      sub: joinParts_([clienteId || cliente, status]),
+      right: amount != null ? formatMoney(amount) : (status || ''),
+      status: status || '',
+      clientId: clienteId || ''
+    };
+  }
+
+  if (entity === 'gastos'){
+    const id = pickValue_(row, ['Gasto_ID', 'ID']);
+    const proveedor = pickValue_(row, ['Proveedor', 'Empresa']);
+    const concepto = pickValue_(row, ['Concepto', 'Descripcion', 'Detalle']);
+    const categoria = pickValue_(row, ['Categoria', 'Tipo']);
+    const total = toNumber_(pickValue_(row, ['Total', 'Importe_total', 'Total_con_IVA', 'Importe']));
+    const base = toNumber_(pickValue_(row, ['Base', 'Subtotal', 'Base_imponible']));
+    const amount = total != null ? total : base;
+    return {
+      id,
+      title: concepto || proveedor || id || 'Gasto',
+      sub: joinParts_([proveedor, categoria]),
+      right: amount != null ? formatMoney(amount) : (categoria || ''),
+      status: categoria || '',
+      clientId: pickValue_(row, ['Cliente_ID', 'ClienteId']) || ''
+    };
+  }
+
+  return null;
+}
+
+function mapEntityDetail_(entity, row){
+  if (!row) return null;
+
+  if (entity === 'clientes' || entity === 'leads'){
+    const id = row.id || pickValue_(row, ['Cliente_ID', 'Lead_ID', 'ID']);
+    const name = row.nombre || pickValue_(row, ['Nombre', 'Cliente', 'Lead_Nombre']);
+    const email = row.email || pickValue_(row, ['Email', 'Email_cliente', 'Lead_Email']);
+    const phone = row.telefono || pickValue_(row, ['Telefono', 'Lead_Telefono', 'Phone']);
+    const address = pickValue_(row, ['Direccion', 'Address', 'Direccion_cliente']);
+    const status = row.estado || pickValue_(row, ['Estado', 'Status']);
+    return {
+      id,
+      title: name || id,
+      sub: joinParts_([
+        email ? `Email: ${email}` : '',
+        phone ? `Tel: ${phone}` : ''
+      ]),
+      status: status || '',
+      email,
+      phone,
+      address
+    };
+  }
+
+  if (entity === 'facturas'){
+    const id = pickValue_(row, ['Factura_ID', 'Numero_factura', 'ID']);
+    const cliente = pickValue_(row, ['Cliente', 'Cliente_nombre', 'Nombre']);
+    const clienteId = pickValue_(row, ['Cliente_ID', 'ClienteId', 'Lead_ID']);
+    const status = pickValue_(row, ['Estado', 'Status']);
+    const fecha = pickValue_(row, ['Fecha', 'Fecha_emision', 'Fecha_factura']);
+    const total = toNumber_(pickValue_(row, ['Total', 'Importe_total', 'Total_con_IVA', 'Importe']));
+    const base = toNumber_(pickValue_(row, ['Base', 'Subtotal', 'Base_imponible']));
+    const amount = total != null ? total : base;
+    return {
+      id,
+      title: id ? `Factura ${id}` : (cliente || 'Factura'),
+      status: status || '',
+      amount,
+      base,
+      total,
+      clientId: clienteId || '',
+      fecha
+    };
+  }
+
+  if (entity === 'gastos'){
+    const id = pickValue_(row, ['Gasto_ID', 'ID']);
+    const proveedor = pickValue_(row, ['Proveedor', 'Empresa']);
+    const concepto = pickValue_(row, ['Concepto', 'Descripcion', 'Detalle']);
+    const categoria = pickValue_(row, ['Categoria', 'Tipo']);
+    const fecha = pickValue_(row, ['Fecha']);
+    const total = toNumber_(pickValue_(row, ['Total', 'Importe_total', 'Total_con_IVA', 'Importe']));
+    const base = toNumber_(pickValue_(row, ['Base', 'Subtotal', 'Base_imponible']));
+    const amount = total != null ? total : base;
+    return {
+      id,
+      title: concepto || proveedor || id || 'Gasto',
+      status: categoria || '',
+      amount,
+      base,
+      total,
+      clientId: pickValue_(row, ['Cliente_ID', 'ClienteId']) || '',
+      fecha
+    };
+  }
+
+  return null;
+}
+
+async function fetchEntityList(entity, search, filterClientId){
+  const label = entity === 'clientes' ? 'clientes'
+    : entity === 'leads' ? 'leads'
+      : entity === 'facturas' ? 'facturas'
+        : entity === 'gastos' ? 'gastos'
+          : 'registros';
+  setListState('loading', `Cargando ${label}...`);
+
+  try {
+    let items = [];
+    if (entity === 'clientes'){
+      items = await callServer('apiListClientes', { q: search || '' });
+    } else if (entity === 'leads'){
+      items = await callServer('apiListLeads', { q: search || '' });
+    } else {
+      items = await callServer('apiList', entity, { q: search || '', limit: 120 });
+    }
+
+    let rows = (Array.isArray(items) ? items : []).map(r => mapEntityListRow_(entity, r)).filter(r => r && r.id);
+    if (filterClientId && entity !== 'clientes'){
+      const needle = String(filterClientId).toLowerCase();
+      rows = rows.filter(r => (r.clientId || '').toString().toLowerCase() === needle);
+    }
+
+    if (!rows.length){
+      renderListItems(entity, []);
+      setListState('empty', 'Sin registros.');
+      return;
+    }
+
+    setListState();
+    renderListItems(entity, rows);
+  } catch (err) {
+    console.error(err);
+    setListState('error', err.message || 'No se pudo cargar');
+  }
+}
+
+async function loadEntityDetail(entity, id){
+  showScreen('screen-detalle');
+  setDetailState('loading', 'Cargando detalle...');
+  try {
+    const res = await callServer('apiGet', entity, id);
+    const view = mapEntityDetail_(entity, res);
+    if (!view) throw new Error('No se encontro informacion');
+    setDetailState();
+    loadDetail(entity, view.id, view);
+  } catch (err) {
+    console.error(err);
+    setDetailState('error', err.message || 'No se pudo cargar el detalle');
+    toast('Error', err.message || 'No se pudo cargar el detalle', 'error');
+  }
+}
+
+async function fetchPresupuestos(search, filterClientId){
+  setListState('loading', 'Cargando presupuestos...');
+  try {
+    const res = await callServer('apiListPresupuestos', { q: search || '', includeHistorial: false });
+    const items = Array.isArray(res) ? res : (Array.isArray(res?.items) ? res.items : []);
+    store.presupuestos = items;
+
+    let list = store.presupuestos.slice();
+    if (filterClientId){
+      const needle = String(filterClientId).toLowerCase();
+      list = list.filter(p => {
+        const cid = (p.clienteId || p.Cliente_ID || p.Lead_ID || '').toString().toLowerCase();
+        const cname = (p.cliente || '').toString().toLowerCase();
+        return cid === needle || cname.includes(needle);
+      });
+    }
+
+    if (!list.length){
+      renderListItems('proformas', []);
+      setListState('empty', filterClientId ? 'Sin presupuestos para este cliente' : 'Sin presupuestos aún');
+      return;
+    }
+
+    const rows = list.map(p => {
+      const view = mapPresupuestoToView(p);
+      return {
+        id: view.id,
+        title: view.title,
+        sub: view.sub,
+        right: view.amount != null ? formatMoney(view.amount) : '',
+        status: view.status,
+        clientId: view.clientId
+      };
+    });
+
+    setListState();
+    renderListItems('proformas', rows);
+  } catch (err) {
+    console.error(err);
+    setListState('error', err.message || 'No se pudo cargar presupuestos');
+  }
+}
+
+async function loadPresupuestoDetail(id){
+  showScreen('screen-detalle');
+  setDetailState('loading', 'Cargando presupuesto...');
+  try {
+    const cached = store.presDetalle[id];
+    const res = cached || await callServer('apiGetPresupuesto', id);
+    if (!cached) store.presDetalle[id] = res;
+
+    const view = mapPresupuestoToView(res);
+    if (!view) throw new Error('No se encontró información del presupuesto');
+
+    setDetailState();
+    loadDetail('proformas', view.id, view);
+  } catch (err) {
+    console.error(err);
+    setDetailState('error', err.message || 'Error al obtener presupuesto');
+    toast('Error', err.message || 'No se pudo cargar el presupuesto', 'error');
+  }
 }
 
 /* =========================
@@ -224,6 +641,17 @@ function renderListItems(entity, rows){
 
 function loadList(entity){
   const q = (qs('#q')?.value || '').toLowerCase().trim();
+
+  if (!state.useMock){
+    if (entity === 'proformas'){
+      fetchPresupuestos(q, state.listFilterClientId);
+      return;
+    }
+    fetchEntityList(entity, q, state.listFilterClientId);
+    return;
+  }
+
+  setListState();
   let rows = (MOCK[entity] || []);
 
   // Filtro por cliente (historial)
@@ -240,52 +668,59 @@ function loadList(entity){
   }
 
   renderListItems(entity, rows);
+
+  if (!rows.length){
+    setListState('empty', 'Sin registros.');
+  }
 }
 
 /* =========================
    DETALLE (render reusable)
 ========================= */
-function loadDetail(entity, id){
+function loadDetail(entity, id, detailData){
   state.detail.entity = entity;
   state.detail.id = id;
 
-  const data = (MOCK_DETAIL?.[entity]?.[id]) || null;
+  const fallback = (MOCK_DETAIL?.[entity]?.[id]) || null;
+  const data = detailData || fallback;
+  state.detail.clientId = data?.clientId || data?.clienteId || null;
 
-  // Head
-  qs('#detailId') && (qs('#detailId').textContent = id || '—');
-  qs('#detailTitle') && (qs('#detailTitle').textContent = data?.title || data?.id || 'No hay mock para este ID');
-  qs('#detailSub') && (qs('#detailSub').textContent = data?.sub || 'Añádelo en MOCK_DETAIL para verlo dinámico');
+  const statusText = data?.status || data?.estado || '';
+  const amountVal = (typeof data?.amount === 'number')
+    ? data.amount
+    : (typeof data?.total === 'number')
+      ? data.total
+      : (typeof data?.base === 'number' ? data.base : null);
 
-  // Type pill
+  const subPieces = [];
+  if (data?.fecha) subPieces.push(`Fecha: ${formatDateText(data.fecha)}`);
+  if (statusText) subPieces.push(`Estado: ${statusText}`);
+  if (data?.sub && !subPieces.length) subPieces.push(data.sub);
+
+  qs('#detailId') && (qs('#detailId').textContent = id || '-');
+  qs('#detailTitle') && (qs('#detailTitle').textContent = data?.title || data?.cliente || data?.id || id || 'Sin datos');
+  qs('#detailSub') && (qs('#detailSub').textContent = subPieces.join(' | ') || data?.sub || 'Sin informacion');
+
   const pill = qs('#detailTypePill');
   if (pill){
-    pill.textContent = entity;
+    pill.textContent = entity === 'proformas' ? 'Presupuesto' : entity;
   }
 
-  // Status pill
   const statusPill = qs('#detailStatusPill');
   if (statusPill){
-    const st = data?.status;
-    statusPill.style.display = st ? 'inline-flex' : 'none';
-    statusPill.textContent = st || '—';
+    statusPill.style.display = statusText ? 'inline-flex' : 'none';
+    statusPill.textContent = statusText || '-';
   }
 
-  // Amount
   const amountEl = qs('#detailAmount');
   if (amountEl){
-    const amt = (typeof data?.amount === 'number') ? data.amount : null;
-    amountEl.style.display = amt != null ? 'block' : 'none';
-    amountEl.textContent = amt != null ? `${amt.toLocaleString('es-ES', {minimumFractionDigits:0, maximumFractionDigits:2})} €` : '';
+    amountEl.style.display = amountVal != null ? 'block' : 'none';
+    amountEl.textContent = amountVal != null ? formatMoney(amountVal) : '';
   }
 
-  // Acciones principales + meta + quick
   renderDetail(entity, id, data);
+  renderDetailLines(data?.lineas);
 
-  // Líneas (mock vacío)
-  qs('#detailLines') && (qs('#detailLines').innerHTML = '');
-  qs('#detailLinesEmpty') && (qs('#detailLinesEmpty').textContent = 'Sin líneas.');
-
-  // Ajusta nav activo
   if (entity === 'clientes') setNavActive('clientes');
   if (entity === 'leads') setNavActive('clientes');
   if (entity === 'facturas') setNavActive('facturas');
@@ -301,6 +736,12 @@ function renderDetail(entity, id, data){
   if (actionsMain) actionsMain.innerHTML = '';
   if (meta) meta.innerHTML = '';
   if (quick) quick.innerHTML = '';
+
+  const status = data?.status || data?.estado || '';
+  const clientId = data?.clientId || data?.clienteId || null;
+  const amountVal = (typeof data?.amount === 'number') ? data.amount : (typeof data?.total === 'number' ? data.total : null);
+  const baseVal = (typeof data?.base === 'number') ? data.base : null;
+  const fechaVal = data?.fecha || '';
 
   // LEAD
   if (entity === 'leads'){
@@ -444,7 +885,6 @@ function renderDetail(entity, id, data){
   }
 
   // FACTURA / PROFORMA / GASTO
-  const clientId = data?.clientId || null;
   state.detail.clientId = clientId;
 
   if (actionsMain){
@@ -461,19 +901,23 @@ function renderDetail(entity, id, data){
           <span aria-hidden="true"><</span> Volver a cliente
         </button>
       `;
+    
     } else if (entity === 'proformas'){
       actionsMain.innerHTML = `
+        <button class="cc-btn cc-btn--primary cc-btn--wide" type="button" data-action="generar_pdf" data-entity="proformas" data-id="${escapeHtml(id)}">
+          <span aria-hidden="true">?</span> Generar PDF
+        </button>
         <button class="cc-btn cc-btn--primary cc-btn--wide" type="button" data-action="abrir_pdf" data-entity="proformas" data-id="${escapeHtml(id)}">
-          <span aria-hidden="true">📄</span> Abrir PDF
+          <span aria-hidden="true">??</span> Abrir PDF
         </button>
         <button class="cc-btn cc-btn--wide" type="button" data-action="aceptar_proforma" data-entity="proformas" data-id="${escapeHtml(id)}">
-          <span aria-hidden="true">✅</span> Aceptar
+          <span aria-hidden="true">??</span> Aceptar
         </button>
-        <button class="cc-btn cc-btn--wide" type="button" data-action="convertir_factura" data-entity="proformas" data-id="${escapeHtml(id)}">
-          <span aria-hidden="true">🧾</span> Convertir a factura
+        <button class="cc-btn cc-btn--wide" type="button" data-action="crear_factura" data-entity="proformas" data-id="${escapeHtml(id)}">
+          <span aria-hidden="true">??</span> Crear factura
         </button>
         <button class="cc-btn cc-btn--wide" type="button" data-action="perder_proforma" data-entity="proformas" data-id="${escapeHtml(id)}">
-          <span aria-hidden="true">❌</span> Marcar perdida
+          <span aria-hidden="true">?</span> Marcar perdida
         </button>
       `;
     } else if (entity === 'gastos'){
@@ -523,6 +967,43 @@ function renderDetail(entity, id, data){
   }
 }
 
+function renderDetailLines(lines){
+  const box = qs('#detailLines');
+  const empty = qs('#detailLinesEmpty');
+  if (!box || !empty) return;
+
+  if (!Array.isArray(lines) || !lines.length){
+    box.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+
+  empty.style.display = 'none';
+  box.innerHTML = lines.map(l => {
+    const parts = [];
+    if (l?.cantidad != null && l?.precio != null){
+      parts.push(`Cant: ${l.cantidad} x ${formatMoney(l.precio)}`);
+    } else if (l?.cantidad != null){
+      parts.push(`Cant: ${l.cantidad}`);
+    }
+    if (l?.dto != null) parts.push(`Dto: ${l.dto}%`);
+    if (l?.iva != null) parts.push(`IVA: ${l.iva}%`);
+
+    const meta = parts.length ? parts.join(' · ') : '';
+    const total = (typeof l?.subtotal === 'number')
+      ? l.subtotal
+      : (typeof l?.base === 'number' ? l.base : null);
+
+    return `
+      <div class="cc-lineItem">
+        <div class="cc-lineTitle">${escapeHtml(l?.concepto || l?.descripcion || l?.Descripcion || '')}</div>
+        <div class="cc-lineSub">${escapeHtml(total != null ? formatMoney(total) : '')}</div>
+        <div class="cc-lineMeta">${escapeHtml(meta)}</div>
+      </div>
+    `;
+  }).join('');
+}
+
 /* =========================
    Router de acciones (ÚNICO)
    Maneja SOLO elementos con [data-action]
@@ -533,7 +1014,12 @@ function runAction(action, entity, id, dataset){
   // Toggle mock
   if (a === 'toggle_mock'){
     state.useMock = !state.useMock;
+    saveMockPreference_();
+    updateMockChip_();
     toast('Mock', state.useMock ? 'Activado' : 'Desactivado', 'info');
+    if (state.lastScreen === 'screen-listas' && state.currentEntity){
+      loadList(state.currentEntity);
+    }
     return;
   }
 
@@ -621,10 +1107,81 @@ function runAction(action, entity, id, dataset){
   }
 
   // Acciones de FACTURA / PROFORMA / GASTO (detalle)
-  if (a === 'abrir_pdf'){ toast('PDF', `Mock: abrir PDF de ${id}`, 'ok'); return; }
+  if (a === 'generar_pdf'){
+    if (state.useMock){
+      toast('PDF', `Mock: generar PDF de ${id}`, 'ok');
+      return;
+    }
+    if (entity !== 'proformas'){
+      toast('PDF', 'Generar PDF solo disponible en proformas desde la app', 'info');
+      return;
+    }
+    toast('Generando', `Generando PDF ${id}...`, 'info');
+    callServer('apiGeneratePresupuestoPdf', id)
+      .then((res) => {
+        const url = res && (res.pdfUrl || res.url);
+        if (store.presDetalle[id]) store.presDetalle[id].pdfUrl = url || store.presDetalle[id].pdfUrl;
+        if (url){
+          toast('PDF', 'PDF listo', 'ok');
+          try { window.open(url, '_blank'); } catch (_) {}
+        } else {
+          toast('PDF', 'No se recibio URL del PDF', 'info');
+        }
+      })
+      .catch((err) => toast('Error', err?.message || 'No se pudo generar el PDF', 'error'));
+    return;
+  }
+  if (a === 'abrir_pdf'){
+    if (entity === 'proformas' && !state.useMock){
+      const detail = store.presDetalle[id];
+      const saved = detail?.pdfUrl || detail?.PDF_link || '';
+      if (saved){
+        try { window.open(saved, '_blank'); } catch (_) { toast('PDF', saved, 'info'); }
+        return;
+      }
+      toast('PDF', 'Generando PDF porque no hay enlace guardado...', 'info');
+      callServer('apiGeneratePresupuestoPdf', id)
+        .then((res) => {
+          const link = res && (res.pdfUrl || res.url);
+          if (store.presDetalle[id]) store.presDetalle[id].pdfUrl = link || store.presDetalle[id].pdfUrl;
+          if (link){
+            try { window.open(link, '_blank'); } catch (_) {}
+          } else {
+            toast('PDF', 'No se pudo obtener el PDF', 'error');
+          }
+        })
+        .catch((err) => toast('Error', err?.message || 'No se pudo abrir el PDF', 'error'));
+      return;
+    }
+    toast('PDF', `Mock: abrir PDF de ${id}`, 'ok');
+    return;
+  }
   if (a === 'marcar_pagada'){ toast('Listo', `Factura ${id} marcada como pagada (mock)`, 'ok'); return; }
   if (a === 'aceptar_proforma'){ toast('Listo', `Proforma ${id} aceptada (mock)`, 'ok'); return; }
   if (a === 'convertir_factura'){ toast('Listo', `Convertir ${id} a factura (mock)`, 'ok'); return; }
+  if (a === 'crear_factura'){
+    if (state.useMock){
+      toast('Listo', `Crear factura desde ${id} (mock)`, 'ok');
+      return;
+    }
+    if (!id){
+      toast('Error', 'Pres_ID vacio', 'info');
+      return;
+    }
+    toast('Factura', `Creando factura desde ${id}...`, 'info');
+    callServer('apiCrearFacturaDesdePresupuesto', id, { regenerarPdf: false })
+      .then((res) => {
+        const facturaId = res?.facturaId || '';
+        const pdfUrl = res?.pdfUrl || '';
+        const msg = res?.alreadyExisted ? `Factura existente: ${facturaId}` : `Factura creada: ${facturaId}`;
+        toast('Factura', msg, 'ok');
+        if (pdfUrl){
+          try { window.open(pdfUrl, '_blank'); } catch (_) {}
+        }
+      })
+      .catch((err) => toast('Error', err?.message || 'No se pudo crear la factura', 'error'));
+    return;
+  }
   if (a === 'perder_proforma'){ toast('Listo', `Proforma ${id} marcada como perdida (mock)`, 'ok'); return; }
   if (a === 'adjuntar_pdf'){ toast('Listo', `Adjuntar PDF a ${id} (mock)`, 'ok'); return; }
   if (a === 'editar_gasto'){ toast('Editar', `Editar gasto ${id} (mock)`, 'info'); return; }
@@ -661,7 +1218,23 @@ function runAction(action, entity, id, dataset){
   }
 
   // fuente / pendientes etc
-  if (a === 'ver_fuente'){ toast('Fuente', 'Mock: abrir spreadsheet', 'info'); return; }
+  if (a === 'ver_fuente'){
+    if (state.useMock){
+      toast('Fuente', 'Mock: abrir spreadsheet', 'info');
+      return;
+    }
+    callServer('apiPresupuestosDebug')
+      .then((res) => {
+        const pres = res?.sheets?.PRESUPUESTOS || {};
+        const hist = res?.sheets?.HISTORIAL_PRESUPUESTOS || {};
+        const msg = `SS: ${res?.spreadsheetId || '-'} | PRESUPUESTOS: ${pres.dataRows || 0} | HIST: ${hist.dataRows || 0}`;
+        toast('Fuente', msg, 'info');
+      })
+      .catch((err) => {
+        toast('Fuente', err?.message || 'No se pudo leer el debug', 'info');
+      });
+    return;
+  }
   if (a === 'ir_facturas_pendientes'){ goToList('facturas', null); return; }
 
   // default
@@ -767,7 +1340,17 @@ document.addEventListener('click', (e) => {
     if (!entity || !id) return;
     e.preventDefault();
 
+    if (!state.useMock){
+      if (entity === 'proformas'){
+        loadPresupuestoDetail(id);
+        return;
+      }
+      loadEntityDetail(entity, id);
+      return;
+    }
+
     showScreen('screen-detalle');
+    setDetailState();
     loadDetail(entity, id);
     return;
   }
@@ -786,9 +1369,11 @@ document.addEventListener('input', (e) => {
    INIT APP
 ========================= */
 document.addEventListener('DOMContentLoaded', () => {
+  loadMockPreference_();
   loadDashboard();
   initNav();
   initListTabs();
+  updateMockChip_();
 
   // estado inicial
   showScreen('screen-home');

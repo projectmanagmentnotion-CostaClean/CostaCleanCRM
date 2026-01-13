@@ -1,5 +1,11 @@
 function onEdit(e) {
   try {
+    if (typeof ccNormalizeEstadoOnEdit_ === 'function') ccNormalizeEstadoOnEdit_(e);
+  } catch (err) {
+    logTriggerError_('ccNormalizeEstadoOnEdit_', err, e);
+  }
+
+  try {
     if (typeof onEdit_clientes === 'function') onEdit_clientes(e);
   } catch (err) {
     logTriggerError_('onEdit_clientes', err, e);
@@ -16,6 +22,13 @@ function onEdit(e) {
   } catch (err) {
     logTriggerError_('onEditPresupuestos_', err, e);
   }
+
+  try {
+    if (typeof ccMarkViewsDirty_ === 'function') ccMarkViewsDirty_();
+    if (typeof ccInvalidateIndex_ === 'function') ccInvalidateIndex_();
+  } catch (err) {
+    logTriggerError_('ccMarkViewsDirty_', err, e);
+  }
 }
 
 function onOpen(e) {
@@ -23,6 +36,21 @@ function onOpen(e) {
     if (typeof onOpenMain_ === 'function') onOpenMain_(e);
   } catch (err) {
     logTriggerError_('onOpenMain_', err, e);
+  }
+}
+
+function onFormSubmit(e) {
+  try {
+    if (typeof onFormSubmitPresupuesto === 'function') onFormSubmitPresupuesto(e);
+  } catch (err) {
+    logTriggerError_('onFormSubmitPresupuesto', err, e);
+  }
+
+  try {
+    if (typeof ccMarkViewsDirty_ === 'function') ccMarkViewsDirty_();
+    if (typeof ccInvalidateIndex_ === 'function') ccInvalidateIndex_();
+  } catch (err) {
+    logTriggerError_('ccMarkViewsDirty_', err, e);
   }
 }
 

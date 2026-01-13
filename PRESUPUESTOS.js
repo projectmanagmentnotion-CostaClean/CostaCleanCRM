@@ -19,7 +19,7 @@
 /** ====== AJUSTES ====== */
 
 // Carpeta fija pedida (override)
-const PRES_FOLDER_ID_OVERRIDE = '1b4R5P30DULl-Fp_PY8dmuVLg6UfuJjo9';
+const PRES_FOLDER_ID_OVERRIDE = CC_DEFAULT_IDS.PRESUPUESTOS_FOLDER_ID;
 
 // Cuántas líneas reserva al crear presupuesto
 const PRES_LINEAS_PRECREADAS = 5;
@@ -34,6 +34,10 @@ const SH_PRES_HIST       = 'HISTORIAL_PRESUPUESTOS';
 const SH_AI_CONFIG = 'AI_CONFIG';
 const SH_AI_LOG    = 'AI_LOG';
 const PROP_OPENAI_KEY = 'OPENAI_API_KEY';
+const PROP_PRES_PDF_FOLDER_ID = 'PRES_Pdf_Folder_Id';
+const PROP_PRES_TEMPLATE_ID   = 'PRES_Template_DocId';
+const DEFAULT_PRES_PDF_FOLDER_NAME = 'Costa Clean - Presupuestos PDF';
+const DEFAULT_PRES_TEMPLATE_NAME   = 'Plantilla Presupuesto Costa Clean';
 
 // Estados dropdown (hoja PRESUPUESTOS)
 const PRES_ESTADOS = ['BORRADOR', 'ENVIADO', 'ACEPTADO', 'PERDIDO'];
@@ -309,6 +313,23 @@ function presBuildRow_(headers, values) {
   return headers.map((h) => (Object.prototype.hasOwnProperty.call(values, h) ? values[h] : ''));
 }
 
+function presPickValue_(obj, candidates) {
+  if (!obj) return '';
+  const keys = Object.keys(obj);
+  for (let i = 0; i < candidates.length; i++) {
+    const target = String(candidates[i] || '').toLowerCase();
+    const match = keys.find((k) => String(k || '').toLowerCase() === target);
+    if (match) return obj[match];
+  }
+  return '';
+}
+
+function presToDate_(v) {
+  if (v instanceof Date && !isNaN(v.getTime())) return v;
+  const d = new Date(v);
+  return isNaN(d.getTime()) ? null : d;
+}
+
 function presGetLeadSelection_(ss) {
   const sh = ss.getActiveSheet();
   if (sh.getName() !== 'LEADS') return null;
@@ -395,13 +416,169 @@ function getCfgNum_(header, fallback) {
   return isNaN(v) ? fallback : v;
 }
 
+function getCfgOptional_(header) {
+  try {
+    return getCfg_(header);
+  } catch (_) {
+    return '';
+  }
+}
+
+function getCfgAny_(headers) {
+  for (let i = 0; i < headers.length; i++) {
+    const v = getCfgOptional_(headers[i]);
+    if (String(v || '').trim()) return v;
+  }
+  return '';
+}
+
+function getCfgFromSheet_(header) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const cfg = ss.getSheetByName('CONFIG');
+  if (!cfg) return '';
+
+  const headers = cfg.getRange(1, 1, 1, Math.max(cfg.getLastColumn(), 1)).getDisplayValues()[0];
+  const col = headers.indexOf(header) + 1;
+  if (col < 1) return '';
+  return String(cfg.getRange(2, col).getDisplayValue()).trim();
+}
+
+function setCfgValueIfSheet_(header, value) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const cfg = ss.getSheetByName('CONFIG');
+  if (!cfg) return false;
+
+  const headers = cfg.getRange(1, 1, 1, Math.max(cfg.getLastColumn(), 1)).getDisplayValues()[0];
+  let col = headers.indexOf(header) + 1;
+  if (col < 1) {
+    const lastCol = Math.max(cfg.getLastColumn(), 1);
+    cfg.insertColumnsAfter(lastCol, 1);
+    col = lastCol + 1;
+    cfg.getRange(1, col).setValue(header);
+  }
+
+  cfg.getRange(2, col).setValue(value || '');
+  return true;
+}
+
+function presFindHeaderIndex_(headers, candidates) {
+  const lower = (headers || []).map((h) => String(h || '').toLowerCase());
+  for (let i = 0; i < candidates.length; i++) {
+    const idx = lower.indexOf(String(candidates[i] || '').toLowerCase());
+    if (idx !== -1) return idx + 1;
+  }
+  return 0;
+}
+
+function presPickHeaderName_(headers, candidates) {
+  const lower = (headers || []).map((h) => String(h || '').toLowerCase());
+  for (let i = 0; i < candidates.length; i++) {
+    const idx = lower.indexOf(String(candidates[i] || '').toLowerCase());
+    if (idx !== -1) return headers[idx];
+  }
+  return '';
+}
+
+function getPdfConfig_() {
+  const props = PropertiesService.getScriptProperties();
+  const folderId = getCfgAny_(['PRES_Pdf_Folder_Id']) || props.getProperty(PROP_PRES_PDF_FOLDER_ID) || '';
+  const templateId = getCfgAny_(['PRES_Template_DocId']) || props.getProperty(PROP_PRES_TEMPLATE_ID) || CC_DEFAULT_IDS.PRESUPUESTO_TEMPLATE_ID || '';
+
+  const resolvedFolderId = folderId || props.getProperty('PRES_FOLDER_ID_OVERRIDE') || PRES_FOLDER_ID_OVERRIDE || '';
+  return { folderId: resolvedFolderId, templateId: templateId || '' };
+}
+
+function savePdfConfigIds_(folderId, templateId) {
+  const props = PropertiesService.getScriptProperties();
+  if (folderId) props.setProperty(PROP_PRES_PDF_FOLDER_ID, folderId);
+  if (templateId) props.setProperty(PROP_PRES_TEMPLATE_ID, templateId);
+
+  setCfgValueIfSheet_('PRES_Pdf_Folder_Id', folderId || '');
+  setCfgValueIfSheet_('PRES_Template_DocId', templateId || '');
+}
+
+function createDefaultPresTemplate_(folder) {
+  const doc = DocumentApp.create(DEFAULT_PRES_TEMPLATE_NAME);
+  const body = doc.getBody();
+
+  body.appendParagraph('Presupuesto {{Pres_ID}}').setHeading(DocumentApp.ParagraphHeading.HEADING1);
+  body.appendParagraph('');
+  body.appendParagraph('Datos del cliente').setHeading(DocumentApp.ParagraphHeading.HEADING2);
+  body.appendTable([
+    ['Fecha', '{{Fecha}}'],
+    ['Cliente', '{{Cliente}}'],
+    ['Email', '{{Email_cliente}}'],
+    ['Direccion', '{{Direccion}}'],
+    ['Ciudad', '{{Ciudad}}'],
+    ['Base imponible', '{{Base}}'],
+    ['Total', '{{Total}}']
+  ]);
+  body.appendParagraph('Notas').setHeading(DocumentApp.ParagraphHeading.HEADING2);
+  body.appendParagraph('{{Notas}}');
+  body.appendParagraph('');
+  body.appendParagraph('Lineas del presupuesto').setHeading(DocumentApp.ParagraphHeading.HEADING2);
+  body.appendParagraph('{{LINEAS_TABLA}}');
+
+  doc.saveAndClose();
+
+  if (folder) {
+    const file = DriveApp.getFileById(doc.getId());
+    try { file.moveTo(folder); } catch (_) { folder.addFile(file); }
+  }
+
+  return doc.getId();
+}
+
+function setupPdfSystem() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const log = (resultado, mensaje, data) => {
+    if (typeof logEvent_ === 'function') {
+      logEvent_(ss, 'PRESUPUESTOS', 'SETUP_PDF', 'SYSTEM', '', resultado, mensaje || '', data || null);
+    }
+  };
+
+  try {
+    presAsegurarEstructura_();
+    const cfg = getPdfConfig_();
+
+    let folder = null;
+    if (cfg.folderId) {
+      try { folder = DriveApp.getFolderById(cfg.folderId); } catch (_) {}
+    }
+    let createdFolder = false;
+    if (!folder) {
+      const it = DriveApp.getFoldersByName(DEFAULT_PRES_PDF_FOLDER_NAME);
+      folder = it.hasNext() ? it.next() : DriveApp.createFolder(DEFAULT_PRES_PDF_FOLDER_NAME);
+      createdFolder = true;
+    }
+
+    let templateId = cfg.templateId;
+    let createdTemplate = false;
+    if (templateId) {
+      try { DriveApp.getFileById(templateId); } catch (_) { templateId = ''; }
+    }
+    if (!templateId) {
+      templateId = createDefaultPresTemplate_(folder);
+      createdTemplate = true;
+    }
+
+    savePdfConfigIds_(folder.getId(), templateId);
+    log('OK', '', { folderId: folder.getId(), templateId, createdFolder, createdTemplate });
+    return { ok: true, folderId: folder.getId(), templateId, createdFolder, createdTemplate };
+  } catch (err) {
+    log('ERROR', err.message || String(err), { stack: err.stack });
+    throw err;
+  }
+}
+
 function getConfigPres_() {
-  // IMPORTANTE: carpetaId lo overrideamos con tu carpeta fija
+  const validezRaw = getCfgAny_(['PRES_Validez_default']);
+  const validezDefault = Number(String(validezRaw || '').replace(',', '.')) || 15;
   return {
-    anio: getCfg_('PRES_Año'),
-    validezDefault: getCfgNum_('PRES_Validez_default', 15),
-    carpetaId: PRES_FOLDER_ID_OVERRIDE,
-    templateId: getCfg_('PRES_Template_DocId')
+    anio: getCfgAny_(['PRES_Año', 'PRES_A?o', 'PRES_Ano']) || String(new Date().getFullYear()),
+    validezDefault: validezDefault,
+    carpetaId: getPdfConfig_().folderId || PRES_FOLDER_ID_OVERRIDE,
+    templateId: getPdfConfig_().templateId || ''
   };
 }
 
@@ -409,9 +586,10 @@ function consumirSiguientePresId_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const cfg = ss.getSheetByName('CONFIG');
 
-  const headers = cfg.getRange(1,1,1,cfg.getLastColumn()).getDisplayValues()[0];
-  const colUlt = headers.indexOf('PRES_Ultimo_numero') + 1;
-  const colAnio = headers.indexOf('PRES_Año') + 1;
+  const headers = cfg.getRange(1,1,1,Math.max(cfg.getLastColumn(),1)).getDisplayValues()[0];
+  const colUlt = presFindHeaderIndex_(headers, ['PRES_Ultimo_numero']);
+  const colAnio = presFindHeaderIndex_(headers, ['PRES_Año','PRES_A?o','PRES_Ano']);
+  if (!colUlt || !colAnio) throw new Error('CONFIG: faltan columnas PRES_Ultimo_numero / PRES_Año');
 
   const anio = String(cfg.getRange(2, colAnio).getDisplayValue()).trim();
   const ultimo = Number(cfg.getRange(2, colUlt).getValue()) || 0;
@@ -663,7 +841,7 @@ function onEditPresupuestos_(e) {
 
     if (col === colEstado) {
       const estado = String(e.range.getDisplayValue() || '').trim();
-      presHandleEstadoChange_(sh, row, estado, headerInfo.map, ensureLeads(), ensureClientes());
+      presHandleEstadoChange_(sh, row, estado, headerInfo.map, ensureLeads(), ensureClientes(), e);
     }
   } finally {
     lock.releaseLock();
@@ -766,7 +944,7 @@ function presHandleLeadSelection_(shPres, row, leadId, leadCache, clientesCache,
   }
 }
 
-function presHandleEstadoChange_(shPres, row, estadoRaw, headerMapPres, leadCache, clientesCache) {
+function presHandleEstadoChange_(shPres, row, estadoRaw, headerMapPres, leadCache, clientesCache, e) {
   const estadoInput = String(estadoRaw || '').trim();
   const estadoUpper = estadoInput.toUpperCase();
 
@@ -779,6 +957,13 @@ function presHandleEstadoChange_(shPres, row, estadoRaw, headerMapPres, leadCach
       shPres.getRange(row, headerMapPres['Fecha_aceptacion']).setValue(new Date());
     }
     presAutoConvertLeadOnAccept_(shPres, row, leadCache, clientesCache);
+    const oldEstado = e ? String(e.oldValue || '').trim().toUpperCase() : '';
+    if (e && estadoUpper !== oldEstado) {
+      try {
+        const ss = e.source || SpreadsheetApp.getActiveSpreadsheet();
+        ss.toast('Presupuesto ACEPTADO. Accion recomendada: Crear factura.', 'PRESUPUESTOS', 6);
+      } catch (_) {}
+    }
   }
 }
 
@@ -987,6 +1172,118 @@ function presGetRowData_(sh, row) {
   return obj;
 }
 
+function presFindPresRow_(shPres, presId) {
+  const headerInfo = presGetHeaderMap_(shPres);
+  const idHeader = presPickHeaderName_(headerInfo.headers, ['Pres_ID']);
+  if (!idHeader) throw new Error('No existe columna Pres_ID en ' + shPres.getName());
+
+  const idCol = headerInfo.map[idHeader] || 1;
+  const last = shPres.getLastRow();
+  if (last < 2) throw new Error('No hay presupuestos');
+
+  const data = shPres.getRange(2, 1, last - 1, shPres.getLastColumn()).getValues();
+  for (let i = 0; i < data.length; i++) {
+    if (String(data[i][idCol - 1]).trim() === String(presId).trim()) {
+      const rowObj = {};
+      headerInfo.headers.forEach((h, idx) => { rowObj[h] = data[i][idx]; });
+      return { rowNumber: i + 2, rowObj, headerInfo };
+    }
+  }
+  throw new Error('No existe Pres_ID: ' + presId);
+}
+
+function presReadLineasPorPresId_(shLin, presId) {
+  const { headers, map } = presGetHeaderMap_(shLin);
+  const idHeader = presPickHeaderName_(headers, ['Pres_ID']);
+  if (!idHeader) throw new Error('No existe columna Pres_ID en ' + shLin.getName());
+
+  const idCol = map[idHeader] || 1;
+  const last = shLin.getLastRow();
+  if (last < 2) return { headers, lineas: [] };
+
+  const data = shLin.getRange(2, 1, last - 1, shLin.getLastColumn()).getValues();
+  const lineas = [];
+  data.forEach((row) => {
+    if (String(row[idCol - 1]).trim() === String(presId).trim()) {
+      const obj = {};
+      headers.forEach((h, idx) => { obj[h] = row[idx]; });
+      lineas.push(obj);
+    }
+  });
+
+  return { headers, lineas };
+}
+
+function presInsertLineasTable_(doc, lineas) {
+  const tokens = ['LINEA_CONCEPTO', 'LINEA_CANTIDAD', 'LINEA_PRECIO', 'LINEA_SUBTOTAL'];
+  const body = doc.getBody();
+  if (!body) throw new Error('Documento sin body.');
+
+  const tables = body.getTables();
+  let table = null;
+  let rowIndex = -1;
+
+  for (let t = 0; t < tables.length && !table; t++) {
+    const rows = tables[t].getNumRows();
+    for (let r = 0; r < rows; r++) {
+      const row = tables[t].getRow(r);
+      const text = row.getText();
+      if (tokens.some((k) => new RegExp(presBuildTokenPattern_(k), 'i').test(text))) {
+        table = tables[t];
+        rowIndex = r;
+        break;
+      }
+    }
+  }
+
+  if (!table || rowIndex < 0) {
+    throw new Error('No se encontro la fila plantilla con placeholders de lineas.');
+  }
+
+  const templateRow = table.getRow(rowIndex).copy();
+  table.removeRow(rowIndex);
+
+  (lineas || []).forEach((linea, idx) => {
+    const row = templateRow.copy();
+    const replacements = {
+      LINEA_CONCEPTO: linea.concepto || '',
+      LINEA_CANTIDAD: presFormatCantidad_(linea.cantidad),
+      LINEA_PRECIO: presMoney2_(linea.precio),
+      LINEA_SUBTOTAL: presMoney2_(linea.subtotal)
+    };
+
+    presReplaceTokensInRow_(row, replacements);
+    table.insertTableRow(rowIndex + idx, row);
+  });
+}
+
+function presReplaceTokensInRow_(row, map) {
+  const cells = row.getNumCells();
+  for (let c = 0; c < cells; c++) {
+    const cell = row.getCell(c);
+    const text = cell.editAsText();
+    Object.keys(map).forEach((key) => {
+      const pattern = presBuildTokenPattern_(key);
+      text.replaceText(pattern, String(map[key] || ''));
+    });
+  }
+}
+
+function presMoney2_(n) {
+  const num = Number(String(n).replace(',', '.'));
+  if (isNaN(num)) return '';
+  return Utilities.formatString('%.2f', num).replace('.', ',');
+}
+
+function presFormatCantidad_(value) {
+  if (value === null || value === undefined || value === '') return '';
+  const raw = String(value).replace(',', '.');
+  const num = Number(raw);
+  if (isNaN(num)) return String(value);
+  if (Math.floor(num) === num) return String(num);
+  return Utilities.formatString('%.2f', num).replace('.', ',');
+}
+
 /** =========================
  * UI: generar PDF + archivar
  * ========================= */
@@ -1046,10 +1343,30 @@ function replaceTokensEverywhere_(doc, map) {
     keys.forEach(key => {
       const value = (map[key] === null || map[key] === undefined) ? '' : String(map[key]);
       // Soporta {{TOKEN}} con espacios: {{ TOKEN }}
-      const pattern = `\\{\\{\\s*${escapeRegex_(key)}\\s*\\}\\}`;
+      const pattern = presBuildTokenPattern_(key);
       c.replaceText(pattern, value);
     });
   });
+}
+
+function presBuildTokenPattern_(key) {
+  return `\\{\\{\\s*${presCaseInsensitiveKeyPattern_(key)}\\s*\\}\\}`;
+}
+
+function presCaseInsensitiveKeyPattern_(key) {
+  const raw = String(key || '');
+  let out = '';
+  for (let i = 0; i < raw.length; i++) {
+    const ch = raw[i];
+    if (/[a-zA-Z]/.test(ch)) {
+      const lower = ch.toLowerCase();
+      const upper = ch.toUpperCase();
+      out += lower === upper ? escapeRegex_(ch) : `[${lower}${upper}]`;
+    } else {
+      out += escapeRegex_(ch);
+    }
+  }
+  return out;
 }
 
 function escapeRegex_(s) {
@@ -1146,199 +1463,153 @@ function archivarPresupuestoEnHistorial_(presId, pdfUrl) {
  * ========================= */
 function generarPDFPresupuesto(presId, options) {
   presAsegurarEstructura_();
-  options = options || { archivar: true };
+  const opts = options || {};
+  const archivar = opts.archivar !== false;
 
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const shPres = ss.getSheetByName(SH_PRES);
   const shLin  = ss.getSheetByName(SH_PRES_LINEAS);
   if (!shPres || !shLin) throw new Error('Faltan hojas ' + SH_PRES + ' o ' + SH_PRES_LINEAS);
 
-  // 1) Buscar fila del presupuesto por Pres_ID
-  const last = shPres.getLastRow();
-  if (last < 2) throw new Error('No hay presupuestos');
-
-  const data = shPres.getRange(2, 1, last - 1, 21).getValues(); // A..U
-  const idx = data.findIndex(r => String(r[0]).trim() === String(presId).trim());
-  if (idx === -1) throw new Error('No existe Pres_ID: ' + presId);
-
-  const row = idx + 2;
-  const vals = data[idx];
-
-  // Columnas PRESUPUESTOS:
-  const fecha    = vals[1];                 // B
-  const vence    = vals[3];                 // D
-  const estado   = String(vals[4] || '');   // E
-  const clienteId= String(vals[5] || '').trim(); // F
-  const cliente  = String(vals[6] || '').trim() || 'Sin_cliente'; // G
-  const email    = String(vals[7] || '').trim(); // H
-  const nif      = String(vals[8] || '').trim(); // I
-  const dir      = String(vals[9] || '').trim(); // J
-  const cp       = String(vals[10]|| '').trim(); // K
-  const ciudad   = String(vals[11]|| '').trim(); // L
-  const notas    = String(vals[15]|| '').trim(); // P
-
-  // 2) Leer líneas del presupuesto (PRES_LINEAS)
-  const lastLin = shLin.getLastRow();
-  if (lastLin < 2) throw new Error('No hay líneas en ' + SH_PRES_LINEAS);
-
-  const lin = shLin.getRange(2,1,Math.max(shLin.getLastRow()-1,1),8).getValues();
-
-const lineas = lin
-  .filter(r => String(r[0]).trim() === String(presId).trim())
-  .filter(r => String(r[2]).trim() && Number(r[3]) > 0 && Number(r[4]) > 0)   // ← SOLO líneas reales
-  .map(r => ({
-    concepto: String(r[2]).trim(),
-    cantidad: Number(r[3]),
-    precio:   Number(r[4]),
-    dto:      Number(r[5]) || 0,
-    iva:      Number(r[6]) || 21,
-    subtotal: Number(r[7]) || (Number(r[3]) * Number(r[4]))
-  }));
-
-if (!lineas.length) throw new Error('No hay líneas válidas en PRES_LINEAS para ' + presId);
-
-
-
-  // 3) Totales
-  let base = 0, ivaTotal = 0;
-  lineas.forEach(l => {
-    const sub = l.subtotal || (l.cantidad * l.precio * (1 - (l.dto/100)));
-    base += sub;
-    ivaTotal += sub * (l.iva/100);
-  });
-  base = Number(base.toFixed(2));
-  ivaTotal = Number(ivaTotal.toFixed(2));
-  const total = Number((base + ivaTotal).toFixed(2));
-
-  // Guardar totales en PRESUPUESTOS M N O
-  shPres.getRange(row, 13).setValue(base);     // M
-  shPres.getRange(row, 14).setValue(ivaTotal); // N
-  shPres.getRange(row, 15).setValue(total);    // O
-
-  // 4) Config (carpeta + plantilla)
-  const { carpetaId, templateId } = getConfigPres_();
-  const folder = DriveApp.getFolderById(carpetaId);
-
-  // 5) Nombre automático (sin prompts)
-  const safeCliente = sanitizeFileName_(cliente);
-  const baseName = sanitizeFileName_(`Presupuesto_${presId}_${safeCliente}`);
-
-  const copy = DriveApp.getFileById(templateId).makeCopy(baseName, folder);
-  const doc = DocumentApp.openById(copy.getId());
-
-  // 6) Emisor
-  const em = getEmisorDesdeFactura_();
-
-  // 7) Token map (incluye variantes que se ven en tu plantilla)
-  const tz = Session.getScriptTimeZone();
-  const FECHA_TXT = Utilities.formatDate(new Date(fecha), tz, 'dd/MM/yyyy');
-  const VENCE_TXT = Utilities.formatDate(new Date(vence), tz, 'dd/MM/yyyy');
-
-  const uniqueIvas = [...new Set(lineas.map(l => l.iva))];
-  const ivaPorc = (uniqueIvas.length === 1) ? String(uniqueIvas[0]) : String(uniqueIvas[0] || 21);
-
-  const map = {
-    // IDs / fechas
-    'PRES_ID': presId,
-    'FECHA': FECHA_TXT,
-    '(FECHA)': FECHA_TXT,
-    'VENCE': VENCE_TXT,
-    '(VENCE)': VENCE_TXT,
-
-    // Emisor
-    'Emisor_nombre': em.nombre || '',
-    'Emisor_NIF': em.nif || '',
-    'Emisor_direccion': em.direccion || '',
-    'Emisor_CP': em.cp || '',
-    'Emisor_ciudad': em.ciudad || '',
-
-    // Cliente
-    'CLIENTE': cliente,
-    'NIF': nif,
-    'DIRECCION': dir,
-    'CP': cp,
-    'CIUDAD': ciudad,
-    'EMAIL': email,
-
-    // Totales
-    'BASE': base.toFixed(2),
-    'IVA_PORC': ivaPorc,
-    'IVA_TOTAL': ivaTotal.toFixed(2),
-    'TOTAL': total.toFixed(2),
-
-    // Notas
-    'NOTAS': notas
+  const log = (resultado, mensaje, data) => {
+    if (typeof logEvent_ === 'function') {
+      logEvent_(ss, 'PRESUPUESTOS', 'PDF', 'PRESUPUESTO', presId, resultado, mensaje || '', data || null);
+    }
   };
 
-  replaceTokensEverywhere_(doc, map);
+  try {
+    const presInfo = presFindPresRow_(shPres, presId);
+    const rowObj = presInfo.rowObj;
 
-  // 8) Tabla de líneas (busca fila plantilla con {{LINEA_CONCEPTO}} etc)
-  const body = doc.getBody();
-  const tables = body.getTables();
-  if (!tables || !tables.length) throw new Error('La plantilla no tiene tabla de líneas');
+    const fechaVal = presPickValue_(rowObj, ['Fecha']);
+    const venceVal = presPickValue_(rowObj, ['Vence_el', 'Vence']);
+    const cliente = String(presPickValue_(rowObj, ['Cliente', 'Lead_Nombre']) || 'Sin_cliente').trim() || 'Sin_cliente';
+    const email = String(presPickValue_(rowObj, ['Email_cliente', 'Lead_Email', 'Email']) || '').trim();
+    const nif = String(presPickValue_(rowObj, ['NIF', 'DNI', 'CIF']) || '').trim();
+    const dir = String(presPickValue_(rowObj, ['Direccion', 'Dirección']) || '').trim();
+    const cp = String(presPickValue_(rowObj, ['CP']) || '').trim();
+    const ciudad = String(presPickValue_(rowObj, ['Ciudad']) || '').trim();
+    const notas = String(presPickValue_(rowObj, ['Notas']) || '').trim();
 
-  let targetTable = null, targetRowIndex = -1;
-  for (const t of tables) {
-    for (let r = 0; r < t.getNumRows(); r++) {
-      const txt = t.getRow(r).getText();
-      if (txt.includes('{{LINEA_CONCEPTO}}') || txt.includes('{{LINEA_CONCEPT0}}')) {
-        targetTable = t;
-        targetRowIndex = r;
-        break;
-      }
+    const lineasData = presReadLineasPorPresId_(shLin, presId);
+    const conceptHeader = presPickHeaderName_(lineasData.headers, ['Concepto','Descripcion','Descripción']) || 'Concepto';
+    const cantidadHeader = presPickHeaderName_(lineasData.headers, ['Cantidad','Cant']) || 'Cantidad';
+    const precioHeader = presPickHeaderName_(lineasData.headers, ['Precio','Precio_unitario']) || 'Precio';
+    const dtoHeader = presPickHeaderName_(lineasData.headers, ['Dto_%','Dto']) || 'Dto_%';
+    const ivaHeader = presPickHeaderName_(lineasData.headers, ['IVA_%','IVA']) || 'IVA_%';
+    const subtotalHeader = presPickHeaderName_(lineasData.headers, ['Subtotal','Importe','Base']) || 'Subtotal';
+
+    const lineas = (lineasData.lineas || []).map((l) => {
+      const concepto = String(presPickValue_(l, [conceptHeader]) || '').trim();
+      const cantidad = Number(presPickValue_(l, [cantidadHeader]) || 0);
+      const precio = Number(presPickValue_(l, [precioHeader]) || 0);
+      const dto = Number(presPickValue_(l, [dtoHeader]) || 0);
+      const iva = Number(presPickValue_(l, [ivaHeader]) || 21);
+      let subtotal = Number(presPickValue_(l, [subtotalHeader]) || 0);
+      if (!subtotal && cantidad && precio) subtotal = Number((cantidad * precio * (1 - (dto/100))).toFixed(2));
+      const enriched = Object.assign({}, l);
+      enriched[subtotalHeader] = subtotal;
+      return { concepto, cantidad, precio, dto, iva, subtotal, enriched };
+    }).filter((l) => l.concepto && (l.cantidad || l.precio || l.subtotal));
+
+    if (!lineas.length) throw new Error('No hay lineas validas en ' + SH_PRES_LINEAS + ' para ' + presId);
+
+    let base = 0, ivaTotal = 0;
+    lineas.forEach((l) => {
+      const sub = l.subtotal || (l.cantidad * l.precio * (1 - (l.dto/100)));
+      base += sub;
+      ivaTotal += sub * (l.iva/100);
+    });
+    base = Number(base.toFixed(2));
+    ivaTotal = Number(ivaTotal.toFixed(2));
+    const total = Number((base + ivaTotal).toFixed(2));
+
+    presSetValuesByHeaders_(shPres, presInfo.rowNumber, presInfo.headerInfo.map, {
+      Base: base,
+      IVA_total: ivaTotal,
+      Total: total
+    });
+
+    const cfg = getConfigPres_();
+    if (!cfg.carpetaId) throw new Error('Config incompleta: falta carpeta destino para PDFs');
+    if (!cfg.templateId) throw new Error('Config incompleta: falta template de Docs para PDFs');
+    const folder = DriveApp.getFolderById(cfg.carpetaId);
+
+    const safeCliente = sanitizeFileName_(cliente);
+    const baseName = sanitizeFileName_(`Presupuesto_${presId}_${safeCliente}`);
+
+    const copy = DriveApp.getFileById(cfg.templateId).makeCopy(baseName, folder);
+    const doc = DocumentApp.openById(copy.getId());
+
+    const em = getEmisorDesdeFactura_();
+    const tz = Session.getScriptTimeZone();
+    const fechaDate = presToDate_(fechaVal);
+    const venceDate = presToDate_(venceVal);
+    const FECHA_TXT = fechaDate ? Utilities.formatDate(fechaDate, tz, 'dd/MM/yyyy') : '';
+    const VENCE_TXT = venceDate ? Utilities.formatDate(venceDate, tz, 'dd/MM/yyyy') : '';
+
+    const uniqueIvas = [...new Set(lineas.map(l => l.iva))];
+    const ivaPorc = (uniqueIvas.length === 1) ? String(uniqueIvas[0]) : String(uniqueIvas[0] || 21);
+
+    const map = {
+      'PRES_ID': presId,
+      'Pres_ID': presId,
+      'FECHA': FECHA_TXT,
+      'Fecha': FECHA_TXT,
+      'VENCE': VENCE_TXT,
+      'Vence_el': VENCE_TXT,
+      'Emisor_nombre': em.nombre || '',
+      'Emisor_NIF': em.nif || '',
+      'Emisor_direccion': em.direccion || '',
+      'Emisor_CP': em.cp || '',
+      'Emisor_ciudad': em.ciudad || '',
+      'CLIENTE': cliente,
+      'Cliente': cliente,
+      'NIF': nif,
+      'DIRECCION': dir,
+      'Direccion': dir,
+      'CP': cp,
+      'CIUDAD': ciudad,
+      'Ciudad': ciudad,
+      'EMAIL': email,
+      'Email_cliente': email,
+      'BASE': base.toFixed(2),
+      'Base': base.toFixed(2),
+      'IVA_PORC': ivaPorc,
+      'IVA_TOTAL': ivaTotal.toFixed(2),
+      'IVA_total': ivaTotal.toFixed(2),
+      'TOTAL': total.toFixed(2),
+      'Total': total.toFixed(2),
+      'NOTAS': notas,
+      'Notas': notas
+    };
+
+    replaceTokensEverywhere_(doc, map);
+    presInsertLineasTable_(doc, lineas);
+    doc.saveAndClose();
+
+    const pdfBlob = DriveApp.getFileById(copy.getId()).getAs(MimeType.PDF).setName(baseName + '.pdf');
+    const pdfFile = folder.createFile(pdfBlob);
+    const url = pdfFile.getUrl();
+
+    const updates = { PDF_link: url };
+    if (presInfo.headerInfo.map['Fecha_envio']) {
+      const current = shPres.getRange(presInfo.rowNumber, presInfo.headerInfo.map['Fecha_envio']).getValue();
+      if (!current) updates.Fecha_envio = new Date();
     }
-    if (targetTable) break;
-  }
-  if (!targetTable) throw new Error('No encuentro la fila de líneas ({{LINEA_CONCEPTO}}) en la plantilla');
+    presSetValuesByHeaders_(shPres, presInfo.rowNumber, presInfo.headerInfo.map, updates);
 
-  const templateRow = targetTable.getRow(targetRowIndex).copy();
-  targetTable.removeRow(targetRowIndex);
-
-
-    lineas.forEach(l => {
-    // Clona la fila plantilla (ya trae celdas)
-    const newRow = templateRow.copy();
-    targetTable.appendTableRow(newRow);
-
-    const sub = Number(l.subtotal || (l.cantidad*l.precio*(1-(l.dto/100)))).toFixed(2);
-
-    // Reemplaza tokens en cada celda
-    for (let c = 0; c < newRow.getNumCells(); c++) {
-      const cell = newRow.getCell(c);
-
-      cell.replaceText('\\{\\{LINEA_CONCEPTO\\}\\}', l.concepto);
-      cell.replaceText('\\{\\{LINEA_CONCEPT0\\}\\}', l.concepto); // por si hay 0
-      cell.replaceText('\\{\\{LINEA_CANTIDAD\\}\\}', String(l.cantidad));
-      cell.replaceText('\\{\\{LINEA_PRECIO\\}\\}', Number(l.precio).toFixed(2));
-      cell.replaceText('\\{\\{LINEA_SUBTOTAL\\}\\}', sub);
-
-      // por si tu plantilla tiene tokens cortados por salto de línea
-      cell.replaceText('\\{\\{LINEA_CANTIDA\\}\\}', String(l.cantidad));
-      cell.replaceText('\\{\\{LINEA_SUBTOTA\\}\\}', sub);
+    if (archivar) {
+      archivarYLimpiarLineasPres_(presId);
+      archivarPresupuestoEnHistorial_(presId, url);
     }
-  });
 
-
-  doc.saveAndClose();
-
-  // 9) PDF con MISMO nombre
-  const pdfBlob = DriveApp.getFileById(copy.getId())
-    .getAs(MimeType.PDF)
-    .setName(baseName + '.pdf');
-
-  const pdfFile = folder.createFile(pdfBlob);
-  const url = pdfFile.getUrl();
-
-  // Guardar link en PRESUPUESTOS Q
-  shPres.getRange(row, 17).setValue(url);
-
-  // 10) Archivar líneas + archivar presupuesto en historial
-  if (options.archivar) {
-    archivarYLimpiarLineasPres_(presId);
-    archivarPresupuestoEnHistorial_(presId, url);
+    log('OK', '', { url, archivar });
+    return url;
+  } catch (err) {
+    log('ERROR', err.message || String(err), { stack: err.stack });
+    throw err;
   }
-
-  return url;
 }
 
 /** =========================

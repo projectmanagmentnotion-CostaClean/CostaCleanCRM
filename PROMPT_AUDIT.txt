@@ -1,0 +1,23 @@
+AUDITAR Y ARREGLAR TODO EL SISTEMA PARA QUE LA WEBAPP USE DATOS REALES (NO MOCK) Y MUESTRE PRESUPUESTOS. Requisitos: 1) Mock: desactivar por defecto; el toggle 'Mock data' debe persistir con PropertiesService (por usuario) y al cambiar debe recargar la lista. 2) Presupuestos: la UI debe listar registros reales desde VW_PRESUPUESTOS y/o desde PRESUPUESTOS/HISTORIAL_PRESUPUESTOS con search/sort/pagination. 3) Backend: arreglar cualquier SyntaxError ('Unexpected token function') y asegurar que WEBAPP_API.js expone endpoints usados por la UI (list/detail). 4) Views: asegurar creación/refresh de VW_CLIENTES, VW_LEADS, VW_PRESUPUESTOS, VW_FACTURAS, VW_GASTOS sin renombrar hojas. 5) Config: IDs de Drive carpetas y plantillas Docs se leen desde CONFIG/AI_CONFIG, no hardcode. 6) Entregable: al final imprimir archivos cambiados + pasos para probar + cómo hacer redeploy.
+AUDITA Y ARREGLA EL SISTEMA COMPLETO PARA QUE LA WEBAPP USE DATOS REALES (NO MOCK) Y LISTE PRESUPUESTOS/FACURAS, Y PARA QUE LA GENERACIÓN DE PDF RELLENE BIEN EL TEMPLATE.
+
+Contexto real (IDs):
+- Drive carpeta PRESUPUESTOS: 1b4R5P30DULl-Fp_PY8dmuVLg6UfuJjo9
+- Drive carpeta FACTURAS: 111q4NpNNNT_W_jZ8Mgw0AVv2VN_PFsGp
+- Docs plantilla PRESUPUESTO: 1M2tpK-Iq6_WuVmHxahkHbtJrmOtLmPu502-TjnqkQ8
+- Docs plantilla FACTURA: 10U_1CxZBEc46OP5W1d98a1ly1I00UV7T1n7qShH6as
+
+Problemas actuales a corregir:
+1) WebApp sigue mostrando “Mock data” y/o el toggle no persiste. Debe quedar MOCK OFF por defecto y persistir por usuario (PropertiesService). Al cambiar el toggle debe recargar la lista con datos reales.
+2) En la pestaña PRESUPUESTOS hay registros reales con PDF_link, pero la UI muestra “Sin presupuestos aún”. Arreglar la capa que alimenta la UI: debe leer datos reales desde VW_PRESUPUESTOS (o construirla desde PRESUPUESTOS/HISTORIAL_PRESUPUESTOS) con search/sort/paginación y filtros (estado, cliente, ciudad, etc.).
+3) El PDF: los placeholders del body no se reemplazan y las líneas se insertan en NOTA. Debe:
+   - Reemplazar todos los tokens {{...}} del template en el BODY.
+   - Insertar/duplicar filas en la tabla “CONCEPTOS” del body (no en NOTA) usando la fila plantilla con {{LINEA_CONCEPTO}}, {{LINEA_CANTIDAD}}, {{LINEA_PRECIO}}, {{LINEA_SUBTOTAL}}.
+   - Mantener la tabla resumen inferior (si existe) coherente o eliminar duplicados si la plantilla ya tiene una tabla final.
+4) Corregir errores de sintaxis (ej: “Unexpected token function”) y asegurar que las funciones invocables existan (para clasp run).
+5) Asegurar que los IDs de Drive y plantillas Docs se lean desde CONFIG / AI_CONFIG (sin hardcode), y que haya fallback seguro si faltan.
+6) No renombres hojas existentes. Mantén la estructura actual.
+7) Al final: imprimir lista de archivos cambiados + pasos exactos para probar (UI, listados, generación PDF) + comando exacto para redeploy.
+
+Requisitos de entrega:
+- Debe quedar TODO funcionando con datos reales: listas de Presupuestos muestran registros reales, mock off, y PDF se genera con template correctamente rellenado (body + líneas).

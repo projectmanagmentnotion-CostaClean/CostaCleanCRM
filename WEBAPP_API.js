@@ -15,10 +15,20 @@ const CC_SHEETS = {
   FACTURA: 'FACTURA',              // tu hoja real de facturas
   LINEAS: 'LINEAS',                // líneas de factura
   PRESUPUESTOS: 'PRESUPUESTOS',    // proformas
+  PRES_HIST: 'HISTORIAL_PRESUPUESTOS',
   PRES_LINEAS: 'PRES_LINEAS',      // líneas de proforma
+  PRES_LINEAS_HIST: 'LINEAS_PRES_HIST',
   GASTOS: 'GASTOS',
   CIERRES: 'CIERRES_TRIMESTRE',
   CONFIG: 'CONFIG',
+};
+
+const CC_VIEWS = {
+  CLIENTES: 'VW_CLIENTES',
+  LEADS: 'VW_LEADS',
+  PRESUPUESTOS: 'VW_PRESUPUESTOS',
+  FACTURAS: 'VW_FACTURAS',
+  GASTOS: 'VW_GASTOS'
 };
 
 /** Headers recomendados (solo para crear hojas faltantes)
@@ -37,7 +47,16 @@ const HEADERS_CIERRES = [
 ];
 
 /** ========= HELPERS BASE ========= **/
-function _ss_() { return SpreadsheetApp.getActiveSpreadsheet(); }
+function _ss_() {
+  if (typeof SS_ID !== 'undefined' && SS_ID) {
+    try {
+      return SpreadsheetApp.openById(SS_ID);
+    } catch (err) {
+      // fallback a spreadsheet activo si el ID no es valido
+    }
+  }
+  return SpreadsheetApp.getActiveSpreadsheet();
+}
 
 function _sh_(name) {
   const sh = _ss_().getSheetByName(name);
@@ -88,6 +107,17 @@ function _getAll_(sheetName) {
   if (values.length < 2) return [];
   const headers = values[0].map(String);
   return values.slice(1).map(r => _rowToObj_(headers, r));
+}
+
+function _getAllWithHeaders_(sheetName) {
+  const sh = _sh_(sheetName);
+  const values = sh.getDataRange().getValues();
+  if (!values.length) return { headers: [], rows: [] };
+  const headers = values[0].map(h => String(h).trim());
+  const rows = values.slice(1)
+    .filter(r => r.some(c => c !== '' && c !== null && c !== undefined))
+    .map(r => _rowToObj_(headers, r));
+  return { headers, rows };
 }
 
 function _findById_(sheetName, idCol, id) {
@@ -150,30 +180,204 @@ function apiDashboard(period) {
 /** ========= LISTAS / DETALLES ========= **/
 function apiList(entity, params) {
   setupSheetsIfMissing_();
-
-  const q = (params?.q || '').toString().trim().toLowerCase();
-  const limit = Number(params?.limit || 40);
+  _ensureViews_();
 
   const map = _entityMap_();
   const cfg = map[entity];
   if (!cfg) throw new Error('Entidad no soportada: ' + entity);
 
-  const rows = _getAll_(cfg.sheet);
-  const filtered = q
-    ? rows.filter(r => JSON.stringify(r).toLowerCase().includes(q))
-    : rows;
-
-  return filtered.slice(0, limit);
+  const viewName = cfg.view || cfg.sheet;
+  return _listFromView_(viewName, params || {}, Number(params?.limit || 40));
 }
 
 function apiGet(entity, id) {
+  _ensureViews_();
   const map = _entityMap_();
   const cfg = map[entity];
   if (!cfg) throw new Error('Entidad no soportada: ' + entity);
 
-  const found = _findById_(cfg.sheet, cfg.idCol, id);
+  const viewName = cfg.view || cfg.sheet;
+  const found = _findByIdInView_(viewName, cfg.idCol, id);
   if (!found) throw new Error('No encontrado: ' + entity + ' ' + id);
   return found.obj;
+}
+
+/** ========= API UI: PRESUPUESTOS ========= **/
+function apiListPresupuestos(params) {
+  const ss = _ss_();
+  const limit = Number(params?.limit || 100);
+
+  try {
+    _ensureViews_();
+    const result = _listFromView_(CC_VIEWS.PRESUPUESTOS, params || {}, limit);
+    const mapItem = (r) => ({
+      id: r.Pres_ID || r.Presupuesto_ID || r.ID,
+      cliente: r.Cliente || r.Cliente_ID || r.Lead_ID || '',
+      clienteId: r.Cliente_ID || r.Lead_ID || '',
+      estado: r.estado_normalizado || r.Estado || '',
+      base: _safeNumber_(r.total_base || r.Base || r.Importe || r.Subtotal),
+      total: _safeNumber_(r.total || r.Total || r.Importe_total || r.Total_con_IVA),
+      fecha: r.Fecha || r.created_at || '',
+      fechaRaw: r.Fecha || '',
+      email: r.Email_cliente || r.Lead_Email || r.Email || '',
+      nif: r.NIF || r.DNI || r.CIF || '',
+      direccion: r.Direccion || r.Direccion_cliente || r.Direccion_servicio || r.Direccion_facturacion || '',
+      cp: r.CP || r.Codigo_postal || r.Codigo_Postal || '',
+      ciudad: r.Ciudad || r.Municipio || '',
+      pdfUrl: r.pdf_url || r.PDF_link || r.Pdf_link || '',
+      notas: r.Notas || r.Nota || r.Observaciones || '',
+      sourceSheet: r.SourceSheet || ''
+    });
+    return _mapListResult_(result, mapItem);
+  } catch (err) {
+    logEvent_(ss, 'WEBAPP', 'listPresupuestos', 'presupuestos', '', 'ERROR', err.message, { stack: err.stack });
+    throw err;
+  }
+}
+function _findByIdInView_(sheetName, idCol, id) {
+  const data = _getViewData_(sheetName);
+  const needle = String(id || '').trim();
+  if (!needle) return null;
+  const row = (data.rows || []).find(r => String(r[idCol] || '').trim() === needle);
+  return row ? { headers: data.headers, obj: row } : null;
+}
+
+function _ensureViews_() {
+  if (typeof ccEnsureViews_ === 'function') ccEnsureViews_(false);
+}
+
+function _getViewData_(viewName) {
+  _ensureViews_();
+  return _getAllWithHeaders_(viewName);
+}
+
+function testListPresupuestos() {
+  const ss = _ss_();
+  try {
+    const items = apiListPresupuestos({ includeHistorial: false });
+    const sampleIds = items.slice(0, 5).map(p => p.id).filter(Boolean);
+    logEvent_(ss, 'TEST', 'listPresupuestos', 'presupuestos', '', 'OK', `items=${items.length}`, { sampleIds });
+    return { ok: true, total: items.length, sampleIds };
+  } catch (err) {
+    logEvent_(ss, 'TEST', 'listPresupuestos', 'presupuestos', '', 'ERROR', err.message || String(err), { stack: err.stack });
+    throw err;
+  }
+}
+function apiGetPresupuesto(id) {
+  const ss = _ss_();
+  const presId = String(id || '').trim();
+  if (!presId) throw new Error('Pres_ID requerido');
+
+  try {
+    _ensureViews_();
+    const found = _findByIdInView_(CC_VIEWS.PRESUPUESTOS, 'Pres_ID', presId);
+    if (!found || !found.obj) throw new Error('No se encontro el presupuesto ' + presId);
+    const row = found.obj;
+
+    return {
+      id: presId,
+      raw: row,
+      cliente: row.Cliente || row.Cliente_ID || row.Lead_ID || '',
+      clienteId: row.Cliente_ID || row.Lead_ID || '',
+      estado: row.estado_normalizado || row.Estado || '',
+      base: _safeNumber_(row.total_base || row.Base),
+      total: _safeNumber_(row.total || row.Total),
+      fecha: row.Fecha || row.created_at || '',
+      email: row.Email_cliente || row.Lead_Email || row.Email || '',
+      nif: row.NIF || row.DNI || row.CIF || '',
+      direccion: row.Direccion || row.Direccion_cliente || row.Direccion_servicio || row.Direccion_facturacion || '',
+      cp: row.CP || row.Codigo_postal || row.Codigo_Postal || '',
+      ciudad: row.Ciudad || row.Municipio || '',
+      pdfUrl: row.pdf_url || row.PDF_link || row.Pdf_link || '',
+      notas: row.Notas || row.Nota || row.Observaciones || '',
+      lineas: _getPresupuestoLineas_(presId)
+    };
+  } catch (err) {
+    logEvent_(ss, 'WEBAPP', 'getPresupuesto', 'presupuestos', presId, 'ERROR', err.message, { stack: err.stack });
+    throw err;
+  }
+}
+function apiGeneratePresupuestoPdf(presId) {
+  const ss = _ss_();
+  const id = String(presId || '').trim();
+  if (!id) throw new Error('Pres_ID requerido');
+
+  try {
+    const res = generatePresupuestoPdfById(id);
+    logEvent_(ss, 'WEBAPP', 'pdfPresupuesto', 'presupuestos', id, 'OK', '', { url: res });
+    return { ok: true, pdfUrl: res };
+  } catch (err) {
+    logEvent_(ss, 'WEBAPP', 'pdfPresupuesto', 'presupuestos', id, 'ERROR', err.message, { stack: err.stack });
+    throw err;
+  }
+}
+
+function apiGenerateFacturaPdf(factId) {
+  const ss = _ss_();
+  const id = String(factId || '').trim();
+  if (!id) throw new Error('Factura_ID requerido');
+
+  try {
+    const res = generateFacturaPdfById(id);
+    logEvent_(ss, 'WEBAPP', 'pdfFactura', 'facturas', id, 'OK', '', { url: res });
+    return { ok: true, pdfUrl: res };
+  } catch (err) {
+    logEvent_(ss, 'WEBAPP', 'pdfFactura', 'facturas', id, 'ERROR', err.message, { stack: err.stack });
+    throw err;
+  }
+}
+
+function apiCrearFacturaDesdePresupuesto(presId, options) {
+  const ss = _ss_();
+  const id = String(presId || '').trim();
+  if (!id) throw new Error('Pres_ID requerido');
+
+  try {
+    const res = createFacturaDesdePresupuesto_(id, options || {});
+    logEvent_(ss, 'WEBAPP', 'crearFacturaDesdePresupuesto', 'presupuestos', id, 'OK', '', res || null);
+    return { ok: true, facturaId: res.facturaId || '', pdfUrl: res.pdfUrl || '', alreadyExisted: !!res.alreadyExisted };
+  } catch (err) {
+    logEvent_(ss, 'WEBAPP', 'crearFacturaDesdePresupuesto', 'presupuestos', id, 'ERROR', err.message, { stack: err.stack });
+    throw err;
+  }
+}
+
+function apiListClientes(params) {
+  const ss = _ss_();
+  try {
+    _ensureViews_();
+    const result = _listFromView_(CC_VIEWS.CLIENTES, params || {}, 200);
+    const mapItem = (r) => ({
+      id: r.Cliente_ID || r.ID,
+      nombre: r.Nombre || r.Cliente || '',
+      email: r.Email || r.Email_cliente || '',
+      telefono: r.Telefono || r.Telefono || r.Phone || '',
+      estado: r.estado_normalizado || r.Estado || ''
+    });
+    return _mapListResult_(result, mapItem);
+  } catch (err) {
+    logEvent_(ss, 'WEBAPP', 'listClientes', 'clientes', '', 'ERROR', err.message, { stack: err.stack });
+    throw err;
+  }
+}
+
+function apiListLeads(params) {
+  const ss = _ss_();
+  try {
+    _ensureViews_();
+    const result = _listFromView_(CC_VIEWS.LEADS, params || {}, 200);
+    const mapItem = (r) => ({
+      id: r.Lead_ID || r.ID,
+      nombre: r.Nombre || r.Lead_Nombre || '',
+      email: r.Email || r.Lead_Email || '',
+      telefono: r.Telefono || r.Lead_Telefono || '',
+      estado: r.estado_normalizado || r.Estado || ''
+    });
+    return _mapListResult_(result, mapItem);
+  } catch (err) {
+    logEvent_(ss, 'WEBAPP', 'listLeads', 'leads', '', 'ERROR', err.message, { stack: err.stack });
+    throw err;
+  }
 }
 
 /** ========= CREATE / UPDATE ========= **/
@@ -456,8 +660,8 @@ function _markFacturaPagada_(facturaId, payload) {
 }
 
 function _pdfFactura_(facturaId) {
-  // En PASO 2 conectamos con tu generador real de PDF de facturas (si ya lo tienes)
-  return { ok: true, id: facturaId, pdfLink: '' };
+  const url = generateFacturaPdfById(facturaId);
+  return { ok: true, id: facturaId, pdfLink: url };
 }
 
 function _emailFactura_(facturaId) {
@@ -466,9 +670,8 @@ function _emailFactura_(facturaId) {
 }
 
 function _convertProformaToFactura_(presId) {
-  // Aquí conectaremos con tu función real en PRESUPUESTOS.gs (tú ya lo tienes pro)
-  // Por ahora: devolvemos ok para que la UI tenga endpoint.
-  return { ok: true, presId, facturaId: '' };
+  const res = createFacturaDesdePresupuesto_(presId);
+  return { ok: true, presId, facturaId: res.facturaId || '', pdfUrl: res.pdfUrl || '', alreadyExisted: !!res.alreadyExisted };
 }
 
 function _pdfProforma_(presId) {
@@ -482,15 +685,298 @@ function _emailProforma_(presId) {
 /** ========= UTILIDADES ========= **/
 function _entityMap_() {
   return {
-    clientes: { sheet: CC_SHEETS.CLIENTES, idCol: 'Cliente_ID' },
-    leads: { sheet: CC_SHEETS.LEADS, idCol: 'Lead_ID' },
-    facturas: { sheet: CC_SHEETS.FACTURA, idCol: 'Factura_ID' },
-    proformas: { sheet: CC_SHEETS.PRESUPUESTOS, idCol: 'Pres_ID' },
-    gastos: { sheet: CC_SHEETS.GASTOS, idCol: 'Gasto_ID' },
-    cierres: { sheet: CC_SHEETS.CIERRES, idCol: 'Cierre_ID' },
+    clientes: { sheet: CC_SHEETS.CLIENTES, view: CC_VIEWS.CLIENTES, idCol: 'Cliente_ID' },
+    leads: { sheet: CC_SHEETS.LEADS, view: CC_VIEWS.LEADS, idCol: 'Lead_ID' },
+    facturas: { sheet: CC_SHEETS.FACTURA, view: CC_VIEWS.FACTURAS, idCol: 'Factura_ID' },
+    proformas: { sheet: CC_SHEETS.PRESUPUESTOS, view: CC_VIEWS.PRESUPUESTOS, idCol: 'Pres_ID' },
+    gastos: { sheet: CC_SHEETS.GASTOS, view: CC_VIEWS.GASTOS, idCol: 'Gasto_ID' },
+    cierres: { sheet: CC_SHEETS.CIERRES, idCol: 'Cierre_ID' }
   };
 }
 
+function _presupuestoSheet_() {
+  const ss = _ss_();
+  const hist = ss.getSheetByName(CC_SHEETS.PRES_HIST);
+  const pres = ss.getSheetByName(CC_SHEETS.PRESUPUESTOS);
+
+  if (pres) return pres;
+  if (hist) return hist;
+
+  return null;
+}
+function _findHeader_(headers, candidates) {
+  const lower = headers.map(h => _normalizeKey_(h));
+  for (let i = 0; i < candidates.length; i++) {
+    const idx = lower.indexOf(_normalizeKey_(candidates[i]));
+    if (idx !== -1) return headers[idx];
+  }
+  return '';
+}
+function _pickValue_(obj, keys) {
+  for (let i = 0; i < keys.length; i++) {
+    const v = obj[keys[i]];
+    if (v !== undefined && v !== null && String(v).trim() !== '') return v;
+  }
+  return '';
+}
+
+function _safeNumber_(v) {
+  const n = Number(v);
+  return isNaN(n) ? null : n;
+}
+
+function _formatDateIso_(v) {
+  const d = _parseDate_(v);
+  if (!d) return '';
+  return Utilities.formatDate(d, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+}
+
+function _getPresupuestoLineas_(presId) {
+  const ss = _ss_();
+  const sheetNames = [CC_SHEETS.PRES_LINEAS_HIST || 'LINEAS_PRES_HIST', CC_SHEETS.PRES_LINEAS];
+
+  for (let i = 0; i < sheetNames.length; i++) {
+    const name = sheetNames[i];
+    if (!name) continue;
+    const sh = ss.getSheetByName(name);
+    if (!sh) continue;
+
+    const { headers, rows } = _getAllWithHeaders_(name);
+    const idHeader = _findHeader_(headers, ['Pres_ID', 'Presupuesto_ID', 'ID']);
+    if (!idHeader) continue;
+
+    const filtered = rows.filter(r => String(r[idHeader]).trim() === presId);
+    if (!filtered.length) continue;
+
+    const lineHeader = _findHeader_(headers, ['Linea_n', 'Linea', 'Linea_num']);
+
+    return filtered.map(r => ({
+      linea: lineHeader ? r[lineHeader] : '',
+      concepto: _pickValue_(r, ['Concepto', 'Descripcion', 'Descripción']),
+      cantidad: _safeNumber_(_pickValue_(r, ['Cantidad', 'Cant'])),
+      precio: _safeNumber_(_pickValue_(r, ['Precio', 'Precio_unitario'])),
+      dto: _safeNumber_(_pickValue_(r, ['Dto_%', 'Dto'])),
+      iva: _safeNumber_(_pickValue_(r, ['IVA_%', 'IVA'])),
+      subtotal: _safeNumber_(_pickValue_(r, ['Subtotal', 'Importe', 'Base'])),
+    })).sort((a, b) => (Number(a.linea) || 0) - (Number(b.linea) || 0));
+  }
+
+  return [];
+}
+
+
+function apiPresupuestosDebug() {
+  const ss = _ss_();
+  const pres = _getSheetIfExists_(CC_SHEETS.PRESUPUESTOS);
+  const hist = _getSheetIfExists_(CC_SHEETS.PRES_HIST);
+
+  return {
+    ok: true,
+    spreadsheetId: ss.getId(),
+    sheets: {
+      PRESUPUESTOS: _sheetDebug_(pres),
+      HISTORIAL_PRESUPUESTOS: _sheetDebug_(hist)
+    }
+  };
+}
+function _compareValues_(a, b) {
+  const da = _parseDate_(a);
+  const db = _parseDate_(b);
+  if (da && db) return da.getTime() - db.getTime();
+  const na = Number(a);
+  const nb = Number(b);
+  if (!isNaN(na) && !isNaN(nb)) return na - nb;
+  return String(a || '').localeCompare(String(b || ''), 'es', { sensitivity: 'base' });
+}
+
+function _applyListFilters_(rows, params) {
+  let out = rows || [];
+  const q = (params?.q || '').toString().trim().toLowerCase();
+  const estado = (params?.estado || params?.status || '').toString().trim().toUpperCase();
+  const clienteId = (params?.clienteId || params?.cliente_id || params?.cliente || '').toString().trim().toLowerCase();
+  const desde = params?.desde || params?.from || '';
+  const hasta = params?.hasta || params?.to || '';
+
+  if (q) {
+    out = out.filter(r => {
+      const search = String(r.search_text || '').toLowerCase();
+      if (search) return search.includes(q);
+      return JSON.stringify(r).toLowerCase().includes(q);
+    });
+  }
+
+  if (estado) {
+    out = out.filter(r => {
+      const v = String(r.estado_normalizado || r.Estado || r.estado || '').toUpperCase();
+      return v === estado;
+    });
+  }
+
+  if (clienteId) {
+    out = out.filter(r => {
+      const v = String(r.Cliente_ID || r.clienteId || r.cliente_id || r.Lead_ID || '').toLowerCase();
+      return v === clienteId;
+    });
+  }
+
+  if (desde || hasta) {
+    const from = _parseDate_(desde);
+    const to = _parseDate_(hasta);
+    out = out.filter(r => {
+      const raw = r.updated_at || r.created_at || r.Fecha || r.Fecha_envio || r.Fecha_aceptacion || r.Fecha_pago;
+      const d = _parseDate_(raw);
+      if (!d) return false;
+      if (from && d < from) return false;
+      if (to && d > to) return false;
+      return true;
+    });
+  }
+
+  return out;
+}
+
+function _sortRows_(rows, params) {
+  const sortBy = (params?.sortBy || params?.orderBy || '').toString().trim();
+  const dir = (params?.sortDir || params?.order || 'desc').toString().toLowerCase();
+  const key = sortBy || (rows[0] && (rows[0].updated_at ? 'updated_at' : (rows[0].Fecha ? 'Fecha' : (rows[0].created_at ? 'created_at' : ''))));
+  if (!key) return rows;
+  const factor = dir === 'asc' ? 1 : -1;
+  return rows.slice().sort((a, b) => _compareValues_(a[key], b[key]) * factor);
+}
+
+function _paginateRows_(rows, params, defaultLimit) {
+  const pageSize = Number(params?.pageSize || params?.limit || defaultLimit || 40);
+  const page = Number(params?.page || 1);
+  if (params && (params.page || params.pageSize)) {
+    const start = (page - 1) * pageSize;
+    return { items: rows.slice(start, start + pageSize), page, pageSize, total: rows.length };
+  }
+  return rows.slice(0, pageSize);
+}
+
+function _listFromView_(viewName, params, defaultLimit) {
+  const data = _getViewData_(viewName);
+  let rows = _applyListFilters_(data.rows || [], params);
+  rows = _sortRows_(rows, params || {});
+  return _paginateRows_(rows, params || {}, defaultLimit || 40);
+}
+
+function _mapListResult_(result, mapper) {
+  if (result && Array.isArray(result.items)) {
+    return {
+      items: result.items.map(mapper).filter(r => r && r.id),
+      page: result.page,
+      pageSize: result.pageSize,
+      total: result.total
+    };
+  }
+  return (result || []).map(mapper).filter(r => r && r.id);
+}
+
+function _getSheetIfExists_(name) {
+  return _ss_().getSheetByName(name) || null;
+}
+
+function _getAllWithHeadersFromSheet_(sh) {
+  const values = sh.getDataRange().getValues();
+  if (!values.length) return { headers: [], rows: [] };
+  const headers = values[0].map(h => String(h).trim());
+  const rows = values.slice(1)
+    .filter(r => r.some(c => c !== '' && c !== null && c !== undefined))
+    .map(r => _rowToObj_(headers, r));
+  return { headers, rows };
+}
+
+function _normalizeKey_(value) {
+  return String(value || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '');
+}
+
+function _buildHeaderMap_(headers) {
+  const map = {};
+  headers.forEach(h => {
+    const k = _normalizeKey_(h);
+    if (!k) return;
+    if (!map[k]) map[k] = h;
+  });
+  return map;
+}
+
+function _pickValueByMap_(row, headerMap, keys) {
+  if (!row) return '';
+  for (let i = 0; i < keys.length; i++) {
+    const direct = row[keys[i]];
+    if (direct !== undefined && direct !== null && String(direct).trim() !== '') return direct;
+
+    const normalized = _normalizeKey_(keys[i]);
+    const header = headerMap ? headerMap[normalized] : '';
+    if (header && row[header] !== undefined && row[header] !== null && String(row[header]).trim() !== '') {
+      return row[header];
+    }
+  }
+  return '';
+}
+
+function _findPresupuestoRow_(rows, headerMap, presId) {
+  if (!rows || !rows.length) return null;
+  const idNeedle = String(presId || '').trim();
+  if (!idNeedle) return null;
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    const idVal = _pickValueByMap_(row, headerMap, ['Pres_ID', 'Presupuesto_ID', 'ID']);
+    if (String(idVal).trim() === idNeedle) return row;
+  }
+  return null;
+}
+
+function _mergePresupuestoItems_(presData, histData) {
+  const presMap = _buildHeaderMap_(presData.headers || []);
+  const histMap = _buildHeaderMap_(histData.headers || []);
+
+  const presItems = (presData.rows || []).map(r => ({
+    row: r,
+    headerMap: presMap,
+    sourceSheet: CC_SHEETS.PRESUPUESTOS
+  }));
+  const histItems = (histData.rows || []).map(r => ({
+    row: r,
+    headerMap: histMap,
+    sourceSheet: CC_SHEETS.PRES_HIST
+  }));
+
+  if (!presItems.length) return histItems;
+
+  const presIds = new Set();
+  presItems.forEach(it => {
+    const idVal = _pickValueByMap_(it.row, it.headerMap, ['Pres_ID', 'Presupuesto_ID', 'ID']);
+    const id = String(idVal || '').trim();
+    if (id) presIds.add(id);
+  });
+
+  const merged = presItems.slice();
+  histItems.forEach(it => {
+    const idVal = _pickValueByMap_(it.row, it.headerMap, ['Pres_ID', 'Presupuesto_ID', 'ID']);
+    const id = String(idVal || '').trim();
+    if (!id || !presIds.has(id)) merged.push(it);
+  });
+
+  return merged;
+}
+
+function _sheetDebug_(sh) {
+  if (!sh) return { exists: false, name: '', lastRow: 0, lastColumn: 0, dataRows: 0 };
+  const lastRow = sh.getLastRow();
+  const lastColumn = sh.getLastColumn();
+  let dataRows = 0;
+  if (lastRow > 1 && lastColumn > 0) {
+    const values = sh.getRange(2, 1, lastRow - 1, lastColumn).getValues();
+    dataRows = values.filter(r => r.some(c => c !== '' && c !== null && c !== undefined)).length;
+  }
+  return { exists: true, name: sh.getName(), lastRow, lastColumn, dataRows };
+}
 function _toBool_(v, defaultValue) {
   if (v === true || v === false) return v;
   if (v === '' || v === null || v === undefined) return defaultValue;
@@ -567,3 +1053,6 @@ function _nextIdFromSheet_(sh, idCol, prefix) {
   const y = new Date().getFullYear();
   return `${prefix}-${y}-${String(next).padStart(4, '0')}`;
 }
+
+
+

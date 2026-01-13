@@ -1,4 +1,4 @@
-﻿function setupAll() {
+function setupAll() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const log = (accion, resultado, mensaje, data) => {
     if (typeof logEvent_ === 'function') {
@@ -10,7 +10,8 @@
   try {
     const headersConfig = [
       'Ano','Ultimo_numero','Leads_Sheet_ID','Leads_Tab_Name','Leads_Destino',
-      'CLI_Ano','CLI_Ultimo_numero','PRES_Año','PRES_Ultimo_numero','PRES_Validez_default','PRES_Template_DocId'
+      'CLI_Ano','CLI_Ultimo_numero','PRES_A�o','PRES_Ultimo_numero','PRES_Validez_default',
+      'PRES_Pdf_Folder_Id','PRES_Template_DocId','FACT_Pdf_Folder_Id','FACT_Template_DocId'
     ];
 
     const headersClientes = [
@@ -37,10 +38,17 @@
       'Factura_ID','Fecha','Estado','Cliente_ID','Cliente','Email_cliente','NIF','Direccion','CP','Ciudad',
       'Base','IVA_total','Total','Notas','PDF_link','Fecha_pago'
     ];
+    const headersFacturas = [
+      'Factura_ID','Fecha','Estado','Pres_ID','Cliente_ID','Cliente','Email','NIF','Direccion','CP','Ciudad',
+      'Base','IVA_total','Total','Notas','PDF_link','Fecha_envio','Fecha_pago'
+    ];
+    const headersFactLineas = ['Factura_ID','Linea_n','Concepto','Cantidad','Precio','Dto_%','IVA_%','Subtotal'];
 
     const headersLog = ['Fecha','Modulo','Accion','Entidad','ID','Resultado','Mensaje','DataJSON'];
 
-    ensureHeaders_(ensureSheet_(ss, 'CONFIG'), headersConfig);
+    const shConfig = ensureSheet_(ss, 'CONFIG');
+    ensureHeaders_(shConfig, headersConfig);
+    ensureConfigDefaults_(shConfig);
     ensureHeaders_(ensureSheet_(ss, 'CLIENTES'), headersClientes);
     ensureHeaders_(ensureSheet_(ss, 'LEADS'), headersLeads);
 
@@ -53,10 +61,14 @@
     ensureHeaders_(ensureSheet_(ss, 'PRES_LINEAS'), headersPresLineas);
     ensureHeaders_(ensureSheet_(ss, 'LINEAS'), headersLineas);
     ensureHeaders_(ensureSheet_(ss, 'FACTURA'), headersFactura);
+    ensureHeaders_(ensureSheet_(ss, 'FACTURAS'), headersFacturas);
+    ensureHeaders_(ensureSheet_(ss, 'FACT_LINEAS'), headersFactLineas);
     ensureHeaders_(ensureSheet_(ss, 'LOG'), headersLog);
 
     applyListValidation_(ss.getSheetByName('LEADS'), 22, ['Nuevo','Ganado','Perdido']);
     setupValidationsPresupuestos();
+    if (typeof factApplyValidations_ === 'function') factApplyValidations_();
+    if (typeof ccSetupWebAppLayer_ === 'function') ccSetupWebAppLayer_();
 
     installTriggers_(ss);
 
@@ -93,6 +105,35 @@ function ensureHeaders_(sh, headers) {
   }
 }
 
+function ensureConfigDefaults_(sh) {
+  if (!sh) return;
+  const lastCol = Math.max(sh.getLastColumn(), 1);
+  const headers = sh.getRange(1, 1, 1, lastCol).getDisplayValues()[0];
+  const values = sh.getRange(2, 1, 1, lastCol).getValues()[0];
+
+  const ensureHeader = (header) => {
+    let idx = headers.indexOf(header);
+    if (idx !== -1) return idx;
+    const newCol = sh.getLastColumn() + 1;
+    sh.insertColumnsAfter(sh.getLastColumn(), 1);
+    sh.getRange(1, newCol).setValue(header);
+    headers.push(header);
+    values.push('');
+    return headers.length - 1;
+  };
+
+  const setIfEmpty = (header, value) => {
+    const idx = ensureHeader(header);
+    const current = values[idx];
+    if (String(current || '').trim()) return;
+    sh.getRange(2, idx + 1).setValue(value || '');
+  };
+
+  setIfEmpty('PRES_Pdf_Folder_Id', CC_DEFAULT_IDS.PRESUPUESTOS_FOLDER_ID);
+  setIfEmpty('FACT_Pdf_Folder_Id', CC_DEFAULT_IDS.FACTURAS_FOLDER_ID);
+  setIfEmpty('PRES_Template_DocId', CC_DEFAULT_IDS.PRESUPUESTO_TEMPLATE_ID);
+  setIfEmpty('FACT_Template_DocId', CC_DEFAULT_IDS.FACTURA_TEMPLATE_ID);
+}
 function ensurePresupuestoLeadColumns_(sh, headers) {
   const lastCol = Math.max(sh.getLastColumn(), 1);
   const existing = sh.getRange(1, 1, 1, lastCol).getValues()[0].map(String);
@@ -117,7 +158,8 @@ function applyListValidation_(sh, col, values) {
 function setupTriggers_(ss) {
   const targets = {
     onEdit: { handler: 'onEdit', type: ScriptApp.EventType.ON_EDIT },
-    onOpen: { handler: 'onOpen', type: ScriptApp.EventType.ON_OPEN }
+    onOpen: { handler: 'onOpen', type: ScriptApp.EventType.ON_OPEN },
+    onFormSubmit: { handler: 'onFormSubmit', type: ScriptApp.EventType.ON_FORM_SUBMIT }
   };
 
   ScriptApp.getProjectTriggers().forEach((t) => {
@@ -125,7 +167,8 @@ function setupTriggers_(ss) {
     const type = t.getEventType();
     if (
       (handler === targets.onEdit.handler && type === targets.onEdit.type) ||
-      (handler === targets.onOpen.handler && type === targets.onOpen.type)
+      (handler === targets.onOpen.handler && type === targets.onOpen.type) ||
+      (handler === targets.onFormSubmit.handler && type === targets.onFormSubmit.type)
     ) {
       ScriptApp.deleteTrigger(t);
     }
@@ -133,9 +176,17 @@ function setupTriggers_(ss) {
 
   ScriptApp.newTrigger(targets.onEdit.handler).forSpreadsheet(ss).onEdit().create();
   ScriptApp.newTrigger(targets.onOpen.handler).forSpreadsheet(ss).onOpen().create();
+  ScriptApp.newTrigger(targets.onFormSubmit.handler).forSpreadsheet(ss).onFormSubmit().create();
 }
 function installTriggers_(ss) {
   setupTriggers_(ss);
 }
+
+
+
+
+
+
+
 
 

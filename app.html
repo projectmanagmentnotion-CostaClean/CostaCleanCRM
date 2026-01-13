@@ -48,7 +48,7 @@ Requiere: styles.html y scripts.html + función include() en Code.gs
             <span class="cc-chipIcon" aria-hidden="true">🧾</span>
             Spreadsheet único
           </button>
-          <button class="cc-chip cc-chip--ok" type="button" data-action="toggle_mock">
+          <button class="cc-chip" type="button" data-action="toggle_mock">
             <span class="cc-dot" aria-hidden="true"></span>
             Mock data
           </button>
@@ -179,7 +179,7 @@ Requiere: styles.html y scripts.html + función include() en Code.gs
         <section class="cc-screen" id="screen-listas" aria-label="Listas">
           <div class="cc-screenHead">
             <h1 class="cc-h1">Listas</h1>
-            <div class="cc-screenHint">Clientes, Facturas, Proformas y Gastos (mock)</div>
+            <div class="cc-screenHint">Clientes, Facturas, Presupuestos y Gastos</div>
           </div>
 
           <div class="cc-searchRow">
@@ -196,10 +196,11 @@ Requiere: styles.html y scripts.html + función include() en Code.gs
             <button class="cc-tab is-active" type="button" data-entity="clientes" role="tab">Clientes</button>
             <button class="cc-tab" type="button" data-entity="leads" role="tab">Leads</button>
             <button class="cc-tab" type="button" data-entity="facturas" role="tab">Facturas</button>
-            <button class="cc-tab" type="button" data-entity="proformas" role="tab">Proformas</button>
+            <button class="cc-tab" type="button" data-entity="proformas" role="tab">Presupuestos</button>
             <button class="cc-tab" type="button" data-entity="gastos" role="tab">Gastos</button>
           </div>
 
+          <div id="listState" class="cc-empty" style="display:none;">Cargando...</div>
           <div id="listEmpty" class="cc-empty" style="display:none;">Sin registros.</div>
 
           <div class="cc-list" id="listContainer" aria-label="Resultados">
@@ -215,6 +216,8 @@ Requiere: styles.html y scripts.html + función include() en Code.gs
             <h1 class="cc-h1">Detalle</h1>
             <div class="cc-screenHint">Plantilla reusable (Factura / Proforma / Cliente)</div>
           </div>
+
+          <div id="detailState" class="cc-empty" style="display:none;">Cargando...</div>
 
           <!-- Tarjeta principal -->
           <article class="cc-card cc-detailCard">
@@ -364,7 +367,7 @@ Requiere: styles.html y scripts.html + función include() en Code.gs
 
           <button class="cc-navItem" type="button" data-screen="screen-listas" data-entity="proformas">
             <span class="cc-navIcon" aria-hidden="true">📄</span>
-            <span class="cc-navLabel">Proformas</span>
+            <span class="cc-navLabel">Presupuestos</span>
           </button>
 
           <button class="cc-navItem" type="button" data-screen="screen-listas" data-entity="gastos">

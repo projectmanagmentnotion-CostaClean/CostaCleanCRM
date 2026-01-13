@@ -30,6 +30,12 @@ function onOpenMain_() {
     .createMenu('Costa Clean')
     .addItem('➕ Añadir líneas (siguiente factura)', 'workflowAnadirLineasSiguiente')
     .addItem('🧾 Generar factura PDF', 'workflowGenerarFactura')
+    .addSeparator()
+    .addItem('Crear factura del presupuesto activo', 'uiCrearFacturaDesdePresupuestoActivo_')
+    .addItem('Generar PDF presupuesto activo', 'uiGenerarPdfPresupuestoActivo_')
+    .addItem('Generar PDF factura activa', 'uiGenerarPdfFacturaActiva_')
+    .addSeparator()
+    .addItem('Cargar datos de prueba (seed)', 'seedSampleData_')
     .addToUi();
 
   // Menú CRM (definido en CRM_LEADS.gs)
@@ -328,3 +334,5 @@ function asegurarFormulaSubtotal_() {
     celda.setFormula('=ARRAYFORMULA(SI((C2:C<>"")*(D2:D<>"");C2:C*D2:D;""))');
   }
 }
+
+
