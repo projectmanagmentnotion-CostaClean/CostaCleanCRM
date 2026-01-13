@@ -224,10 +224,11 @@ function apiGet(entity, id) {
 function apiListPresupuestos(params) {
   const ss = _ss_();
   const limit = Number(params?.limit || 100);
+  const viewName = (typeof CC_VIEW_NAMES !== 'undefined' && CC_VIEW_NAMES.PRESUPUESTOS) ? CC_VIEW_NAMES.PRESUPUESTOS : CC_VIEWS.PRESUPUESTOS;
 
   try {
     _ensureViews_();
-    const result = _listFromView_(CC_VIEWS.PRESUPUESTOS, params || {}, limit);
+    let result = _listFromView_(viewName, params || {}, limit);
     const mapItem = (r) => ({
       id: r.Pres_ID || r.Presupuesto_ID || r.ID,
       cliente: r.Cliente || r.Cliente_ID || r.Lead_ID || '',
@@ -246,7 +247,38 @@ function apiListPresupuestos(params) {
       notas: r.Notas || r.Nota || r.Observaciones || '',
       sourceSheet: r.SourceSheet || ''
     });
-    return _mapListResult_(result, mapItem);
+    let mapped = _mapListResult_(result, mapItem);
+
+    if (!mapped.length) {
+      const rawCount = Array.isArray(result?.items) ? result.items.length : Array.isArray(result) ? result.length : 0;
+      Logger.log('[apiListPresupuestos] vista %s sin filas (raw=%s) params=%s', viewName, rawCount, JSON.stringify(params || {}));
+      if (typeof ccBuildPresupuestosView_ === 'function') {
+        try {
+          ccBuildPresupuestosView_(ss);
+          result = _listFromView_(viewName, params || {}, limit);
+          mapped = _mapListResult_(result, mapItem);
+        } catch (rebuildErr) {
+          Logger.log('[apiListPresupuestos] rebuild %s falló: %s', viewName, rebuildErr?.message || rebuildErr);
+        }
+      }
+      if (!mapped.length && typeof ccMergePresupuestoSources_ === 'function') {
+        try {
+          const fallback = ccMergePresupuestoSources_(ss.getSheetByName(CC_SHEETS.PRESUPUESTOS), ss.getSheetByName(CC_SHEETS.PRES_HIST));
+          const filtered = _applyListFilters_(fallback?.rows || [], params || {});
+          const sorted = _sortRows_(filtered, params || {});
+          const paged = _paginateRows_(sorted, params || {}, limit);
+          const mappedFallback = _mapListResult_(paged, mapItem);
+          if (mappedFallback.length) {
+            Logger.log('[apiListPresupuestos] usando fallback directo desde hojas (rows=%s)', mappedFallback.length);
+            return mappedFallback;
+          }
+        } catch (fallbackErr) {
+          Logger.log('[apiListPresupuestos] fallback hojas falló: %s', fallbackErr?.message || fallbackErr);
+        }
+      }
+    }
+
+    return mapped;
   } catch (err) {
     logEvent_(ss, 'WEBAPP', 'listPresupuestos', 'presupuestos', '', 'ERROR', err.message, { stack: err.stack });
     throw err;
