@@ -417,13 +417,13 @@ function mapPresupuestoToView(p){
   const fechaText = formatDateText(p.fecha || p.fechaRaw);
   const email = p.email || '';
   const phone = p.telefono || p.phone || '';
+  const contact = joinParts_([email, phone]);
   return {
     id: presId,
     title: p.cliente || p.clienteId || presId,
     sub: joinParts_([
-      presId ? `ID: ${presId}` : '',
-      email,
-      phone,
+      presId || '',
+      contact,
       fechaText,
       p.estado || ''
     ]),
@@ -451,13 +451,13 @@ function mapEntityListRow_(entity, row){
     const email = row.email || pickValue_(row, ['Email', 'Email_cliente', 'Lead_Email']);
     const phone = row.telefono || pickValue_(row, ['Telefono', 'Lead_Telefono', 'Phone']);
     const status = row.estado || pickValue_(row, ['Estado', 'Status']);
+    const contact = joinParts_([phone ? `Tel: ${phone}` : '', email ? `Email: ${email}` : '']);
     return {
       id,
       title: name || id,
       sub: joinParts_([
-        id ? `ID: ${id}` : '',
-        email ? `Email: ${email}` : '',
-        phone ? `Tel: ${phone}` : ''
+        id || '',
+        contact
       ]),
       right: status || '',
       status: status || ''
@@ -474,12 +474,13 @@ function mapEntityListRow_(entity, row){
     const amount = total != null ? total : base;
     const email = pickValue_(row, ['Email', 'Email_cliente']);
     const phone = pickValue_(row, ['Telefono', 'Lead_Telefono', 'Phone']);
+    const contact = joinParts_([email, phone]);
     return {
       id,
       title: cliente || clienteId || id || 'Factura',
       sub: joinParts_([
-        id ? `ID: ${id}` : '',
-        email || phone ? `Contacto: ${joinParts_([email, phone])}` : '',
+        id || '',
+        contact ? `Contacto: ${contact}` : '',
         status || ''
       ]),
       right: amount != null ? formatMoney(amount) : (status || ''),
@@ -499,7 +500,7 @@ function mapEntityListRow_(entity, row){
     return {
       id,
       title: concepto || proveedor || id || 'Gasto',
-      sub: joinParts_([id ? `ID: ${id}` : '', proveedor, categoria]),
+      sub: joinParts_([id || '', proveedor, categoria]),
       right: amount != null ? formatMoney(amount) : (categoria || ''),
       status: categoria || '',
       clientId: pickValue_(row, ['Cliente_ID', 'ClienteId']) || ''
