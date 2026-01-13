@@ -31,6 +31,24 @@ const CC_VIEWS = {
   GASTOS: 'VW_GASTOS'
 };
 
+const CC_USER_PROP_KEYS = {
+  useMock: 'cc_use_mock'
+};
+
+function apiGetMockPreference() {
+  const props = PropertiesService.getUserProperties();
+  const raw = props.getProperty(CC_USER_PROP_KEYS.useMock);
+  const useMock = _toBool_(raw, false);
+  return { useMock };
+}
+
+function apiSetMockPreference(useMock) {
+  const flag = _toBool_(useMock, false);
+  const props = PropertiesService.getUserProperties();
+  props.setProperty(CC_USER_PROP_KEYS.useMock, flag ? 'true' : 'false');
+  return { ok: true, useMock: flag };
+}
+
 /** Headers recomendados (solo para crear hojas faltantes)
  *  Si ya tienes la hoja, NO se sobreescribe.
  */

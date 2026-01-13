@@ -170,26 +170,32 @@ function escapeHtml(s){
     .replaceAll("'","&#039;");
 }
 
-function loadMockPreference_(){
+function cleanupLegacyMockPreference_(){
   try {
-    const saved = localStorage.getItem(STORAGE_KEYS.useMock);
-    if (saved !== null) {
-      state.useMock = saved === 'true';
-      return;
-    }
-    const legacy = localStorage.getItem(STORAGE_KEYS.legacyUseMock);
-    if (legacy !== null) {
-      state.useMock = legacy === 'true';
-      localStorage.setItem(STORAGE_KEYS.useMock, String(state.useMock));
-      localStorage.removeItem(STORAGE_KEYS.legacyUseMock);
-    }
+    localStorage.removeItem(STORAGE_KEYS.useMock);
+    localStorage.removeItem(STORAGE_KEYS.legacyUseMock);
   } catch (_) {}
 }
 
-function saveMockPreference_(){
+async function loadMockPreference_(){
+  cleanupLegacyMockPreference_();
   try {
-    localStorage.setItem(STORAGE_KEYS.useMock, String(state.useMock));
-  } catch (_) {}
+    const res = await callServer('apiGetMockPreference');
+    state.useMock = !!res?.useMock;
+  } catch (_) {
+    state.useMock = false;
+  }
+  updateMockChip_();
+  return state.useMock;
+}
+
+function saveMockPreference_(value){
+  state.useMock = !!value;
+  return callServer('apiSetMockPreference', state.useMock)
+    .then((res) => {
+      state.useMock = !!res?.useMock;
+      return state.useMock;
+    });
 }
 
 function updateMockChip_(){
@@ -1013,13 +1019,27 @@ function runAction(action, entity, id, dataset){
 
   // Toggle mock
   if (a === 'toggle_mock'){
-    state.useMock = !state.useMock;
-    saveMockPreference_();
+    const prev = state.useMock;
+    const next = !prev;
+    const currentEntity = state.currentEntity || 'clientes';
+
+    state.useMock = next;
     updateMockChip_();
-    toast('Mock', state.useMock ? 'Activado' : 'Desactivado', 'info');
-    if (state.lastScreen === 'screen-listas' && state.currentEntity){
-      loadList(state.currentEntity);
-    }
+    loadList(currentEntity);
+
+    saveMockPreference_(next)
+      .then((useMock) => {
+        state.useMock = !!useMock;
+        updateMockChip_();
+        toast('Mock', state.useMock ? 'Activado' : 'Desactivado', 'info');
+        if (state.useMock !== next) loadList(currentEntity);
+      })
+      .catch((err) => {
+        state.useMock = prev;
+        updateMockChip_();
+        loadList(currentEntity);
+        toast('Mock', err?.message || 'No se pudo guardar la preferencia', 'error');
+      });
     return;
   }
 
@@ -1369,11 +1389,14 @@ document.addEventListener('input', (e) => {
    INIT APP
 ========================= */
 document.addEventListener('DOMContentLoaded', () => {
-  loadMockPreference_();
+  updateMockChip_();
   loadDashboard();
   initNav();
   initListTabs();
-  updateMockChip_();
+  loadMockPreference_()
+    .then(() => {
+      loadList(state.currentEntity || 'clientes');
+    });
 
   // estado inicial
   showScreen('screen-home');
