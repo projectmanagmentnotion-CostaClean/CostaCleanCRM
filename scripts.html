@@ -21,8 +21,9 @@ const state = {
 };
 
 const STORAGE_KEYS = {
-  useMock: 'cc_use_mock',
-  legacyUseMock: 'cc_useMock'
+  mockEnabled: 'cc_mock_enabled',
+  legacyUseMock: 'cc_useMock',
+  legacyUseMockAlt: 'cc_use_mock'
 };
 
 const store = {
@@ -172,18 +173,30 @@ function escapeHtml(s){
 
 function cleanupLegacyMockPreference_(){
   try {
-    localStorage.removeItem(STORAGE_KEYS.useMock);
     localStorage.removeItem(STORAGE_KEYS.legacyUseMock);
+    localStorage.removeItem(STORAGE_KEYS.legacyUseMockAlt);
   } catch (_) {}
 }
 
 async function loadMockPreference_(){
   cleanupLegacyMockPreference_();
+  let localValue = null;
   try {
-    const res = await callServer('apiGetMockPreference');
-    state.useMock = !!res?.useMock;
-  } catch (_) {
-    state.useMock = false;
+    localValue = localStorage.getItem(STORAGE_KEYS.mockEnabled);
+  } catch (_) {}
+
+  if (localValue !== null) {
+    state.useMock = localValue === 'true';
+  } else {
+    try {
+      const res = await callServer('apiGetMockPreference');
+      state.useMock = !!res?.useMock;
+    } catch (_) {
+      state.useMock = false;
+    }
+    try {
+      localStorage.setItem(STORAGE_KEYS.mockEnabled, state.useMock ? 'true' : 'false');
+    } catch (_) {}
   }
   updateMockChip_();
   return state.useMock;
@@ -191,11 +204,18 @@ async function loadMockPreference_(){
 
 function saveMockPreference_(value){
   state.useMock = !!value;
+  try {
+    localStorage.setItem(STORAGE_KEYS.mockEnabled, state.useMock ? 'true' : 'false');
+  } catch (_) {}
   return callServer('apiSetMockPreference', state.useMock)
     .then((res) => {
       state.useMock = !!res?.useMock;
+      try {
+        localStorage.setItem(STORAGE_KEYS.mockEnabled, state.useMock ? 'true' : 'false');
+      } catch (_) {}
       return state.useMock;
-    });
+    })
+    .catch(() => state.useMock);
 }
 
 function updateMockChip_(){
@@ -203,6 +223,12 @@ function updateMockChip_(){
   if (!chip) return;
   chip.classList.toggle('cc-chip--ok', state.useMock);
   chip.setAttribute('aria-pressed', state.useMock ? 'true' : 'false');
+  chip.dataset.state = state.useMock ? 'on' : 'off';
+  const dot = chip.querySelector('.cc-dot');
+  if (dot){
+    dot.classList.toggle('is-on', state.useMock);
+    dot.classList.toggle('is-off', !state.useMock);
+  }
 }
 
 function callServer(fnName, ...args){
@@ -328,24 +354,57 @@ function setActiveTab(entity){
 }
 
 /* =========================
-   DASHBOARD (mock simple)
+   DASHBOARD
 ========================= */
+function renderDashboardKpis(kpis, periodo, placeholder='-'){
+  const money = (v) => (typeof v === 'number') ? formatMoney(v) : placeholder;
+  const text = (v) => (v === undefined || v === null || v === '') ? placeholder : String(v);
+  const cobradoVal = (typeof kpis?.cobradoMes === 'number') ? kpis.cobradoMes : kpis?.ventasMes;
+  const pendienteVal = (typeof kpis?.pendienteMes === 'number') ? kpis.pendienteMes : null;
+
+  if (qs('#kpiVentasMes')) qs('#kpiVentasMes').textContent = money(kpis?.ventasMes);
+  if (qs('#kpiCobrado')) qs('#kpiCobrado').textContent = money(cobradoVal);
+  if (qs('#kpiPendiente')) qs('#kpiPendiente').textContent = money(pendienteVal);
+
+  if (qs('#kpiFactPendientes')) qs('#kpiFactPendientes').textContent = text(kpis?.facturasPendientes);
+  if (qs('#kpiFactPendientesSub')) qs('#kpiFactPendientesSub').textContent = periodo?.monthLabel ? `Mes ${periodo.monthLabel}` : placeholder;
+
+  if (qs('#kpiIvaNeto')) qs('#kpiIvaNeto').textContent = money(kpis?.ivaNetoTrimestre);
+  if (qs('#kpiRepercutido')) qs('#kpiRepercutido').textContent = money(kpis?.ivaRepercutidoTrimestre);
+  if (qs('#kpiSoportado')) qs('#kpiSoportado').textContent = money(kpis?.ivaSoportadoTrimestre);
+
+  if (qs('#kpiGastoDeducible')) qs('#kpiGastoDeducible').textContent = money(kpis?.gastoDeducibleTrimestre);
+  if (qs('#kpiCompras')) qs('#kpiCompras').textContent = placeholder;
+  if (qs('#kpiOperacion')) qs('#kpiOperacion').textContent = periodo?.quarterLabel || placeholder;
+}
+
 function loadDashboard(){
-  // KPI simples (mock)
-  if (qs('#kpiVentasMes')) qs('#kpiVentasMes').textContent = '-';
-  if (qs('#kpiCobrado')) qs('#kpiCobrado').textContent = '-';
-  if (qs('#kpiPendiente')) qs('#kpiPendiente').textContent = '-';
+  const placeholder = state.useMock ? 'Mock' : '...';
+  renderDashboardKpis({}, null, placeholder);
 
-  if (qs('#kpiFactPendientes')) qs('#kpiFactPendientes').textContent = '—';
-  if (qs('#kpiFactPendientesSub')) qs('#kpiFactPendientesSub').textContent = '—';
+  if (state.useMock){
+    renderDashboardKpis({
+      ventasMes: 0,
+      cobradoMes: 0,
+      pendienteMes: 0,
+      facturasPendientes: 0,
+      ivaNetoTrimestre: 0,
+      ivaRepercutidoTrimestre: 0,
+      ivaSoportadoTrimestre: 0,
+      gastoDeducibleTrimestre: 0
+    }, null, 'Mock');
+    return;
+  }
 
-  if (qs('#kpiIvaNeto')) qs('#kpiIvaNeto').textContent = '—';
-  if (qs('#kpiRepercutido')) qs('#kpiRepercutido').textContent = '—';
-  if (qs('#kpiSoportado')) qs('#kpiSoportado').textContent = '—';
-
-  if (qs('#kpiGastoDeducible')) qs('#kpiGastoDeducible').textContent = '-';
-  if (qs('#kpiCompras')) qs('#kpiCompras').textContent = '-';
-  if (qs('#kpiOperacion')) qs('#kpiOperacion').textContent = '-';
+  callServer('apiDashboard')
+    .then((res) => {
+      const kpis = res?.kpis || res || {};
+      renderDashboardKpis(kpis, res?.periodo || null, '-');
+    })
+    .catch((err) => {
+      renderDashboardKpis({}, null, '-');
+      toast('Dashboard', err?.message || 'No se pudo cargar los KPIs', 'error');
+    });
 }
 
 /* =========================
@@ -354,14 +413,24 @@ function loadDashboard(){
 function mapPresupuestoToView(p){
   if (!p) return null;
   const amount = (typeof p.total === 'number') ? p.total : (typeof p.base === 'number' ? p.base : null);
+  const presId = p.id || p.Pres_ID;
+  const fechaText = formatDateText(p.fecha || p.fechaRaw);
+  const email = p.email || '';
+  const phone = p.telefono || p.phone || '';
   return {
-    id: p.id || p.Pres_ID,
-    title: p.cliente || p.clienteId || p.id,
-    sub: `${formatDateText(p.fecha || p.fechaRaw)} | ${p.estado || '-'}`,
+    id: presId,
+    title: p.cliente || p.clienteId || presId,
+    sub: joinParts_([
+      presId ? `ID: ${presId}` : '',
+      email,
+      phone,
+      fechaText,
+      p.estado || ''
+    ]),
     status: p.estado || '',
     amount,
     clientId: p.clienteId || '',
-    email: p.email || '',
+    email,
     phone: p.telefono || '',
     address: p.direccion || '',
     base: p.base ?? null,
@@ -386,6 +455,7 @@ function mapEntityListRow_(entity, row){
       id,
       title: name || id,
       sub: joinParts_([
+        id ? `ID: ${id}` : '',
         email ? `Email: ${email}` : '',
         phone ? `Tel: ${phone}` : ''
       ]),
@@ -402,10 +472,16 @@ function mapEntityListRow_(entity, row){
     const total = toNumber_(pickValue_(row, ['Total', 'Importe_total', 'Total_con_IVA', 'Importe']));
     const base = toNumber_(pickValue_(row, ['Base', 'Subtotal', 'Base_imponible']));
     const amount = total != null ? total : base;
+    const email = pickValue_(row, ['Email', 'Email_cliente']);
+    const phone = pickValue_(row, ['Telefono', 'Lead_Telefono', 'Phone']);
     return {
       id,
-      title: id ? `Factura ${id}` : (cliente || 'Factura'),
-      sub: joinParts_([clienteId || cliente, status]),
+      title: cliente || clienteId || id || 'Factura',
+      sub: joinParts_([
+        id ? `ID: ${id}` : '',
+        email || phone ? `Contacto: ${joinParts_([email, phone])}` : '',
+        status || ''
+      ]),
       right: amount != null ? formatMoney(amount) : (status || ''),
       status: status || '',
       clientId: clienteId || ''
@@ -423,7 +499,7 @@ function mapEntityListRow_(entity, row){
     return {
       id,
       title: concepto || proveedor || id || 'Gasto',
-      sub: joinParts_([proveedor, categoria]),
+      sub: joinParts_([id ? `ID: ${id}` : '', proveedor, categoria]),
       right: amount != null ? formatMoney(amount) : (categoria || ''),
       status: categoria || '',
       clientId: pickValue_(row, ['Cliente_ID', 'ClienteId']) || ''
@@ -1026,11 +1102,13 @@ function runAction(action, entity, id, dataset){
     state.useMock = next;
     updateMockChip_();
     loadList(currentEntity);
+    loadDashboard();
 
     saveMockPreference_(next)
       .then((useMock) => {
         state.useMock = !!useMock;
         updateMockChip_();
+        loadDashboard();
         toast('Mock', state.useMock ? 'Activado' : 'Desactivado', 'info');
         if (state.useMock !== next) loadList(currentEntity);
       })
@@ -1038,6 +1116,7 @@ function runAction(action, entity, id, dataset){
         state.useMock = prev;
         updateMockChip_();
         loadList(currentEntity);
+        loadDashboard();
         toast('Mock', err?.message || 'No se pudo guardar la preferencia', 'error');
       });
     return;
@@ -1390,11 +1469,16 @@ document.addEventListener('input', (e) => {
 ========================= */
 document.addEventListener('DOMContentLoaded', () => {
   updateMockChip_();
-  loadDashboard();
   initNav();
   initListTabs();
   loadMockPreference_()
     .then(() => {
+      updateMockChip_();
+      loadDashboard();
+      loadList(state.currentEntity || 'clientes');
+    })
+    .catch(() => {
+      loadDashboard();
       loadList(state.currentEntity || 'clientes');
     });
 

@@ -272,7 +272,7 @@ function ccBuildPresupuestosView_(ss) {
 }
 
 function ccBuildFacturasView_(ss) {
-  const shFact = ss.getSheetByName('FACTURAS') || ss.getSheetByName('FACTURA');
+  const shFact = ss.getSheetByName('HISTORIAL') || ss.getSheetByName('FACTURAS') || ss.getSheetByName('FACTURA');
   const view = ccGetSheet_(CC_VIEW_NAMES.FACTURAS, true);
   const headers = [
     'Factura_ID','Pres_ID','Cliente_ID','Cliente','Email','NIF','Direccion','CP','Ciudad','Estado',
@@ -284,19 +284,21 @@ function ccBuildFacturasView_(ss) {
 
   const data = ccGetSheetData_(shFact);
   const rows = data.rows.map((row) => {
-    const id = ccPick_(row, data.headers, ['Factura_ID','Numero_factura','ID']);
+    const id = ccPick_(row, data.headers, ['Factura_ID','Numero','Numero_factura','ID']);
     const presId = ccPick_(row, data.headers, ['Pres_ID']);
     const clienteId = ccPick_(row, data.headers, ['Cliente_ID','Lead_ID']);
-    const cliente = ccPick_(row, data.headers, ['Cliente','Nombre']);
+    const cliente = ccPick_(row, data.headers, ['Cliente','Cliente_nombre','Nombre']);
     const email = ccPick_(row, data.headers, ['Email','Email_cliente']);
     const nif = ccPick_(row, data.headers, ['NIF','DNI','CIF']);
     const direccion = ccPick_(row, data.headers, ['Direccion']);
     const cp = ccPick_(row, data.headers, ['CP','Codigo_postal','Codigo_Postal']);
     const ciudad = ccPick_(row, data.headers, ['Ciudad','Municipio']);
-    const estado = ccPick_(row, data.headers, ['Estado']);
+    const estadoRaw = ccPick_(row, data.headers, ['Estado','Estado_factura']);
+    const pagadoRaw = ccPick_(row, data.headers, ['Pagado','Cobrado','Pagada']);
+    const estado = estadoRaw || (pagadoRaw ? (String(pagadoRaw).toLowerCase().match(/pagad|cobrad|si|true|1/) ? 'PAGADA' : 'PENDIENTE') : '');
     const fecha = ccPick_(row, data.headers, ['Fecha']);
     const fechaEnvio = ccPick_(row, data.headers, ['Fecha_envio']);
-    const fechaPago = ccPick_(row, data.headers, ['Fecha_pago']);
+    const fechaPago = ccPick_(row, data.headers, ['Fecha_pago','Fecha_cobro']);
     const base = ccToNumber_(ccPick_(row, data.headers, ['Base','Subtotal']));
     const iva = ccToNumber_(ccPick_(row, data.headers, ['IVA_total','IVA']));
     const total = ccToNumber_(ccPick_(row, data.headers, ['Total','Importe_total','Total_con_IVA'])) || (base != null && iva != null ? base + iva : null);

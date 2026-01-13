@@ -12,7 +12,8 @@ function apiPing() {
 const CC_SHEETS = {
   CLIENTES: 'CLIENTES',
   LEADS: 'LEADS',
-  FACTURA: 'FACTURA',              // tu hoja real de facturas
+  FACTURA: 'FACTURA',              // plantilla/entrada actual
+  FACTURA_HIST: 'HISTORIAL',       // facturas emitidas reales
   LINEAS: 'LINEAS',                // líneas de factura
   PRESUPUESTOS: 'PRESUPUESTOS',    // proformas
   PRES_HIST: 'HISTORIAL_PRESUPUESTOS',
@@ -82,6 +83,23 @@ function _sh_(name) {
   return sh;
 }
 
+function _facturasSheetName_() {
+  const ss = _ss_();
+  const candidates = [
+    CC_SHEETS.FACTURA_HIST,
+    'HISTORIAL',
+    'FACTURAS',
+    CC_SHEETS.FACTURA,
+    'FACTURA'
+  ].filter(Boolean);
+  for (let i = 0; i < candidates.length; i++) {
+    const name = candidates[i];
+    const sh = ss.getSheetByName(name);
+    if (sh) return name;
+  }
+  return candidates[0];
+}
+
 function _ensureSheet_(name, headers) {
   const ss = _ss_();
   let sh = ss.getSheetByName(name);
@@ -141,12 +159,16 @@ function _getAllWithHeaders_(sheetName) {
 function _findById_(sheetName, idCol, id) {
   const sh = _sh_(sheetName);
   const headers = _getHeaders_(sh);
-  const idIndex = headers.indexOf(idCol);
-  if (idIndex === -1) throw new Error(`No existe columna ${idCol} en ${sheetName}`);
+  const idCols = Array.isArray(idCol) ? idCol : [idCol];
+  const idIndexes = idCols.map(col => headers.indexOf(col)).filter(idx => idx !== -1);
+  if (!idIndexes.length) throw new Error(`No existe columna ${idCols.join('/')} en ${sheetName}`);
   const values = sh.getDataRange().getValues();
   for (let r = 1; r < values.length; r++) {
-    if (String(values[r][idIndex]) === String(id)) {
-      return { rowNumber: r + 1, headers, row: values[r], obj: _rowToObj_(headers, values[r]) };
+    for (let i = 0; i < idIndexes.length; i++) {
+      const idx = idIndexes[i];
+      if (String(values[r][idx]) === String(id)) {
+        return { rowNumber: r + 1, headers, row: values[r], obj: _rowToObj_(headers, values[r]) };
+      }
     }
   }
   return null;
@@ -155,6 +177,7 @@ function _findById_(sheetName, idCol, id) {
 /** ========= DASHBOARD / KPIs ========= **/
 function apiDashboard(period) {
   setupSheetsIfMissing_();
+  _ensureViews_();
 
   // period: { year: 2025, month: 12 } o { year: 2025, quarter: 4 }
   const now = new Date();
@@ -165,15 +188,36 @@ function apiDashboard(period) {
   const rangeMonth = _monthRange_(year, month);
   const rangeQuarter = _quarterRange_(year, quarter);
 
-  const facturas = _getAll_(CC_SHEETS.FACTURA);
+  let facturasData = { headers: [], rows: [] };
+  try {
+    facturasData = _getViewData_(CC_VIEWS.FACTURAS);
+  } catch (err) {
+    Logger.log('[apiDashboard] no se pudo leer vista %s: %s', CC_VIEWS.FACTURAS, err?.message || err);
+  }
+  let facturas = facturasData.rows ? facturasData.rows.slice() : [];
+  if (!facturas.length) {
+    Logger.log('[apiDashboard] vista %s sin datos (sheet=%s)', CC_VIEWS.FACTURAS, _facturasSheetName_());
+    try {
+      const fallbackFact = _getAll_(_facturasSheetName_());
+      facturas = fallbackFact || [];
+      Logger.log('[apiDashboard] usando fallback directo de %s (rows=%s)', _facturasSheetName_(), facturas.length);
+    } catch (fallbackErr) {
+      Logger.log('[apiDashboard] fallback hoja facturas falló: %s', fallbackErr?.message || fallbackErr);
+    }
+  }
   const gastos = _getAll_(CC_SHEETS.GASTOS);
+  if (!gastos.length) {
+    Logger.log('[apiDashboard] hoja %s sin datos', CC_SHEETS.GASTOS);
+  }
 
-  const ventasMes = _sumByDateRange_(facturas, 'Fecha', 'Total', rangeMonth.from, rangeMonth.to, (f) => true);
+  const ventasMes = _sumByDateRange_(facturas, 'Fecha', ['Total','total','Importe_total','Importe','Base'], rangeMonth.from, rangeMonth.to, () => true);
+  const cobradasMes = _sumByDateRange_(facturas, 'Fecha', ['Total','total','Importe_total','Importe','Base'], rangeMonth.from, rangeMonth.to, (f) => _isPaidInvoice_(f));
+  const pendientesMes = _sumByDateRange_(facturas, 'Fecha', ['Total','total','Importe_total','Importe','Base'], rangeMonth.from, rangeMonth.to, (f) => _isPendingInvoice_(f));
   const pendientes = facturas.filter(f => _isInRange_(f.Fecha, rangeMonth.from, rangeMonth.to) && _isPendingInvoice_(f)).length;
 
-  const ivaRepTri = _sumByDateRange_(facturas, 'Fecha', 'IVA_total', rangeQuarter.from, rangeQuarter.to, (f) => true);
-  const gastoDedTri = _sumByDateRange_(gastos, 'Fecha', 'Base', rangeQuarter.from, rangeQuarter.to, (g) => _toBool_(g.Deducible, true));
-  const ivaSopTri = _sumByDateRange_(gastos, 'Fecha', 'IVA', rangeQuarter.from, rangeQuarter.to, (g) => _toBool_(g.Deducible, true));
+  const ivaRepTri = _sumByDateRange_(facturas, 'Fecha', ['IVA_total','IVA','Iva_total'], rangeQuarter.from, rangeQuarter.to, () => true);
+  const gastoDedTri = _sumByDateRange_(gastos, 'Fecha', ['Base','total_base','Subtotal'], rangeQuarter.from, rangeQuarter.to, (g) => _toBool_(g.Deducible, true));
+  const ivaSopTri = _sumByDateRange_(gastos, 'Fecha', ['IVA','IVA_total','Iva'], rangeQuarter.from, rangeQuarter.to, (g) => _toBool_(g.Deducible, true));
   const ivaNeto = (Number(ivaRepTri) || 0) - (Number(ivaSopTri) || 0);
 
   return {
@@ -186,6 +230,8 @@ function apiDashboard(period) {
     },
     kpis: {
       ventasMes: Number(ventasMes) || 0,
+      cobradoMes: Number(cobradasMes) || 0,
+      pendienteMes: Number(pendientesMes) || 0,
       facturasPendientes: Number(pendientes) || 0,
       ivaRepercutidoTrimestre: Number(ivaRepTri) || 0,
       gastoDeducibleTrimestre: Number(gastoDedTri) || 0,
@@ -205,7 +251,12 @@ function apiList(entity, params) {
   if (!cfg) throw new Error('Entidad no soportada: ' + entity);
 
   const viewName = cfg.view || cfg.sheet;
-  return _listFromView_(viewName, params || {}, Number(params?.limit || 40));
+  const res = _listFromView_(viewName, params || {}, Number(params?.limit || 40));
+  const count = Array.isArray(res?.items) ? res.items.length : Array.isArray(res) ? res.length : 0;
+  if (!count && ['facturas','gastos','proformas','clientes'].includes(entity)) {
+    Logger.log('[apiList] vista %s sin datos para %s (sheet=%s)', viewName, entity, cfg.sheet || '');
+  }
+  return res;
 }
 
 function apiGet(entity, id) {
@@ -288,7 +339,8 @@ function _findByIdInView_(sheetName, idCol, id) {
   const data = _getViewData_(sheetName);
   const needle = String(id || '').trim();
   if (!needle) return null;
-  const row = (data.rows || []).find(r => String(r[idCol] || '').trim() === needle);
+  const cols = Array.isArray(idCol) ? idCol : [idCol];
+  const row = (data.rows || []).find(r => cols.some(col => String(r[col] || '').trim() === needle));
   return row ? { headers: data.headers, obj: row } : null;
 }
 
@@ -404,7 +456,17 @@ function apiListClientes(params) {
       telefono: r.Telefono || r.Telefono || r.Phone || '',
       estado: r.estado_normalizado || r.Estado || ''
     });
-    return _mapListResult_(result, mapItem);
+    let mapped = _mapListResult_(result, mapItem);
+    if (!mapped.length) {
+      const direct = _getAll_(CC_SHEETS.CLIENTES);
+      if (direct.length) {
+        Logger.log('[apiListClientes] vista %s vacía, usando hoja %s (rows=%s)', CC_VIEWS.CLIENTES, CC_SHEETS.CLIENTES, direct.length);
+        mapped = _mapListResult_(direct, mapItem);
+      } else {
+        Logger.log('[apiListClientes] sin datos en vista %s ni hoja %s', CC_VIEWS.CLIENTES, CC_SHEETS.CLIENTES);
+      }
+    }
+    return mapped;
   } catch (err) {
     logEvent_(ss, 'WEBAPP', 'listClientes', 'clientes', '', 'ERROR', err.message, { stack: err.stack });
     throw err;
@@ -533,7 +595,21 @@ function apiCloseQuarter(payload) {
   row['IRPF_estimado'] = irpf;
 
   // Contadores útiles
-  const facturas = _getAll_(CC_SHEETS.FACTURA);
+  let facturasData = { rows: [] };
+  try {
+    facturasData = _getViewData_(CC_VIEWS.FACTURAS);
+  } catch (err) {
+    Logger.log('[apiCloseQuarter] no se pudo leer vista %s: %s', CC_VIEWS.FACTURAS, err?.message || err);
+  }
+  let facturas = facturasData.rows ? facturasData.rows.slice() : [];
+  if (!facturas.length) {
+    try {
+      facturas = _getAll_(_facturasSheetName_()) || [];
+      Logger.log('[apiCloseQuarter] usando fallback hoja %s (rows=%s)', _facturasSheetName_(), facturas.length);
+    } catch (fallbackErr) {
+      Logger.log('[apiCloseQuarter] fallback hoja facturas falló: %s', fallbackErr?.message || fallbackErr);
+    }
+  }
   row['Facturas_emitidas'] = facturas.filter(f => _isInRange_(f.Fecha, range.from, range.to)).length;
   row['Facturas_pagadas'] = facturas.filter(f => _isInRange_(f.Fecha, range.from, range.to) && _isPaidInvoice_(f)).length;
   row['Facturas_pendientes'] = facturas.filter(f => _isInRange_(f.Fecha, range.from, range.to) && _isPendingInvoice_(f)).length;
@@ -694,10 +770,11 @@ function _createGasto_(p) {
 /** ========= ACTIONS (placeholders + hooks) ========= **/
 function _markFacturaPagada_(facturaId, payload) {
   // Intenta marcar por columna Estado o Pagada/Fecha_pago si existe
-  const found = _findById_(CC_SHEETS.FACTURA, 'Factura_ID', facturaId);
+  const sheetName = _facturasSheetName_();
+  const found = _findById_(sheetName, ['Factura_ID','Numero','Numero_factura'], facturaId);
   if (!found) throw new Error('Factura no encontrada: ' + facturaId);
 
-  const sh = _sh_(CC_SHEETS.FACTURA);
+  const sh = _sh_(sheetName);
   const headers = found.headers;
 
   const idxEstado = headers.indexOf('Estado');
@@ -737,7 +814,7 @@ function _entityMap_() {
   return {
     clientes: { sheet: CC_SHEETS.CLIENTES, view: CC_VIEWS.CLIENTES, idCol: 'Cliente_ID' },
     leads: { sheet: CC_SHEETS.LEADS, view: CC_VIEWS.LEADS, idCol: 'Lead_ID' },
-    facturas: { sheet: CC_SHEETS.FACTURA, view: CC_VIEWS.FACTURAS, idCol: 'Factura_ID' },
+    facturas: { sheet: _facturasSheetName_(), view: CC_VIEWS.FACTURAS, idCol: ['Factura_ID','Numero','Numero_factura'] },
     proformas: { sheet: CC_SHEETS.PRESUPUESTOS, view: CC_VIEWS.PRESUPUESTOS, idCol: 'Pres_ID' },
     gastos: { sheet: CC_SHEETS.GASTOS, view: CC_VIEWS.GASTOS, idCol: 'Gasto_ID' },
     cierres: { sheet: CC_SHEETS.CIERRES, idCol: 'Cierre_ID' }
@@ -1050,23 +1127,35 @@ function _isInRange_(vDate, from, to) {
 }
 
 function _sumByDateRange_(rows, dateKey, valueKey, from, to, predicateFn) {
+  const valueKeys = Array.isArray(valueKey) ? valueKey : [valueKey];
   let sum = 0;
   rows.forEach(r => {
     if (!_isInRange_(r[dateKey], from, to)) return;
     if (predicateFn && !predicateFn(r)) return;
-    sum += Number(r[valueKey] || 0);
+    for (let i = 0; i < valueKeys.length; i++) {
+      const n = Number(r[valueKeys[i]]);
+      if (!isNaN(n)) {
+        sum += n;
+        return;
+      }
+    }
   });
   return sum;
 }
 
 function _isPaidInvoice_(f) {
-  const s = String(f.Estado || '').toLowerCase();
-  return s.includes('pag') || s === 'cobrada';
+  const paidFlag = _toBool_(f.Pagado ?? f.Cobrado ?? f.pagada ?? f.pagado ?? f.cobrado, null);
+  if (paidFlag === true) return true;
+  const s = String(f.Estado || f.estado_normalizado || '').toLowerCase();
+  return s.includes('pag') || s.includes('cobr') || s === 'cobrada';
 }
 
 function _isPendingInvoice_(f) {
-  const s = String(f.Estado || '').toLowerCase();
-  return ['enviada','pendiente','vencida','impagada'].some(x => s.includes(x));
+  const paidFlag = _toBool_(f.Pagado ?? f.Cobrado ?? f.pagada ?? f.pagado ?? f.cobrado, null);
+  if (paidFlag === false) return true;
+  if (paidFlag === true) return false;
+  const s = String(f.Estado || f.estado_normalizado || '').toLowerCase();
+  return ['enviada','pendiente','vencida','impagada','emitida'].some(x => s.includes(x));
 }
 
 function _monthRange_(year, month) {
