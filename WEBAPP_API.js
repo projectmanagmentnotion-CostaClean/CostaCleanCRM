@@ -32,6 +32,27 @@ const CC_VIEWS = {
   GASTOS: 'VW_GASTOS'
 };
 
+const ENTITY_CONFIG = {
+  clientes: {
+    sheets: [CC_SHEETS.CLIENTES, CC_VIEWS.CLIENTES],
+    idColumn: 'Cliente_ID',
+    titleColumn: 'Nombre / Razón social',
+    titleFallback: 'Nombre'
+  },
+  facturas: {
+    sheets: [CC_VIEWS.FACTURAS, _facturasSheetName_()],
+    idColumn: 'Numero_factura'
+  },
+  presupuestos: {
+    sheets: [CC_VIEWS.PRESUPUESTOS, CC_SHEETS.PRESUPUESTOS],
+    idColumn: 'Pres_ID'
+  },
+  gastos: {
+    sheets: [CC_VIEWS.GASTOS, CC_SHEETS.GASTOS],
+    idColumn: 'Gasto_ID'
+  }
+};
+
 const CC_USER_PROP_KEYS = {
   useMock: 'cc_use_mock'
 };
@@ -322,13 +343,13 @@ function apiList(entity, params) {
 function apiGet(entity, id) {
   _ensureViews_();
 
-  if (entity === 'clientes') {
-    return _getClienteDetail_(id);
-  }
-
   const map = _entityMap_();
   const cfg = map[entity];
   if (!cfg) throw new Error('Entidad no soportada: ' + entity);
+
+  if (entity === 'clientes') {
+    return _getClienteDetail_(id, cfg);
+  }
 
   const viewName = cfg.view || cfg.sheet;
   const found = _findByIdInView_(viewName, cfg.idCol, id);
@@ -418,14 +439,32 @@ function _getViewData_(viewName) {
   return _getAllWithHeaders_(viewName);
 }
 
-function _getClienteDetail_(id) {
+function _normalizeHeader_(value) {
+  return String(value || '')
+    .replace(/\u00a0/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/\s+/g, '_')
+    .trim()
+    .toLowerCase();
+}
+
+function _normalizeId_(value) {
+  return String(value || '')
+    .replace(/\u00a0/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+}
+
+function _getClienteDetail_(id, cfg) {
   const ss = _ss_();
-  const idCandidates = ['cliente_id', 'cli_id', 'id'];
-  const searched = String(id || '').trim();
+  const searched = _normalizeId_(id);
   const sheetsTried = [];
+  const idColumn = cfg?.idCol || ENTITY_CONFIG.clientes.idColumn;
 
   if (!searched) {
-    return { ok: false, error: 'INVALID_ID', meta: { sheetTried: [], idColumnCandidates: idCandidates, idSearched: searched } };
+    return { ok: false, error: 'INVALID_ID', meta: { sheetTried: [], idColumnCandidates: [idColumn], idSearched: searched } };
   }
 
   const findInSheet = (sheetName) => {
@@ -434,39 +473,40 @@ function _getClienteDetail_(id) {
     sheetsTried.push(sheetName);
     if (!sh) return null;
     const values = sh.getDataRange().getDisplayValues();
-    if (!values.length || values.length < 2) return { ok: false, meta: { sheetUsed: sheetName, idColumnUsed: '' } };
+    if (!values.length || values.length < 2) return { ok: false, meta: { sheetUsed: sheetName, idColumnUsed: idColumn } };
 
     const headersRaw = values[0].map(String);
     const headersNorm = headersRaw.map(h => _normalizeHeader_(h));
-    let idIdx = -1;
-    let idColUsed = '';
-    for (let i = 0; i < idCandidates.length; i++) {
-      const candidate = idCandidates[i];
-      const idx = headersNorm.indexOf(_normalizeHeader_(candidate));
-      if (idx !== -1) {
-        idIdx = idx;
-        idColUsed = headersRaw[idx];
-        break;
-      }
-    }
-
+    const idIdx = headersNorm.indexOf(_normalizeHeader_(idColumn));
     if (idIdx === -1) return { ok: false, meta: { sheetUsed: sheetName, idColumnUsed: '' } };
 
-    const needle = searched.toLowerCase();
     for (let r = 1; r < values.length; r++) {
-      const cell = String(values[r][idIdx] || '').trim();
+      const cell = _normalizeId_(values[r][idIdx]);
       if (!cell) continue;
-      if (cell.toLowerCase() === needle) {
+      if (cell === searched) {
         const obj = {};
         headersRaw.forEach((h, i) => obj[h] = values[r][i]);
-        return { ok: true, data: obj, meta: { sheetUsed: sheetName, idColumnUsed: idColUsed } };
+        return { ok: true, data: obj, meta: { sheetUsed: sheetName, idColumnUsed: idColumn, idNormalized: searched } };
       }
     }
 
-    return { ok: false, meta: { sheetUsed: sheetName, idColumnUsed: idColUsed } };
+    return { ok: false, meta: { sheetUsed: sheetName, idColumnUsed: idColumn } };
   };
 
-  const order = [CC_SHEETS.CLIENTES, CC_VIEWS.CLIENTES];
+  const order = (ENTITY_CONFIG.clientes?.sheets || []).filter(Boolean);
+  const availableIdSamples = [];
+
+  order.forEach(sheetName => {
+    const sh = ss.getSheetByName(sheetName);
+    if (!sh) return;
+    const values = sh.getDataRange().getDisplayValues();
+    if (values.length >= 2) {
+      const headersNorm = values[0].map(h => _normalizeHeader_(h));
+      const idIdx = headersNorm.indexOf(_normalizeHeader_(idColumn));
+      if (idIdx !== -1 && values[1][idIdx]) availableIdSamples.push(values[1][idIdx]);
+    }
+  });
+
   for (let i = 0; i < order.length; i++) {
     const res = findInSheet(order[i]);
     if (res?.ok) return res;
@@ -475,7 +515,14 @@ function _getClienteDetail_(id) {
   return {
     ok: false,
     error: 'NOT_FOUND',
-    meta: { sheetTried: sheetsTried, idColumnCandidates: idCandidates, idSearched: searched }
+    meta: {
+      sheetTried: sheetsTried,
+      idColumnCandidates: [idColumn],
+      idSearched: searched,
+      idNormalized: searched,
+      idColumnUsed: idColumn,
+      availableIdSamples
+    }
   };
 }
 
@@ -938,11 +985,11 @@ function _emailProforma_(presId) {
 /** ========= UTILIDADES ========= **/
 function _entityMap_() {
   return {
-    clientes: { sheet: CC_SHEETS.CLIENTES, view: CC_VIEWS.CLIENTES, idCol: 'Cliente_ID' },
+    clientes: { sheet: CC_SHEETS.CLIENTES, view: CC_VIEWS.CLIENTES, idCol: ENTITY_CONFIG.clientes.idColumn },
     leads: { sheet: CC_SHEETS.LEADS, view: CC_VIEWS.LEADS, idCol: 'Lead_ID' },
-    facturas: { sheet: _facturasSheetName_(), view: CC_VIEWS.FACTURAS, idCol: ['Factura_ID','Numero','Numero_factura'] },
-    proformas: { sheet: CC_SHEETS.PRESUPUESTOS, view: CC_VIEWS.PRESUPUESTOS, idCol: 'Pres_ID' },
-    gastos: { sheet: CC_SHEETS.GASTOS, view: CC_VIEWS.GASTOS, idCol: 'Gasto_ID' },
+    facturas: { sheet: _facturasSheetName_(), view: CC_VIEWS.FACTURAS, idCol: ENTITY_CONFIG.facturas.idColumn },
+    proformas: { sheet: CC_SHEETS.PRESUPUESTOS, view: CC_VIEWS.PRESUPUESTOS, idCol: ENTITY_CONFIG.presupuestos.idColumn },
+    gastos: { sheet: CC_SHEETS.GASTOS, view: CC_VIEWS.GASTOS, idCol: ENTITY_CONFIG.gastos.idColumn },
     cierres: { sheet: CC_SHEETS.CIERRES, idCol: 'Cierre_ID' }
   };
 }

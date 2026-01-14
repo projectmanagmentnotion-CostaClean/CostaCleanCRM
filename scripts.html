@@ -171,6 +171,13 @@ function escapeHtml(s){
     .replaceAll("'","&#039;");
 }
 
+function normalizeId(value){
+  return String(value || '')
+    .replace(/\u00a0/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 function cleanupLegacyMockPreference_(){
   try {
     localStorage.removeItem(STORAGE_KEYS.legacyUseMock);
@@ -407,7 +414,7 @@ function openDiagOverlay_(){
   const overlay = document.createElement('div');
   overlay.id = 'ccDiagOverlay';
   overlay.setAttribute('role', 'dialog');
-  overlay.setAttribute('aria-label', 'Diagnóstico');
+  overlay.setAttribute('aria-label', 'Diagnostico');
   overlay.style.position = 'fixed';
   overlay.style.inset = '0';
   overlay.style.background = 'rgba(0,0,0,0.55)';
@@ -418,17 +425,41 @@ function openDiagOverlay_(){
   overlay.innerHTML = `
     <div style="background:#0b1014;color:#e7ecf1;max-width:840px;width:90%;max-height:80vh;border-radius:12px;padding:16px;box-shadow:0 12px 32px rgba(0,0,0,0.45);overflow:hidden;border:1px solid #1f2a33;">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;">
-        <div style="font-weight:700;font-size:16px;">Diagnóstico</div>
-        <button type="button" aria-label="Cerrar" style="background:#1f2a33;color:#e7ecf1;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;">Cerrar</button>
+        <div style="font-weight:700;font-size:16px;">Diagnostico</div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button type="button" data-action="diag_lookup" style="background:#1f2a33;color:#e7ecf1;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;">Probar lookup cliente</button>
+          <button type="button" aria-label="Cerrar" style="background:#1f2a33;color:#e7ecf1;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;">Cerrar</button>
+        </div>
       </div>
-      <pre id="ccDiagContent" style="background:#0f1620;color:#9ad1ff;padding:12px;border-radius:8px;max-height:65vh;overflow:auto;font-size:12px;line-height:1.4;white-space:pre-wrap;">Cargando diagnóstico...</pre>
+      <pre id="ccDiagContent" style="background:#0f1620;color:#9ad1ff;padding:12px;border-radius:8px;max-height:65vh;overflow:auto;font-size:12px;line-height:1.4;white-space:pre-wrap;">Cargando diagnostico...</pre>
     </div>
   `;
   overlay.addEventListener('click', (e) => {
     if (e.target === overlay) closeDiagOverlay_();
   });
-  const closeBtn = overlay.querySelector('button');
+  const closeBtn = overlay.querySelector('button[aria-label="Cerrar"]');
   if (closeBtn) closeBtn.addEventListener('click', closeDiagOverlay_);
+  const lookupBtn = overlay.querySelector('[data-action="diag_lookup"]');
+  if (lookupBtn){
+    lookupBtn.addEventListener('click', async () => {
+      const input = prompt('Cliente_ID a buscar');
+      const target = normalizeId(input);
+      if (!target) {
+        toast('Lookup', 'Ingresa un Cliente_ID', 'info');
+        return;
+      }
+      const pre = qs('#ccDiagContent');
+      if (pre) pre.textContent = `Buscando cliente ${target}...`;
+      try {
+        const res = await callServer('apiGet', 'clientes', target);
+        if (pre) pre.textContent = JSON.stringify(res, null, 2);
+      } catch (err) {
+        console.error(err);
+        if (pre) pre.textContent = err?.message || String(err);
+        toast('Lookup', err?.message || 'No se pudo buscar el cliente', 'error');
+      }
+    });
+  }
   document.body.appendChild(overlay);
 
   callServer('apiDiag')
@@ -488,7 +519,8 @@ function mapEntityListRow_(entity, row){
   if (!row) return null;
 
   if (entity === 'clientes' || entity === 'leads'){
-    const id = pickValue_(row, ['Cliente_ID', 'cliente_id', 'CLI_ID', 'cli_id', 'id', 'ID', 'Lead_ID']) || row.id;
+    const idRaw = pickValue_(row, ['Cliente_ID', 'cliente_id', 'CLI_ID', 'cli_id', 'id', 'ID', 'Lead_ID']) || row.id;
+    const id = normalizeId(idRaw);
     const name = row.nombre || pickValue_(row, ['Nombre', 'Cliente', 'Lead_Nombre', 'Nombre / Razón social', 'Razon_social', 'RazonSocial', 'nombre']);
     const status = row.estado || pickValue_(row, ['Estado', 'Status']);
     return {
@@ -666,7 +698,7 @@ async function loadEntityDetail(entity, id){
         const tried = Array.isArray(res?.meta?.sheetTried) ? res.meta.sheetTried.join(', ') : '-';
         const cols = Array.isArray(res?.meta?.idColumnCandidates) ? res.meta.idColumnCandidates.join(', ') : '-';
         const msg = `No se encontró información para ID: ${id}`;
-        const detailMsg = `Hojas: ${tried} | Columnas ID: ${cols}`;
+        const detailMsg = `Hojas: ${tried} | Columnas ID: ${cols} | Revisa si el ID existe en CLIENTES/VW_CLIENTES`;
         setDetailState('error', `${msg}\n${detailMsg}`);
         toast('Error', msg, 'error');
         return;
@@ -767,14 +799,15 @@ function renderListItems(entity, rows){
   if (empty) empty.style.display = 'none';
 
   box.innerHTML = rows.map(r => {
-    const itemId = (entity === 'clientes')
+    const rawId = (entity === 'clientes')
       ? (r.Cliente_ID || r.CLI_ID || r.id || r.ID)
       : (r.id || r.ID);
+    const itemId = normalizeId(rawId);
     return `
     <button class="cc-item" type="button" data-entity="${escapeHtml(entity)}" data-id="${escapeHtml(itemId || '')}">
       <div class="cc-itemMain">
         <div class="cc-itemTitle">${escapeHtml(r.title || r.id)}</div>
-        <div class="cc-itemSub">${escapeHtml(r.sub || '')}</div>
+        <div class="cc-itemSub">${escapeHtml(itemId || r.sub || '')}</div>
       </div>
       <div class="cc-itemRight">${escapeHtml(r.right || '')}</div>
     </button>
