@@ -730,4 +730,36 @@ body{
 a{ color: inherit; }
 button{ font-family: inherit; }
 ::selection{ background: rgba(62,165,255,.25); }
+
+
+/* --- FIX NAV: evitar overlays invisibles que bloqueen clicks --- */
+.cc-backdrop,
+.cc-modal-backdrop,
+.modal-backdrop,
+#backdrop,
+[data-backdrop]{
+  pointer-events: none !important;
+}
+
+.cc-backdrop.is-open,
+.cc-modal-backdrop.is-open,
+.modal-backdrop.is-open,
+#backdrop.is-open,
+[data-backdrop].is-open{
+  pointer-events: auto !important;
+}
+
+/* --- FIX NAV: asegurar nav arriba y clickeable --- */
+.cc-bottom-nav,
+#bottomNav,
+nav.cc-nav,
+.cc-nav{
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9999;
+  pointer-events: auto;
+}
+
 </style>

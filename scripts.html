@@ -1586,5 +1586,34 @@ document.addEventListener('DOMContentLoaded', () => {
   showScreen('screen-home');
   setNavActive('home');
 });
+
+
+// --- FIX NAV: delegation global para que no se pierdan listeners ---
+(function ensureNavDelegation(){
+  if (window.__ccNavDelegationInstalled) return;
+  window.__ccNavDelegationInstalled = true;
+
+  document.addEventListener('click', (ev) => {
+    const btn =
+      ev.target.closest('[data-nav]') ||
+      ev.target.closest('.cc-nav-btn') ||
+      ev.target.closest('.bottom-nav button') ||
+      ev.target.closest('nav button');
+
+    if (!btn) return;
+
+    const view = btn.getAttribute('data-nav') || (btn.dataset && (btn.dataset.view || btn.dataset.route));
+    if (!view) return;
+
+    ev.preventDefault();
+    ev.stopPropagation();
+
+    if (typeof navigateTo === 'function') navigateTo(view);
+    else if (typeof setView === 'function') setView(view);
+    else if (typeof showView === 'function') showView(view);
+    else console.warn('NAV: no existe navigateTo/setView/showView, view=', view);
+  });
+})();
+
 </script>
 
