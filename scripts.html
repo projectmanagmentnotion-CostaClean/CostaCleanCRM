@@ -180,24 +180,11 @@ function cleanupLegacyMockPreference_(){
 
 async function loadMockPreference_(){
   cleanupLegacyMockPreference_();
-  let localValue = null;
+  // Forzamos arranque en modo real: no reactivamos mock desde storage ni servidor
+  state.useMock = false;
   try {
-    localValue = localStorage.getItem(STORAGE_KEYS.mockEnabled);
+    localStorage.setItem(STORAGE_KEYS.mockEnabled, 'false');
   } catch (_) {}
-
-  if (localValue !== null) {
-    state.useMock = localValue === 'true';
-  } else {
-    try {
-      const res = await callServer('apiGetMockPreference');
-      state.useMock = !!res?.useMock;
-    } catch (_) {
-      state.useMock = false;
-    }
-    try {
-      localStorage.setItem(STORAGE_KEYS.mockEnabled, state.useMock ? 'true' : 'false');
-    } catch (_) {}
-  }
   updateMockChip_();
   return state.useMock;
 }
@@ -614,6 +601,7 @@ async function fetchEntityList(entity, search, filterClientId){
   } catch (err) {
     console.error(err);
     setListState('error', err.message || 'No se pudo cargar');
+    toast('Error', err.message || 'No se pudo cargar', 'error');
   }
 }
 
@@ -673,6 +661,7 @@ async function fetchPresupuestos(search, filterClientId){
   } catch (err) {
     console.error(err);
     setListState('error', err.message || 'No se pudo cargar presupuestos');
+    toast('Error', err.message || 'No se pudo cargar presupuestos', 'error');
   }
 }
 
@@ -725,36 +714,11 @@ function renderListItems(entity, rows){
 function loadList(entity){
   const q = (qs('#q')?.value || '').toLowerCase().trim();
 
-  if (!state.useMock){
-    if (entity === 'proformas'){
-      fetchPresupuestos(q, state.listFilterClientId);
-      return;
-    }
-    fetchEntityList(entity, q, state.listFilterClientId);
+  if (entity === 'proformas'){
+    fetchPresupuestos(q, state.listFilterClientId);
     return;
   }
-
-  setListState();
-  let rows = (MOCK[entity] || []);
-
-  // Filtro por cliente (historial)
-  if (state.listFilterClientId && entity !== 'clientes'){
-    rows = rows.filter(r => (r.clientId || '').toLowerCase() === state.listFilterClientId.toLowerCase());
-  }
-
-  // Filtro por búsqueda
-  if (q){
-    rows = rows.filter(r => {
-      const hay = `${r.id} ${r.title||''} ${r.sub||''} ${r.right||''}`.toLowerCase();
-      return hay.includes(q);
-    });
-  }
-
-  renderListItems(entity, rows);
-
-  if (!rows.length){
-    setListState('empty', 'Sin registros.');
-  }
+  fetchEntityList(entity, q, state.listFilterClientId);
 }
 
 /* =========================
@@ -1440,18 +1404,11 @@ document.addEventListener('click', (e) => {
     if (!entity || !id) return;
     e.preventDefault();
 
-    if (!state.useMock){
-      if (entity === 'proformas'){
-        loadPresupuestoDetail(id);
-        return;
-      }
-      loadEntityDetail(entity, id);
+    if (entity === 'proformas'){
+      loadPresupuestoDetail(id);
       return;
     }
-
-    showScreen('screen-detalle');
-    setDetailState();
-    loadDetail(entity, id);
+    loadEntityDetail(entity, id);
     return;
   }
 });
