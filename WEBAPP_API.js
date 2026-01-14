@@ -415,6 +415,15 @@ function apiListPresupuestos(params) {
       }
     }
 
+    const filterId = params?.clientIdNormalized || params?.clienteIdNormalized || '';
+    if (filterId) {
+      const needle = _normalizeId_(filterId);
+      mapped = mapped.filter(r => {
+        const cid = _normalizeId_(r.clienteId || r.Cliente_ID || '');
+        return cid === needle;
+      });
+    }
+
     return mapped;
   } catch (err) {
     logEvent_(ss, 'WEBAPP', 'listPresupuestos', 'presupuestos', '', 'ERROR', err.message, { stack: err.stack });
@@ -443,8 +452,6 @@ function _normalizeHeader_(value) {
   return String(value || '')
     .replace(/\u00a0/g, ' ')
     .replace(/\s+/g, ' ')
-    .trim()
-    .replace(/\s+/g, '_')
     .trim()
     .toLowerCase();
 }
@@ -624,7 +631,7 @@ function apiListClientes(params) {
     const result = _listFromView_(CC_VIEWS.CLIENTES, params || {}, 200);
     const mapItem = (r) => ({
       id: r.Cliente_ID || r.ID,
-      nombre: r.Nombre || r.Cliente || '',
+      nombre: r['Nombre / Razón social'] || r.Nombre || r.Cliente || '',
       email: r.Email || r.Email_cliente || '',
       telefono: r.Telefono || r.Telefono || r.Phone || '',
       estado: r.estado_normalizado || r.Estado || ''
@@ -644,6 +651,39 @@ function apiListClientes(params) {
     logEvent_(ss, 'WEBAPP', 'listClientes', 'clientes', '', 'ERROR', err.message, { stack: err.stack });
     throw err;
   }
+}
+
+function apiCrearProformaCliente(clienteId) {
+  const ss = _ss_();
+  const targetId = _normalizeId_(clienteId);
+  if (!targetId) throw new Error('Cliente_ID requerido');
+
+  const detail = _getClienteDetail_(targetId, _entityMap_().clientes);
+  if (!detail?.ok || !detail.data) {
+    const meta = detail?.meta || {};
+    throw new Error(`Cliente no encontrado (${meta.idSearched || targetId})`);
+  }
+
+  const data = detail.data;
+  const payload = {
+    Cliente_ID: data['Cliente_ID'] || data['cliente_id'] || '',
+    Cliente: data['Nombre / Razón social'] || data['Nombre'] || data['Cliente'] || '',
+    Email_cliente: data['Email_cliente'] || data['Email'] || '',
+    NIF: data['NIF'] || '',
+    Direccion: data['Direccion'] || data['Direccion_cliente'] || '',
+    CP: data['CP'] || '',
+    Ciudad: data['Ciudad'] || '',
+    Base: 0,
+    IVA_total: 0,
+    Total: 0,
+    Estado: data['Estado'] || 'Borrador',
+    Validez_dias: 15,
+    Fecha: new Date()
+  };
+
+  const created = _createProforma_(payload);
+  logEvent_(ss, 'WEBAPP', 'crearProformaCliente', 'proformas', payload.Cliente_ID, 'OK', '', { presId: created?.id || '' });
+  return { ok: true, presId: created?.id || '' };
 }
 
 function apiListLeads(params) {

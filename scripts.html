@@ -16,7 +16,7 @@ const state = {
   useMock: false,
   currentEntity: 'clientes',        // entidad activa en listas
   listFilterClientId: null,         // filtro por cliente (historial)
-  detail: { entity:null, id:null, clientId:null },
+  detail: { entity:null, id:null, clientId:null, data:null },
   lastScreen: 'screen-home'
 };
 
@@ -521,7 +521,7 @@ function mapEntityListRow_(entity, row){
   if (entity === 'clientes' || entity === 'leads'){
     const idRaw = pickValue_(row, ['Cliente_ID', 'cliente_id', 'CLI_ID', 'cli_id', 'id', 'ID', 'Lead_ID']) || row.id;
     const id = normalizeId(idRaw);
-    const name = row.nombre || pickValue_(row, ['Nombre', 'Cliente', 'Lead_Nombre', 'Nombre / Razón social', 'Razon_social', 'RazonSocial', 'nombre']);
+    const name = row.nombre || pickValue_(row, ['Nombre / Razón social', 'Nombre', 'Cliente', 'Lead_Nombre', 'Razon_social', 'RazonSocial', 'nombre']);
     const status = row.estado || pickValue_(row, ['Estado', 'Status']);
     return {
       id,
@@ -722,16 +722,16 @@ async function loadEntityDetail(entity, id){
 async function fetchPresupuestos(search, filterClientId){
   setListState('loading', 'Cargando presupuestos...');
   try {
-    const res = await callServer('apiListPresupuestos', { q: search || '', includeHistorial: false });
+    const res = await callServer('apiListPresupuestos', { q: search || '', includeHistorial: false, clientIdNormalized: filterClientId ? normalizeId(filterClientId) : '' });
     const items = Array.isArray(res) ? res : (Array.isArray(res?.items) ? res.items : []);
     store.presupuestos = items;
 
     let list = store.presupuestos.slice();
     if (filterClientId){
-      const needle = String(filterClientId).toLowerCase();
+      const needle = normalizeId(filterClientId);
       list = list.filter(p => {
-        const cid = (p.clienteId || p.Cliente_ID || p.Lead_ID || '').toString().toLowerCase();
-        const cname = (p.cliente || '').toString().toLowerCase();
+        const cid = normalizeId(p.clienteId || p.Cliente_ID || p.Lead_ID || '');
+        const cname = normalizeId(p.cliente || '');
         return cid === needle || cname.includes(needle);
       });
     }
@@ -831,6 +831,7 @@ function loadList(entity){
 function loadDetail(entity, id, detailData){
   state.detail.entity = entity;
   state.detail.id = id;
+  state.detail.data = detailData || null;
 
   const fallback = (MOCK_DETAIL?.[entity]?.[id]) || null;
   const data = detailData || fallback;
@@ -1198,18 +1199,31 @@ function runAction(action, entity, id, dataset){
   if (a === 'go_form_gasto'){ openForm('Gasto'); return; }
 
   // Cierre / ver todo / filtros (mock)
-  if (a === 'cierre_trimestre'){ toast('Cierre', 'Mock: iniciar cierre de trimestre', 'info'); return; }
-  if (a === 'ver_todo'){ toast('Movimientos', 'Mock: ver todo', 'info'); return; }
+  if (a === 'cierre_trimestre'){ toast('Cierre', 'Iniciar cierre de trimestre', 'info'); return; }
+  if (a === 'ver_todo'){ toast('Movimientos', 'Ver todo', 'info'); return; }
   if (a === 'abrir_filtro'){ openDiagOverlay_(); return; }
 
   // Acciones de CLIENTE (detalle)
   if (a === 'crear_proforma'){
-    toast('Listo', `Crear proforma desde ${id} (mock)`, 'ok');
-    goToList('proformas', id);
+    if (!id){
+      toast('Error', 'Cliente_ID vacío', 'error');
+      return;
+    }
+    toast('Proforma', 'Creando...', 'info');
+    callServer('apiCrearProformaCliente', id)
+      .then((res) => {
+        const presId = res?.presId || '';
+        if (!presId) throw new Error('No se generó Pres_ID');
+        toast('Proforma', `Creado: ${presId}`, 'ok');
+        loadPresupuestoDetail(presId);
+      })
+      .catch((err) => {
+        toast('Error', err?.message || 'No se pudo crear la proforma', 'error');
+      });
     return;
   }
   if (a === 'crear_factura'){
-    toast('Listo', `Crear factura desde ${id} (mock)`, 'ok');
+    toast('Listo', `Crear factura desde ${id}`, 'ok');
     goToList('facturas', id);
     return;
   }
@@ -1236,7 +1250,7 @@ function runAction(action, entity, id, dataset){
     return;
   }
   if (a === 'ver_historial'){
-    toast('Historial', `Mostrando facturas de ${id} (mock)`, 'info');
+    toast('Historial', `Mostrando facturas de ${id}`, 'info');
     goToList('facturas', id);
     return;
   }
@@ -1252,21 +1266,39 @@ function runAction(action, entity, id, dataset){
 
   // Quick actions cliente
   if (a === 'wa_chat'){
-    toast('WhatsApp', `Mock: abrir chat de ${id}`, 'info');
+    const d = state.detail.data || {};
+    const phoneRaw = d.phone || d.telefono || d.Telefono || '';
+    const phone = (phoneRaw || '').replace(/[^0-9]/g, '');
+    if (!phone){
+      toast('WhatsApp', 'Sin teléfono', 'info');
+      return;
+    }
+    window.open(`https://wa.me/${phone}`, '_blank');
     return;
   }
   if (a === 'call_phone'){
-    toast('Llamar', `Mock: llamar a ${id}`, 'info');
+    const d = state.detail.data || {};
+    const phone = d.phone || d.telefono || d.Telefono || '';
+    if (!phone){
+      toast('Llamar', 'Sin teléfono', 'info');
+      return;
+    }
+    window.open(`tel:${phone}`, '_self');
     return;
   }
   if (a === 'send_email'){
-    toast('Email', `Mock: enviar email a ${id}`, 'info');
+    const d = state.detail.data || {};
+    const email = d.email || d.Email || '';
+    if (!email){
+      toast('Email', 'Sin email', 'info');
+      return;
+    }
+    window.open(`mailto:${email}`, '_self');
     return;
   }
   if (a === 'copy_id'){
-    // Intento copiar
-    const d = MOCK_DETAIL?.clientes?.[id];
-    const txt = `ID: ${id}\nEmail: ${d?.email || '—'}\nTel: ${d?.phone || '—'}`;
+    const d = state.detail.data || {};
+    const txt = `${d.title || d.nombre || 'Cliente'} | ${id} | ${d.phone || d.telefono || '-'} | ${d.email || '-'}`;
     navigator.clipboard?.writeText(txt).then(
       () => toast('Copiado', 'Datos copiados al portapapeles', 'ok'),
       () => toast('Copiar', 'No se pudo copiar (permiso del navegador)', 'info')
@@ -1414,7 +1446,7 @@ function runAction(action, entity, id, dataset){
 ========================= */
 function goToList(entity, filterClientId){
   state.currentEntity = entity;
-  state.listFilterClientId = filterClientId || null;
+  state.listFilterClientId = filterClientId ? normalizeId(filterClientId) : null;
 
   // UI
   showScreen('screen-listas');
