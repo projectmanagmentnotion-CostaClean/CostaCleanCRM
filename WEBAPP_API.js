@@ -50,6 +50,51 @@ function apiSetMockPreference(useMock) {
   return { ok: true, useMock: flag };
 }
 
+/** ========= DIAGNOSTICO ========= **/
+function apiDiag() {
+  const ss = _ss_();
+  const sheets = ss.getSheets().map(sh => ({
+    name: sh.getName(),
+    rows: sh.getLastRow(),
+    cols: sh.getLastColumn()
+  }));
+
+  const counts = {
+    clientes: 0,
+    facturas: 0,
+    presupuestos: 0,
+    gastos: 0,
+    leads: 0
+  };
+
+  const samples = {};
+  const sampleTargets = [
+    { key: 'clientes', sheet: CC_SHEETS.CLIENTES },
+    { key: 'facturas', sheet: _facturasSheetName_() },
+    { key: 'presupuestos', sheet: CC_SHEETS.PRESUPUESTOS },
+    { key: 'gastos', sheet: CC_SHEETS.GASTOS },
+    { key: 'leads', sheet: CC_SHEETS.LEADS }
+  ];
+
+  sampleTargets.forEach(({ key, sheet }) => {
+    if (!sheet) return;
+    const sh = ss.getSheetByName(sheet);
+    if (!sh) return;
+    const { headers, rows } = _getAllWithHeaders_(sheet);
+    counts[key] = rows.length;
+    if (!rows.length) return;
+    const row = rows[0] || {};
+    samples[key] = _diagSample_(headers, row);
+  });
+
+  return {
+    spreadsheetId: ss.getId(),
+    sheets,
+    counts,
+    samples
+  };
+}
+
 /** Headers recomendados (solo para crear hojas faltantes)
  *  Si ya tienes la hoja, NO se sobreescribe.
  */
@@ -850,6 +895,20 @@ function _pickValue_(obj, keys) {
 function _safeNumber_(v) {
   const n = Number(v);
   return isNaN(n) ? null : n;
+}
+
+function _diagSample_(headers, row) {
+  const byKeys = (candidates) => _pickValue_(row, candidates);
+  const id = byKeys(['Cliente_ID', 'CLI_ID', 'Lead_ID', 'Pres_ID', 'Factura_ID', 'ID', 'id']);
+  const cliente = byKeys(['Cliente', 'Cliente_nombre', 'Nombre', 'Lead_Nombre']);
+  const fecha = byKeys(['Fecha', 'Fecha_emision', 'Fecha_factura', 'created_at']);
+  const estado = byKeys(['Estado', 'estado_normalizado', 'Status']);
+  return {
+    id: id || '',
+    cliente: cliente || '',
+    fecha: fecha || '',
+    estado: estado || ''
+  };
 }
 
 function _formatDateIso_(v) {

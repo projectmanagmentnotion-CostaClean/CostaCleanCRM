@@ -395,6 +395,55 @@ function loadDashboard(){
 }
 
 /* =========================
+   Diagnostico (overlay)
+========================= */
+function closeDiagOverlay_(){
+  const existing = qs('#ccDiagOverlay');
+  if (existing) existing.remove();
+}
+
+function openDiagOverlay_(){
+  closeDiagOverlay_();
+  const overlay = document.createElement('div');
+  overlay.id = 'ccDiagOverlay';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-label', 'Diagnóstico');
+  overlay.style.position = 'fixed';
+  overlay.style.inset = '0';
+  overlay.style.background = 'rgba(0,0,0,0.55)';
+  overlay.style.display = 'flex';
+  overlay.style.alignItems = 'center';
+  overlay.style.justifyContent = 'center';
+  overlay.style.zIndex = '9999';
+  overlay.innerHTML = `
+    <div style="background:#0b1014;color:#e7ecf1;max-width:840px;width:90%;max-height:80vh;border-radius:12px;padding:16px;box-shadow:0 12px 32px rgba(0,0,0,0.45);overflow:hidden;border:1px solid #1f2a33;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;">
+        <div style="font-weight:700;font-size:16px;">Diagnóstico</div>
+        <button type="button" aria-label="Cerrar" style="background:#1f2a33;color:#e7ecf1;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;">Cerrar</button>
+      </div>
+      <pre id="ccDiagContent" style="background:#0f1620;color:#9ad1ff;padding:12px;border-radius:8px;max-height:65vh;overflow:auto;font-size:12px;line-height:1.4;white-space:pre-wrap;">Cargando diagnóstico...</pre>
+    </div>
+  `;
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) closeDiagOverlay_();
+  });
+  const closeBtn = overlay.querySelector('button');
+  if (closeBtn) closeBtn.addEventListener('click', closeDiagOverlay_);
+  document.body.appendChild(overlay);
+
+  callServer('apiDiag')
+    .then((res) => {
+      const pre = qs('#ccDiagContent');
+      if (pre) pre.textContent = JSON.stringify(res, null, 2);
+    })
+    .catch((err) => {
+      closeDiagOverlay_();
+      console.error(err);
+      toast('Diagnóstico', err?.message || 'No se pudo obtener el diagnóstico', 'error');
+    });
+}
+
+/* =========================
    PRESUPUESTOS (API)
 ========================= */
 function mapPresupuestoToView(p){
@@ -1103,7 +1152,7 @@ function runAction(action, entity, id, dataset){
   // Cierre / ver todo / filtros (mock)
   if (a === 'cierre_trimestre'){ toast('Cierre', 'Mock: iniciar cierre de trimestre', 'info'); return; }
   if (a === 'ver_todo'){ toast('Movimientos', 'Mock: ver todo', 'info'); return; }
-  if (a === 'abrir_filtro'){ toast('Filtro', 'Mock: panel de filtros', 'info'); return; }
+  if (a === 'abrir_filtro'){ openDiagOverlay_(); return; }
 
   // Acciones de CLIENTE (detalle)
   if (a === 'crear_proforma'){
@@ -1408,7 +1457,10 @@ document.addEventListener('click', (e) => {
   if (item){
     const entity = (item.dataset.entity || '').trim();
     const rawId = (item.dataset.id || '').trim();
-    if (!entity || !rawId) return;
+    if (!entity || !rawId){
+      toast('Error', 'Item sin ID', 'error');
+      return;
+    }
     const cleanId = rawId.split(/[\\s|]+/)[0] || rawId;
     e.preventDefault();
 
