@@ -434,6 +434,12 @@ function openDiagOverlay_(){
   callServer('apiDiag')
     .then((res) => {
       const pre = qs('#ccDiagContent');
+      if (!res) {
+        console.error('apiDiag devolvió null');
+        toast('Diagnóstico', 'apiDiag devolvió null', 'error');
+        if (pre) pre.textContent = 'apiDiag devolvió null';
+        return;
+      }
       if (pre) pre.textContent = JSON.stringify(res, null, 2);
     })
     .catch((err) => {
@@ -482,19 +488,13 @@ function mapEntityListRow_(entity, row){
   if (!row) return null;
 
   if (entity === 'clientes' || entity === 'leads'){
-    const id = pickValue_(row, ['Cliente_ID', 'CLI_ID', 'Lead_ID', 'ID', 'id']) || row.id;
-    const name = row.nombre || pickValue_(row, ['Nombre', 'Cliente', 'Lead_Nombre']);
-    const email = row.email || pickValue_(row, ['Email', 'Email_cliente', 'Lead_Email']);
-    const phone = row.telefono || pickValue_(row, ['Telefono', 'Lead_Telefono', 'Phone']);
+    const id = pickValue_(row, ['Cliente_ID', 'cliente_id', 'CLI_ID', 'cli_id', 'id', 'ID', 'Lead_ID']) || row.id;
+    const name = row.nombre || pickValue_(row, ['Nombre', 'Cliente', 'Lead_Nombre', 'Nombre / Razón social', 'Razon_social', 'RazonSocial', 'nombre']);
     const status = row.estado || pickValue_(row, ['Estado', 'Status']);
-    const contact = joinParts_([phone ? `Tel: ${phone}` : '', email ? `Email: ${email}` : '']);
     return {
       id,
-      title: name || id,
-      sub: joinParts_([
-        id || '',
-        contact
-      ]),
+      title: name || 'Cliente',
+      sub: id || '',
       right: status || '',
       status: status || ''
     };
@@ -550,12 +550,12 @@ function mapEntityDetail_(entity, row){
   if (!row) return null;
 
   if (entity === 'clientes' || entity === 'leads'){
-    const id = row.id || pickValue_(row, ['Cliente_ID', 'CLI_ID', 'Lead_ID', 'ID']);
-    const name = row.nombre || pickValue_(row, ['Nombre', 'Cliente', 'Lead_Nombre']);
-    const email = row.email || pickValue_(row, ['Email', 'Email_cliente', 'Lead_Email']);
-    const phone = row.telefono || pickValue_(row, ['Telefono', 'Lead_Telefono', 'Phone']);
-    const address = pickValue_(row, ['Direccion', 'Address', 'Direccion_cliente']);
-    const status = row.estado || pickValue_(row, ['Estado', 'Status']);
+    const id = row.id || pickValue_(row, ['Cliente_ID', 'cliente_id', 'CLI_ID', 'cli_id', 'Lead_ID', 'ID']);
+    const name = row.nombre || pickValue_(row, ['Nombre', 'Cliente', 'Lead_Nombre', 'Nombre / Razón social', 'Razon_social', 'RazonSocial', 'nombre']);
+    const email = row.email || pickValue_(row, ['Email', 'Email_cliente', 'Lead_Email', 'email']);
+    const phone = row.telefono || pickValue_(row, ['Telefono', 'Lead_Telefono', 'Phone', 'telefono']);
+    const address = pickValue_(row, ['Direccion', 'Address', 'Direccion_cliente', 'direccion']);
+    const status = row.estado || pickValue_(row, ['Estado', 'Status', 'estado']);
     return {
       id,
       title: name || id,
@@ -659,7 +659,22 @@ async function loadEntityDetail(entity, id){
   setDetailState('loading', 'Cargando detalle...');
   try {
     const res = await callServer('apiGet', entity, id);
-    const view = mapEntityDetail_(entity, res);
+    let payload = res;
+
+    if (entity === 'clientes' && res && typeof res === 'object' && 'ok' in res){
+      if (res.ok === false){
+        const tried = Array.isArray(res?.meta?.sheetTried) ? res.meta.sheetTried.join(', ') : '-';
+        const cols = Array.isArray(res?.meta?.idColumnCandidates) ? res.meta.idColumnCandidates.join(', ') : '-';
+        const msg = `No se encontró información para ID: ${id}`;
+        const detailMsg = `Hojas: ${tried} | Columnas ID: ${cols}`;
+        setDetailState('error', `${msg}\n${detailMsg}`);
+        toast('Error', msg, 'error');
+        return;
+      }
+      payload = res.data || null;
+    }
+
+    const view = mapEntityDetail_(entity, payload);
     if (!view) throw new Error(`No se encontró información para ID: ${id}`);
     setDetailState();
     loadDetail(entity, view.id, view);

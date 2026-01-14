@@ -52,47 +52,62 @@ function apiSetMockPreference(useMock) {
 
 /** ========= DIAGNOSTICO ========= **/
 function apiDiag() {
-  const ss = _ss_();
-  const sheets = ss.getSheets().map(sh => ({
-    name: sh.getName(),
-    rows: sh.getLastRow(),
-    cols: sh.getLastColumn()
-  }));
-
-  const counts = {
-    clientes: 0,
-    facturas: 0,
-    presupuestos: 0,
-    gastos: 0,
-    leads: 0
+  const res = {
+    ok: true,
+    spreadsheetId: '',
+    sheets: [],
+    counts: {
+      CLIENTES: 0,
+      VW_CLIENTES: 0,
+      FACTURAS: 0,
+      VW_FACTURAS: 0,
+      PRESUPUESTOS: 0,
+      VW_PRESUPUESTOS: 0,
+      GASTOS: 0,
+      VW_GASTOS: 0,
+      LEADS: 0,
+      VW_LEADS: 0
+    },
+    samples: {}
   };
 
-  const samples = {};
-  const sampleTargets = [
-    { key: 'clientes', sheet: CC_SHEETS.CLIENTES },
-    { key: 'facturas', sheet: _facturasSheetName_() },
-    { key: 'presupuestos', sheet: CC_SHEETS.PRESUPUESTOS },
-    { key: 'gastos', sheet: CC_SHEETS.GASTOS },
-    { key: 'leads', sheet: CC_SHEETS.LEADS }
-  ];
+  try {
+    const ss = _ss_();
+    res.spreadsheetId = ss.getId();
+    res.sheets = ss.getSheets().map(sh => ({
+      name: sh.getName(),
+      rows: sh.getLastRow(),
+      cols: sh.getLastColumn()
+    }));
 
-  sampleTargets.forEach(({ key, sheet }) => {
-    if (!sheet) return;
-    const sh = ss.getSheetByName(sheet);
-    if (!sh) return;
-    const { headers, rows } = _getAllWithHeaders_(sheet);
-    counts[key] = rows.length;
-    if (!rows.length) return;
-    const row = rows[0] || {};
-    samples[key] = _diagSample_(headers, row);
-  });
+    const countTargets = [
+      { key: 'CLIENTES', sheet: CC_SHEETS.CLIENTES },
+      { key: 'VW_CLIENTES', sheet: CC_VIEWS.CLIENTES },
+      { key: 'FACTURAS', sheet: _facturasSheetName_() },
+      { key: 'VW_FACTURAS', sheet: CC_VIEWS.FACTURAS },
+      { key: 'PRESUPUESTOS', sheet: CC_SHEETS.PRESUPUESTOS },
+      { key: 'VW_PRESUPUESTOS', sheet: CC_VIEWS.PRESUPUESTOS },
+      { key: 'GASTOS', sheet: CC_SHEETS.GASTOS },
+      { key: 'VW_GASTOS', sheet: CC_VIEWS.GASTOS },
+      { key: 'LEADS', sheet: CC_SHEETS.LEADS },
+      { key: 'VW_LEADS', sheet: CC_VIEWS.LEADS }
+    ];
 
-  return {
-    spreadsheetId: ss.getId(),
-    sheets,
-    counts,
-    samples
-  };
+    countTargets.forEach(({ key, sheet }) => {
+      if (!sheet) return;
+      const sh = ss.getSheetByName(sheet);
+      if (!sh) return;
+      const rows = Math.max(0, sh.getLastRow() - 1);
+      res.counts[key] = rows;
+      const sample = _diagSampleFromSheet_(sh);
+      if (sample) res.samples[key] = sample;
+    });
+  } catch (err) {
+    res.ok = false;
+    res.error = err?.message || String(err);
+  }
+
+  return res;
 }
 
 /** Headers recomendados (solo para crear hojas faltantes)
@@ -306,6 +321,11 @@ function apiList(entity, params) {
 
 function apiGet(entity, id) {
   _ensureViews_();
+
+  if (entity === 'clientes') {
+    return _getClienteDetail_(id);
+  }
+
   const map = _entityMap_();
   const cfg = map[entity];
   if (!cfg) throw new Error('Entidad no soportada: ' + entity);
@@ -396,6 +416,67 @@ function _ensureViews_() {
 function _getViewData_(viewName) {
   _ensureViews_();
   return _getAllWithHeaders_(viewName);
+}
+
+function _getClienteDetail_(id) {
+  const ss = _ss_();
+  const idCandidates = ['cliente_id', 'cli_id', 'id'];
+  const searched = String(id || '').trim();
+  const sheetsTried = [];
+
+  if (!searched) {
+    return { ok: false, error: 'INVALID_ID', meta: { sheetTried: [], idColumnCandidates: idCandidates, idSearched: searched } };
+  }
+
+  const findInSheet = (sheetName) => {
+    if (!sheetName) return null;
+    const sh = ss.getSheetByName(sheetName);
+    sheetsTried.push(sheetName);
+    if (!sh) return null;
+    const values = sh.getDataRange().getDisplayValues();
+    if (!values.length || values.length < 2) return { ok: false, meta: { sheetUsed: sheetName, idColumnUsed: '' } };
+
+    const headersRaw = values[0].map(String);
+    const headersNorm = headersRaw.map(h => _normalizeHeader_(h));
+    let idIdx = -1;
+    let idColUsed = '';
+    for (let i = 0; i < idCandidates.length; i++) {
+      const candidate = idCandidates[i];
+      const idx = headersNorm.indexOf(_normalizeHeader_(candidate));
+      if (idx !== -1) {
+        idIdx = idx;
+        idColUsed = headersRaw[idx];
+        break;
+      }
+    }
+
+    if (idIdx === -1) return { ok: false, meta: { sheetUsed: sheetName, idColumnUsed: '' } };
+
+    const needle = searched.toLowerCase();
+    for (let r = 1; r < values.length; r++) {
+      const cell = String(values[r][idIdx] || '').trim();
+      if (!cell) continue;
+      if (cell.toLowerCase() === needle) {
+        const obj = {};
+        headersRaw.forEach((h, i) => obj[h] = values[r][i]);
+        return { ok: true, data: obj, meta: { sheetUsed: sheetName, idColumnUsed: idColUsed } };
+      }
+    }
+
+    return { ok: false, meta: { sheetUsed: sheetName, idColumnUsed: idColUsed } };
+  };
+
+  const order = [CC_SHEETS.CLIENTES, CC_VIEWS.CLIENTES];
+  for (let i = 0; i < order.length; i++) {
+    const res = findInSheet(order[i]);
+    if (res?.ok) return res;
+  }
+
+  return {
+    ok: false,
+    error: 'NOT_FOUND',
+    meta: { sheetTried: sheetsTried, idColumnCandidates: idCandidates, idSearched: searched }
+  };
 }
 
 function testListPresupuestos() {
@@ -897,17 +978,29 @@ function _safeNumber_(v) {
   return isNaN(n) ? null : n;
 }
 
-function _diagSample_(headers, row) {
-  const byKeys = (candidates) => _pickValue_(row, candidates);
-  const id = byKeys(['Cliente_ID', 'CLI_ID', 'Lead_ID', 'Pres_ID', 'Factura_ID', 'ID', 'id']);
-  const cliente = byKeys(['Cliente', 'Cliente_nombre', 'Nombre', 'Lead_Nombre']);
-  const fecha = byKeys(['Fecha', 'Fecha_emision', 'Fecha_factura', 'created_at']);
-  const estado = byKeys(['Estado', 'estado_normalizado', 'Status']);
+function _normalizeHeader_(value) {
+  return String(value || '').trim().toLowerCase().replace(/\s+/g, '_');
+}
+
+function _diagSampleFromSheet_(sh) {
+  if (!sh) return null;
+  const values = sh.getDataRange().getDisplayValues();
+  if (!values.length || values.length < 2) return null;
+  const headersRaw = values[0].map(String);
+  const headersNorm = headersRaw.map(h => _normalizeHeader_(h));
+  const row = values[1] || [];
+  const pick = (candidates) => {
+    for (let i = 0; i < candidates.length; i++) {
+      const idx = headersNorm.indexOf(_normalizeHeader_(candidates[i]));
+      if (idx !== -1) return row[idx];
+    }
+    return '';
+  };
+
   return {
-    id: id || '',
-    cliente: cliente || '',
-    fecha: fecha || '',
-    estado: estado || ''
+    id: pick(['cliente_id','cli_id','lead_id','pres_id','factura_id','id']),
+    nombre: pick(['nombre','cliente','lead_nombre','cliente_nombre','razon_social','nombre_razon_social']),
+    fecha: pick(['fecha','fecha_emision','fecha_factura','created_at'])
   };
 }
 
