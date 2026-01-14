@@ -1615,5 +1615,115 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 })();
 
+
+
+// --- NAV ROUTER + PROBE (auto-unblock) ---
+(function ccNavHardFix(){
+  if (window.__ccNavHardFixInstalled) return;
+  window.__ccNavHardFixInstalled = true;
+
+  function findNav(){
+    return document.querySelector('.cc-bottom-nav, #bottomNav, nav.cc-nav, .cc-nav, .bottom-nav');
+  }
+
+  function normalizeLabel(s){
+    return String(s || '').trim().toLowerCase();
+  }
+
+  function mapLabelToView(label){
+    const l = normalizeLabel(label);
+    if (!l) return null;
+    if (l.includes('inicio') || l.includes('home')) return 'inicio';
+    if (l.includes('cliente')) return 'clientes';
+    if (l.includes('factura')) return 'facturas';
+    if (l.includes('presupuesto') || l.includes('proforma')) return 'presupuestos';
+    if (l.includes('gasto')) return 'gastos';
+    return null;
+  }
+
+  function go(view){
+    if (!view) return false;
+
+    // routers posibles
+    if (typeof navigateTo === 'function') { navigateTo(view); return true; }
+    if (typeof setView === 'function') { setView(view); return true; }
+    if (typeof showView === 'function') { showView(view); return true; }
+
+    // fallback: tabs superiores
+    const tabs = Array.from(document.querySelectorAll('[data-tab], .cc-tab, .tab, button'));
+    const target = tabs.find(b => normalizeLabel(b.getAttribute('data-tab') || b.textContent) === normalizeLabel(view));
+    if (target) { target.click(); return true; }
+
+    console.warn('NAV: no router found for view=', view);
+    return false;
+  }
+
+  // Delegation (captura)
+  document.addEventListener('click', (ev) => {
+    const nav = findNav();
+    if (!nav) return;
+
+    const btn = ev.target.closest('button, [role="button"], a, .cc-nav-btn, [data-nav], [data-view], [data-route]');
+    if (!btn) return;
+    if (!nav.contains(btn)) return;
+
+    ev.preventDefault();
+    ev.stopPropagation();
+
+    const raw =
+      btn.getAttribute('data-nav') ||
+      btn.getAttribute('data-view') ||
+      btn.getAttribute('data-route') ||
+      (btn.dataset && (btn.dataset.nav || btn.dataset.view || btn.dataset.route)) ||
+      btn.id ||
+      btn.textContent;
+
+    const view = mapLabelToView(raw) || mapLabelToView(btn.textContent) || raw;
+    const ok = go(view);
+    if (!ok) console.warn('NAV: click detected but could not navigate. raw=', raw, 'mapped=', view);
+  }, true);
+
+  // PROBE: detecta si algo tapa el nav y desactiva pointer-events solo en ese overlay
+  function probeUnblock(){
+    const nav = findNav();
+    if (!nav) return;
+
+    nav.style.zIndex = '2147483647';
+    nav.style.pointerEvents = 'auto';
+
+    const btns = Array.from(nav.querySelectorAll('button, [role="button"], a, .cc-nav-btn'));
+    if (!btns.length) return;
+
+    btns.slice(0, 6).forEach((b) => {
+      const r = b.getBoundingClientRect();
+      const x = Math.round(r.left + r.width / 2);
+      const y = Math.round(r.top + r.height / 2);
+      const topEl = document.elementFromPoint(x, y);
+      if (!topEl) return;
+
+      if (topEl !== b && !b.contains(topEl) && !nav.contains(topEl)) {
+        const tr = topEl.getBoundingClientRect();
+        const big = (tr.width >= window.innerWidth * 0.5) && (tr.height >= 40);
+        if (big) {
+          console.warn('NAV BLOCKED BY:', topEl.tagName, topEl.id, topEl.className);
+          try { topEl.style.pointerEvents = 'none'; } catch(e){}
+          try {
+            if (topEl.parentElement && topEl.parentElement !== document.body) {
+              topEl.parentElement.style.pointerEvents = 'none';
+            }
+          } catch(e){}
+        }
+      }
+    });
+  }
+
+  let n = 0;
+  const t = setInterval(() => {
+    n++;
+    probeUnblock();
+    if (n >= 12) clearInterval(t);
+  }, 500);
+})();
+
 </script>
 

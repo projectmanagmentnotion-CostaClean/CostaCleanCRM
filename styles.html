@@ -762,4 +762,21 @@ nav.cc-nav,
   pointer-events: auto;
 }
 
+
+
+/* --- NAV SUPER TOP (hard override) --- */
+.cc-bottom-nav, #bottomNav, nav.cc-nav, .cc-nav, .bottom-nav{
+  z-index: 2147483647 !important;
+  pointer-events: auto !important;
+  position: fixed !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+}
+
+/* Evita que overlays fullscreen bloqueen clicks del nav */
+.cc-overlay, .overlay, .backdrop, .modal-backdrop, .cc-backdrop, #overlay, #backdrop{
+  /* NO los desactivamos global: el JS har? "probe" y solo desactiva si tapa el nav */
+}
+
 </style>
