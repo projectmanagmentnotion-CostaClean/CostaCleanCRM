@@ -433,7 +433,7 @@ function mapEntityListRow_(entity, row){
   if (!row) return null;
 
   if (entity === 'clientes' || entity === 'leads'){
-    const id = row.id || pickValue_(row, ['Cliente_ID', 'Lead_ID', 'ID']);
+    const id = pickValue_(row, ['Cliente_ID', 'CLI_ID', 'Lead_ID', 'ID', 'id']) || row.id;
     const name = row.nombre || pickValue_(row, ['Nombre', 'Cliente', 'Lead_Nombre']);
     const email = row.email || pickValue_(row, ['Email', 'Email_cliente', 'Lead_Email']);
     const phone = row.telefono || pickValue_(row, ['Telefono', 'Lead_Telefono', 'Phone']);
@@ -501,7 +501,7 @@ function mapEntityDetail_(entity, row){
   if (!row) return null;
 
   if (entity === 'clientes' || entity === 'leads'){
-    const id = row.id || pickValue_(row, ['Cliente_ID', 'Lead_ID', 'ID']);
+    const id = row.id || pickValue_(row, ['Cliente_ID', 'CLI_ID', 'Lead_ID', 'ID']);
     const name = row.nombre || pickValue_(row, ['Nombre', 'Cliente', 'Lead_Nombre']);
     const email = row.email || pickValue_(row, ['Email', 'Email_cliente', 'Lead_Email']);
     const phone = row.telefono || pickValue_(row, ['Telefono', 'Lead_Telefono', 'Phone']);
@@ -611,13 +611,15 @@ async function loadEntityDetail(entity, id){
   try {
     const res = await callServer('apiGet', entity, id);
     const view = mapEntityDetail_(entity, res);
-    if (!view) throw new Error('No se encontro informacion');
+    if (!view) throw new Error(`No se encontró información para ID: ${id}`);
     setDetailState();
     loadDetail(entity, view.id, view);
   } catch (err) {
     console.error(err);
-    setDetailState('error', err.message || 'No se pudo cargar el detalle');
-    toast('Error', err.message || 'No se pudo cargar el detalle', 'error');
+    const msg = err?.message || 'No se pudo cargar el detalle';
+    const friendly = msg.toLowerCase().includes('no se encontr') ? `No se encontró información para ID: ${id}` : msg;
+    setDetailState('error', friendly);
+    toast('Error', friendly, 'error');
   }
 }
 
@@ -700,15 +702,20 @@ function renderListItems(entity, rows){
   }
   if (empty) empty.style.display = 'none';
 
-  box.innerHTML = rows.map(r => `
-    <button class="cc-item" type="button" data-entity="${escapeHtml(entity)}" data-id="${escapeHtml(r.id)}">
+  box.innerHTML = rows.map(r => {
+    const itemId = (entity === 'clientes')
+      ? (r.Cliente_ID || r.CLI_ID || r.id || r.ID)
+      : (r.id || r.ID);
+    return `
+    <button class="cc-item" type="button" data-entity="${escapeHtml(entity)}" data-id="${escapeHtml(itemId || '')}">
       <div class="cc-itemMain">
         <div class="cc-itemTitle">${escapeHtml(r.title || r.id)}</div>
         <div class="cc-itemSub">${escapeHtml(r.sub || '')}</div>
       </div>
       <div class="cc-itemRight">${escapeHtml(r.right || '')}</div>
     </button>
-  `).join('');
+  `;
+  }).join('');
 }
 
 function loadList(entity){
@@ -1399,16 +1406,19 @@ document.addEventListener('click', (e) => {
   // 2) Click en item de lista
   const item = e.target.closest('.cc-item');
   if (item){
-    const entity = item.dataset.entity;
-    const id = item.dataset.id;
-    if (!entity || !id) return;
+    const entity = (item.dataset.entity || '').trim();
+    const rawId = (item.dataset.id || '').trim();
+    if (!entity || !rawId) return;
+    const cleanId = rawId.split(/[\\s|]+/)[0] || rawId;
     e.preventDefault();
 
+    console.log(`[DETAIL] entity=${entity} id=${cleanId}`);
+
     if (entity === 'proformas'){
-      loadPresupuestoDetail(id);
+      loadPresupuestoDetail(cleanId);
       return;
     }
-    loadEntityDetail(entity, id);
+    loadEntityDetail(entity, cleanId);
     return;
   }
 });
