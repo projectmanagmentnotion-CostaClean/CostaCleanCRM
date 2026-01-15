@@ -178,6 +178,41 @@ function normalizeId(value){
     .trim();
 }
 
+function pickNombreRazonSocial_(row){
+  return pickValue_(row, [
+    'Nombre / Razón social',
+    'Nombre / Razon social',
+    'Nombre / RazИn social',
+    'Nombre / RazÇün social',
+    'Nombre / Razón Social',
+    'Nombre / Razon Social',
+    'Nombre',
+    'Cliente',
+    'Lead_Nombre',
+    'Razon_social',
+    'RazonSocial',
+    'nombre'
+  ]);
+}
+
+function pickClienteIdFromRow_(row){
+  return pickValue_(row, ['Cliente_ID', 'cliente_id', 'CLI_ID', 'cli_id', 'Cliente Id', 'Cliente ID', 'ClienteId', 'Lead_ID', 'ID', 'id']);
+}
+
+function normalizePhoneForLink_(value){
+  if (!value) return '';
+  const raw = String(value).trim();
+  if (!raw) return '';
+  const cleaned = raw.replace(/[^\d+]/g, '');
+  if (cleaned.startsWith('00')) return `+${cleaned.slice(2)}`;
+  return cleaned;
+}
+
+function toWhatsAppNumber_(value){
+  const cleaned = normalizePhoneForLink_(value).replace(/[^0-9]/g, '');
+  return cleaned;
+}
+
 function cleanupLegacyMockPreference_(){
   try {
     localStorage.removeItem(STORAGE_KEYS.legacyUseMock);
@@ -347,6 +382,56 @@ function setActiveTab(entity){
   qsa('.cc-tab').forEach(b => b.classList.toggle('is-active', b.dataset.entity === entity));
 }
 
+function mapRouteToEntity_(rawRoute, fallbackEntity){
+  const normalized = normalizeId(rawRoute || fallbackEntity || '').toLowerCase();
+  if (!normalized) return '';
+  if (normalized === 'inicio' || normalized === 'home') return 'home';
+  if (normalized === 'presupuestos') return 'proformas';
+  return normalized;
+}
+
+function navigateRoute_(route, el){
+  const target = mapRouteToEntity_(route, el?.dataset?.entity);
+  if (!target) return false;
+
+  if (target === 'home'){
+    state.listFilterClientId = null;
+    showScreen('screen-home');
+    setNavActive('home');
+    loadDashboard();
+    return true;
+  }
+
+  if (['clientes','facturas','proformas','gastos','leads'].includes(target)){
+    goToList(target, null);
+    return true;
+  }
+
+  if (typeof window.route === 'function'){ window.route(route); return true; }
+  if (typeof setView === 'function'){ setView(route); return true; }
+  if (typeof navigateTo === 'function'){ navigateTo(route); return true; }
+  if (typeof showView === 'function'){ showView(route); return true; }
+
+  return false;
+}
+
+function installRouteDelegation_(){
+  if (window.__ccRouteDelegationInstalled) return;
+  window.__ccRouteDelegationInstalled = true;
+
+  document.addEventListener('click', (ev) => {
+    const routeEl = ev.target.closest('[data-route]');
+    if (!routeEl) return;
+
+    const route = routeEl.getAttribute('data-route') || routeEl.dataset?.route;
+    if (!route) return;
+
+    ev.preventDefault();
+    const ok = navigateRoute_(route, routeEl);
+    if (!ok) console.warn('NAV: no se pudo enrutar', route);
+  }, true);
+}
+
 /* =========================
    DASHBOARD
 ========================= */
@@ -373,22 +458,8 @@ function renderDashboardKpis(kpis, periodo, placeholder='-'){
 }
 
 function loadDashboard(){
-  const placeholder = state.useMock ? 'Mock' : '...';
+  const placeholder = '...';
   renderDashboardKpis({}, null, placeholder);
-
-  if (state.useMock){
-    renderDashboardKpis({
-      ventasMes: 0,
-      cobradoMes: 0,
-      pendienteMes: 0,
-      facturasPendientes: 0,
-      ivaNetoTrimestre: 0,
-      ivaRepercutidoTrimestre: 0,
-      ivaSoportadoTrimestre: 0,
-      gastoDeducibleTrimestre: 0
-    }, null, 'Mock');
-    return;
-  }
 
   callServer('apiDashboard')
     .then((res) => {
@@ -519,14 +590,16 @@ function mapEntityListRow_(entity, row){
   if (!row) return null;
 
   if (entity === 'clientes' || entity === 'leads'){
-    const idRaw = pickValue_(row, ['Cliente_ID', 'cliente_id', 'CLI_ID', 'cli_id', 'id', 'ID', 'Lead_ID']) || row.id;
+    const idRaw = row.id || pickClienteIdFromRow_(row) || row.ID || '';
     const id = normalizeId(idRaw);
-    const name = row.nombre || pickValue_(row, ['Nombre / Razón social', 'Nombre', 'Cliente', 'Lead_Nombre', 'Razon_social', 'RazonSocial', 'nombre']);
+    const name = row.title || row.nombre || pickNombreRazonSocial_(row);
+    const subtitle = row.subtitle || row.sub || idRaw || '';
     const status = row.estado || pickValue_(row, ['Estado', 'Status']);
     return {
-      id,
+      id: id || idRaw,
       title: name || 'Cliente',
-      sub: id || '',
+      sub: subtitle || id,
+      subtitle: subtitle || id,
       right: status || '',
       status: status || ''
     };
@@ -582,22 +655,25 @@ function mapEntityDetail_(entity, row){
   if (!row) return null;
 
   if (entity === 'clientes' || entity === 'leads'){
-    const id = row.id || pickValue_(row, ['Cliente_ID', 'cliente_id', 'CLI_ID', 'cli_id', 'Lead_ID', 'ID']);
-    const name = row.nombre || pickValue_(row, ['Nombre', 'Cliente', 'Lead_Nombre', 'Nombre / Razón social', 'Razon_social', 'RazonSocial', 'nombre']);
+    const id = row.id || pickClienteIdFromRow_(row) || row.ID || '';
+    const name = row.nombre || row.title || pickNombreRazonSocial_(row);
     const email = row.email || pickValue_(row, ['Email', 'Email_cliente', 'Lead_Email', 'email']);
-    const phone = row.telefono || pickValue_(row, ['Telefono', 'Lead_Telefono', 'Phone', 'telefono']);
+    const phone = row.telefono || row.phone || pickValue_(row, ['Telefono', 'Lead_Telefono', 'Phone', 'telefono']);
     const address = pickValue_(row, ['Direccion', 'Address', 'Direccion_cliente', 'direccion']);
     const status = row.estado || pickValue_(row, ['Estado', 'Status', 'estado']);
+    const subtitle = joinParts_([
+      email ? `Email: ${email}` : '',
+      phone ? `Tel: ${phone}` : ''
+    ]);
     return {
       id,
       title: name || id,
-      sub: joinParts_([
-        email ? `Email: ${email}` : '',
-        phone ? `Tel: ${phone}` : ''
-      ]),
+      sub: subtitle,
       status: status || '',
       email,
       phone,
+      phoneNormalized: normalizePhoneForLink_(phone),
+      clientId: id,
       address
     };
   }
@@ -803,11 +879,14 @@ function renderListItems(entity, rows){
       ? (r.Cliente_ID || r.CLI_ID || r.id || r.ID)
       : (r.id || r.ID);
     const itemId = normalizeId(rawId);
+    const title = r.title || r.nombre || rawId || r.id || '';
+    const subtitle = r.subtitle || r.sub || rawId || itemId || '';
+    const datasetId = itemId || rawId || '';
     return `
-    <button class="cc-item" type="button" data-entity="${escapeHtml(entity)}" data-id="${escapeHtml(itemId || '')}">
+    <button class="cc-item" type="button" data-entity="${escapeHtml(entity)}" data-id="${escapeHtml(datasetId)}">
       <div class="cc-itemMain">
-        <div class="cc-itemTitle">${escapeHtml(r.title || r.id)}</div>
-        <div class="cc-itemSub">${escapeHtml(itemId || r.sub || '')}</div>
+        <div class="cc-itemTitle">${escapeHtml(title)}</div>
+        <div class="cc-itemSub">${escapeHtml(subtitle)}</div>
       </div>
       <div class="cc-itemRight">${escapeHtml(r.right || '')}</div>
     </button>
@@ -835,7 +914,7 @@ function loadDetail(entity, id, detailData){
 
   const fallback = (MOCK_DETAIL?.[entity]?.[id]) || null;
   const data = detailData || fallback;
-  state.detail.clientId = data?.clientId || data?.clienteId || null;
+  state.detail.clientId = data?.clientId || data?.clienteId || data?.Cliente_ID || id || null;
 
   const statusText = data?.status || data?.estado || '';
   const amountVal = (typeof data?.amount === 'number')
@@ -1163,7 +1242,7 @@ function renderDetailLines(lines){
 function runAction(action, entity, id, dataset){
   const a = (action || '').toLowerCase().trim();
 
-  // Toggle mock
+  // Toggle mock (se mantiene pero sin mensajes mock)
   if (a === 'toggle_mock'){
     const prev = state.useMock;
     const next = !prev;
@@ -1179,15 +1258,13 @@ function runAction(action, entity, id, dataset){
         state.useMock = !!useMock;
         updateMockChip_();
         loadDashboard();
-        toast('Mock', state.useMock ? 'Activado' : 'Desactivado', 'info');
         if (state.useMock !== next) loadList(currentEntity);
       })
-      .catch((err) => {
+      .catch(() => {
         state.useMock = prev;
         updateMockChip_();
         loadList(currentEntity);
         loadDashboard();
-        toast('Mock', err?.message || 'No se pudo guardar la preferencia', 'error');
       });
     return;
   }
@@ -1198,22 +1275,26 @@ function runAction(action, entity, id, dataset){
   if (a === 'go_form_proforma'){ openForm('Proforma'); return; }
   if (a === 'go_form_gasto'){ openForm('Gasto'); return; }
 
-  // Cierre / ver todo / filtros (mock)
+  // Cierre / ver todo / filtros
   if (a === 'cierre_trimestre'){ toast('Cierre', 'Iniciar cierre de trimestre', 'info'); return; }
   if (a === 'ver_todo'){ toast('Movimientos', 'Ver todo', 'info'); return; }
   if (a === 'abrir_filtro'){ openDiagOverlay_(); return; }
 
   // Acciones de CLIENTE (detalle)
   if (a === 'crear_proforma'){
-    if (!id){
+    const targetId = normalizeId(id);
+    if (!targetId){
       toast('Error', 'Cliente_ID vacío', 'error');
       return;
     }
-    toast('Proforma', 'Creando...', 'info');
-    callServer('apiCrearProformaCliente', id)
+    toast('Proforma', `Creando proforma para ${targetId}...`, 'info');
+    callServer('apiCrearProformaCliente', targetId)
       .then((res) => {
         const presId = res?.presId || '';
         if (!presId) throw new Error('No se generó Pres_ID');
+        state.currentEntity = 'proformas';
+        state.listFilterClientId = targetId;
+        setNavActive('proformas');
         toast('Proforma', `Creado: ${presId}`, 'ok');
         loadPresupuestoDetail(presId);
       })
@@ -1223,32 +1304,10 @@ function runAction(action, entity, id, dataset){
     return;
   }
   if (a === 'crear_factura'){
-    toast('Listo', `Crear factura desde ${id}`, 'ok');
-    goToList('facturas', id);
+    toast('Acción', 'Crear factura no implementado aún', 'info');
     return;
   }
-  if (a === 'crear_presupuesto_lead'){
-    if (state.useMock){
-      toast('Listo', `Crear presupuesto para ${id} (mock)`, 'ok');
-      goToList('proformas', null);
-      return;
-    }
-    if (!id){
-      toast('Error', 'Lead_ID vacio', 'info');
-      return;
-    }
-    google.script.run
-      .withSuccessHandler((res) => {
-        const presId = res && res.presId ? res.presId : '(sin id)';
-        toast('Listo', `Presupuesto creado: ${presId}`, 'ok');
-        goToList('proformas', null);
-      })
-      .withFailureHandler((err) => {
-        toast('Error', err && err.message ? err.message : String(err), 'info');
-      })
-      .apiCrearPresupuestoLead(id);
-    return;
-  }
+  if (a === 'crear_presupuesto_lead'){ toast('Acción', 'Crear presupuesto desde lead no implementado aún', 'info'); return; }
   if (a === 'ver_historial'){
     toast('Historial', `Mostrando facturas de ${id}`, 'info');
     goToList('facturas', id);
@@ -1267,10 +1326,9 @@ function runAction(action, entity, id, dataset){
   // Quick actions cliente
   if (a === 'wa_chat'){
     const d = state.detail.data || {};
-    const phoneRaw = d.phone || d.telefono || d.Telefono || '';
-    const phone = (phoneRaw || '').replace(/[^0-9]/g, '');
+    const phone = toWhatsAppNumber_(d.phoneNormalized || d.phone || d.telefono || d.Telefono || '');
     if (!phone){
-      toast('WhatsApp', 'Sin teléfono', 'info');
+      toast('WhatsApp', 'Sin teléfono del cliente', 'info');
       return;
     }
     window.open(`https://wa.me/${phone}`, '_blank');
@@ -1278,9 +1336,9 @@ function runAction(action, entity, id, dataset){
   }
   if (a === 'call_phone'){
     const d = state.detail.data || {};
-    const phone = d.phone || d.telefono || d.Telefono || '';
+    const phone = normalizePhoneForLink_(d.phoneNormalized || d.phone || d.telefono || d.Telefono || '');
     if (!phone){
-      toast('Llamar', 'Sin teléfono', 'info');
+      toast('Llamar', 'Sin teléfono del cliente', 'info');
       return;
     }
     window.open(`tel:${phone}`, '_self');
@@ -1288,9 +1346,9 @@ function runAction(action, entity, id, dataset){
   }
   if (a === 'send_email'){
     const d = state.detail.data || {};
-    const email = d.email || d.Email || '';
+    const email = String(d.email || d.Email || '').trim();
     if (!email){
-      toast('Email', 'Sin email', 'info');
+      toast('Email', 'Sin email del cliente', 'info');
       return;
     }
     window.open(`mailto:${email}`, '_self');
@@ -1298,7 +1356,9 @@ function runAction(action, entity, id, dataset){
   }
   if (a === 'copy_id'){
     const d = state.detail.data || {};
-    const txt = `${d.title || d.nombre || 'Cliente'} | ${id} | ${d.phone || d.telefono || '-'} | ${d.email || '-'}`;
+    const phone = normalizePhoneForLink_(d.phoneNormalized || d.phone || d.telefono || d.Telefono || '');
+    const email = String(d.email || d.Email || '').trim();
+    const txt = `${d.title || d.nombre || 'Cliente'} | ${id} | ${phone || '-'} | ${email || '-'}`;
     navigator.clipboard?.writeText(txt).then(
       () => toast('Copiado', 'Datos copiados al portapapeles', 'ok'),
       () => toast('Copiar', 'No se pudo copiar (permiso del navegador)', 'info')
@@ -1308,10 +1368,6 @@ function runAction(action, entity, id, dataset){
 
   // Acciones de FACTURA / PROFORMA / GASTO (detalle)
   if (a === 'generar_pdf'){
-    if (state.useMock){
-      toast('PDF', `Mock: generar PDF de ${id}`, 'ok');
-      return;
-    }
     if (entity !== 'proformas'){
       toast('PDF', 'Generar PDF solo disponible en proformas desde la app', 'info');
       return;
@@ -1332,7 +1388,7 @@ function runAction(action, entity, id, dataset){
     return;
   }
   if (a === 'abrir_pdf'){
-    if (entity === 'proformas' && !state.useMock){
+    if (entity === 'proformas'){
       const detail = store.presDetalle[id];
       const saved = detail?.pdfUrl || detail?.PDF_link || '';
       if (saved){
@@ -1353,15 +1409,15 @@ function runAction(action, entity, id, dataset){
         .catch((err) => toast('Error', err?.message || 'No se pudo abrir el PDF', 'error'));
       return;
     }
-    toast('PDF', `Mock: abrir PDF de ${id}`, 'ok');
+    toast('PDF', 'Abrir PDF solo disponible en proformas', 'info');
     return;
   }
-  if (a === 'marcar_pagada'){ toast('Listo', `Factura ${id} marcada como pagada (mock)`, 'ok'); return; }
-  if (a === 'aceptar_proforma'){ toast('Listo', `Proforma ${id} aceptada (mock)`, 'ok'); return; }
-  if (a === 'convertir_factura'){ toast('Listo', `Convertir ${id} a factura (mock)`, 'ok'); return; }
+  if (a === 'marcar_pagada'){ toast('Acción', 'Marcar pagada no implementado aún', 'info'); return; }
+  if (a === 'aceptar_proforma'){ toast('Acción', 'Aceptar proforma no implementado aún', 'info'); return; }
+  if (a === 'convertir_factura'){ toast('Acción', 'Convertir a factura no implementado aún', 'info'); return; }
   if (a === 'crear_factura'){
     if (state.useMock){
-      toast('Listo', `Crear factura desde ${id} (mock)`, 'ok');
+      toast('Listo', `Crear factura desde ${id} (simulado)`, 'ok');
       return;
     }
     if (!id){
@@ -1382,15 +1438,15 @@ function runAction(action, entity, id, dataset){
       .catch((err) => toast('Error', err?.message || 'No se pudo crear la factura', 'error'));
     return;
   }
-  if (a === 'perder_proforma'){ toast('Listo', `Proforma ${id} marcada como perdida (mock)`, 'ok'); return; }
-  if (a === 'adjuntar_pdf'){ toast('Listo', `Adjuntar PDF a ${id} (mock)`, 'ok'); return; }
-  if (a === 'editar_gasto'){ toast('Editar', `Editar gasto ${id} (mock)`, 'info'); return; }
-  if (a === 'eliminar_gasto'){ toast('Eliminado', `Gasto ${id} eliminado (mock)`, 'ok'); return; }
+  if (a === 'perder_proforma'){ toast('Listo', `Proforma ${id} marcada como perdida (simulado)`, 'ok'); return; }
+  if (a === 'adjuntar_pdf'){ toast('Acción', 'Adjuntar PDF no implementado aún', 'info'); return; }
+  if (a === 'editar_gasto'){ toast('Acción', 'Editar gasto no implementado aún', 'info'); return; }
+  if (a === 'eliminar_gasto'){ toast('Acción', 'Eliminar gasto no implementado aún', 'info'); return; }
 
   // Volver a cliente (desde factura)
   if (a === 'volver_cliente'){
     const cid = dataset?.clientid || state.detail.clientId;
-    if (!cid){ toast('Cliente', 'No hay clientId en el mock', 'info'); return; }
+    if (!cid){ toast('Cliente', 'No hay clientId en el detalle', 'info'); return; }
     showScreen('screen-detalle');
     loadDetail('clientes', cid);
     return;
@@ -1411,7 +1467,7 @@ function runAction(action, entity, id, dataset){
     return;
   }
   if (a === 'guardar_form'){
-    toast('Guardado', 'Mock: registro guardado', 'ok');
+    toast('Guardado', 'Registro guardado (demo)', 'ok');
     showScreen('screen-home');
     setNavActive('home');
     return;
@@ -1419,10 +1475,6 @@ function runAction(action, entity, id, dataset){
 
   // fuente / pendientes etc
   if (a === 'ver_fuente'){
-    if (state.useMock){
-      toast('Fuente', 'Mock: abrir spreadsheet', 'info');
-      return;
-    }
     callServer('apiPresupuestosDebug')
       .then((res) => {
         const pres = res?.sheets?.PRESUPUESTOS || {};
@@ -1467,39 +1519,14 @@ function openForm(kind){
   setNavActive('home');
   if (qs('#formTitle')) qs('#formTitle').textContent = `Crear ${kind} (ejemplo)`;
   if (qs('#formSub')) qs('#formSub').textContent = `${kind.toUpperCase()}-2025-xxxx`;
-  toast('Formulario', `Mock: ${kind}`, 'info');
+  toast('Formulario', `${kind}`, 'info');
 }
 
 /* =========================
    INIT: listeners
 ========================= */
 function initNav(){
-  qsa('.cc-navItem').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const screenId = btn.dataset.screen;
-      const entity = btn.dataset.entity;
-
-      if (!screenId) return;
-
-      // Home
-      if (screenId === 'screen-home'){
-        state.listFilterClientId = null;
-        showScreen('screen-home');
-        setNavActive('home');
-        loadDashboard();
-        return;
-      }
-
-      // Listas
-      if (screenId === 'screen-listas'){
-        goToList(entity || 'clientes', null);
-        return;
-      }
-
-      showScreen(screenId);
-      setNavActive(entity || 'home');
-    });
-  });
+  installRouteDelegation_();
 }
 
 function initListTabs(){
@@ -1586,144 +1613,5 @@ document.addEventListener('DOMContentLoaded', () => {
   showScreen('screen-home');
   setNavActive('home');
 });
-
-
-// --- FIX NAV: delegation global para que no se pierdan listeners ---
-(function ensureNavDelegation(){
-  if (window.__ccNavDelegationInstalled) return;
-  window.__ccNavDelegationInstalled = true;
-
-  document.addEventListener('click', (ev) => {
-    const btn =
-      ev.target.closest('[data-nav]') ||
-      ev.target.closest('.cc-nav-btn') ||
-      ev.target.closest('.bottom-nav button') ||
-      ev.target.closest('nav button');
-
-    if (!btn) return;
-
-    const view = btn.getAttribute('data-nav') || (btn.dataset && (btn.dataset.view || btn.dataset.route));
-    if (!view) return;
-
-    ev.preventDefault();
-    ev.stopPropagation();
-
-    if (typeof navigateTo === 'function') navigateTo(view);
-    else if (typeof setView === 'function') setView(view);
-    else if (typeof showView === 'function') showView(view);
-    else console.warn('NAV: no existe navigateTo/setView/showView, view=', view);
-  });
-})();
-
-
-
-// --- NAV ROUTER + PROBE (auto-unblock) ---
-(function ccNavHardFix(){
-  if (window.__ccNavHardFixInstalled) return;
-  window.__ccNavHardFixInstalled = true;
-
-  function findNav(){
-    return document.querySelector('.cc-bottom-nav, #bottomNav, nav.cc-nav, .cc-nav, .bottom-nav');
-  }
-
-  function normalizeLabel(s){
-    return String(s || '').trim().toLowerCase();
-  }
-
-  function mapLabelToView(label){
-    const l = normalizeLabel(label);
-    if (!l) return null;
-    if (l.includes('inicio') || l.includes('home')) return 'inicio';
-    if (l.includes('cliente')) return 'clientes';
-    if (l.includes('factura')) return 'facturas';
-    if (l.includes('presupuesto') || l.includes('proforma')) return 'presupuestos';
-    if (l.includes('gasto')) return 'gastos';
-    return null;
-  }
-
-  function go(view){
-    if (!view) return false;
-
-    // routers posibles
-    if (typeof navigateTo === 'function') { navigateTo(view); return true; }
-    if (typeof setView === 'function') { setView(view); return true; }
-    if (typeof showView === 'function') { showView(view); return true; }
-
-    // fallback: tabs superiores
-    const tabs = Array.from(document.querySelectorAll('[data-tab], .cc-tab, .tab, button'));
-    const target = tabs.find(b => normalizeLabel(b.getAttribute('data-tab') || b.textContent) === normalizeLabel(view));
-    if (target) { target.click(); return true; }
-
-    console.warn('NAV: no router found for view=', view);
-    return false;
-  }
-
-  // Delegation (captura)
-  document.addEventListener('click', (ev) => {
-    const nav = findNav();
-    if (!nav) return;
-
-    const btn = ev.target.closest('button, [role="button"], a, .cc-nav-btn, [data-nav], [data-view], [data-route]');
-    if (!btn) return;
-    if (!nav.contains(btn)) return;
-
-    ev.preventDefault();
-    ev.stopPropagation();
-
-    const raw =
-      btn.getAttribute('data-nav') ||
-      btn.getAttribute('data-view') ||
-      btn.getAttribute('data-route') ||
-      (btn.dataset && (btn.dataset.nav || btn.dataset.view || btn.dataset.route)) ||
-      btn.id ||
-      btn.textContent;
-
-    const view = mapLabelToView(raw) || mapLabelToView(btn.textContent) || raw;
-    const ok = go(view);
-    if (!ok) console.warn('NAV: click detected but could not navigate. raw=', raw, 'mapped=', view);
-  }, true);
-
-  // PROBE: detecta si algo tapa el nav y desactiva pointer-events solo en ese overlay
-  function probeUnblock(){
-    const nav = findNav();
-    if (!nav) return;
-
-    nav.style.zIndex = '2147483647';
-    nav.style.pointerEvents = 'auto';
-
-    const btns = Array.from(nav.querySelectorAll('button, [role="button"], a, .cc-nav-btn'));
-    if (!btns.length) return;
-
-    btns.slice(0, 6).forEach((b) => {
-      const r = b.getBoundingClientRect();
-      const x = Math.round(r.left + r.width / 2);
-      const y = Math.round(r.top + r.height / 2);
-      const topEl = document.elementFromPoint(x, y);
-      if (!topEl) return;
-
-      if (topEl !== b && !b.contains(topEl) && !nav.contains(topEl)) {
-        const tr = topEl.getBoundingClientRect();
-        const big = (tr.width >= window.innerWidth * 0.5) && (tr.height >= 40);
-        if (big) {
-          console.warn('NAV BLOCKED BY:', topEl.tagName, topEl.id, topEl.className);
-          try { topEl.style.pointerEvents = 'none'; } catch(e){}
-          try {
-            if (topEl.parentElement && topEl.parentElement !== document.body) {
-              topEl.parentElement.style.pointerEvents = 'none';
-            }
-          } catch(e){}
-        }
-      }
-    });
-  }
-
-  let n = 0;
-  const t = setInterval(() => {
-    n++;
-    probeUnblock();
-    if (n >= 12) clearInterval(t);
-  }, 500);
-})();
-
 </script>
 

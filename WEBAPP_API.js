@@ -629,13 +629,19 @@ function apiListClientes(params) {
   try {
     _ensureViews_();
     const result = _listFromView_(CC_VIEWS.CLIENTES, params || {}, 200);
-    const mapItem = (r) => ({
-      id: r.Cliente_ID || r.ID,
-      nombre: r['Nombre / Razón social'] || r.Nombre || r.Cliente || '',
-      email: r.Email || r.Email_cliente || '',
-      telefono: r.Telefono || r.Telefono || r.Phone || '',
-      estado: r.estado_normalizado || r.Estado || ''
-    });
+    const mapItem = (r) => {
+      const id = _pickClienteId_(r);
+      const nombre = _pickClienteNombre_(r) || r.Nombre || r.Cliente || '';
+      return {
+        id,
+        nombre,
+        title: nombre || id,
+        subtitle: id || '',
+        email: _pickValue_(r, ['Email', 'Email_cliente', 'Email Cliente']),
+        telefono: _pickValue_(r, ['Telefono', 'Teléfono', 'Telefono_cliente', 'Phone']),
+        estado: r.estado_normalizado || r.Estado || ''
+      };
+    };
     let mapped = _mapListResult_(result, mapItem);
     if (!mapped.length) {
       const direct = _getAll_(CC_SHEETS.CLIENTES);
@@ -1058,6 +1064,30 @@ function _pickValue_(obj, keys) {
     if (v !== undefined && v !== null && String(v).trim() !== '') return v;
   }
   return '';
+}
+
+function _pickClienteNombre_(row) {
+  return _pickValue_(row, [
+    'Nombre / Razón social',
+    'Nombre / Razon social',
+    'Nombre / Razón Social',
+    'Nombre / Razon Social',
+    'Nombre / RazÍn social',
+    'Nombre / Razón Social',
+    'Nombre / RazИn social',
+    'Nombre / RazÇn social',
+    'Nombre / RazÇn Social',
+    'Nombre / RazÇün social',
+    'Nombre',
+    'Cliente',
+    'Cliente_nombre',
+    'Razon_social',
+    'RazonSocial'
+  ]);
+}
+
+function _pickClienteId_(row) {
+  return _pickValue_(row, ['Cliente_ID', 'cliente_id', 'Cliente Id', 'Cliente ID', 'ClienteId', 'CLI_ID', 'cli_id', 'ID', 'Id']);
 }
 
 function _safeNumber_(v) {

@@ -683,7 +683,8 @@ body{
   left: 14px;
   right: 14px;
   bottom: calc(12px + var(--safeB));
-  z-index: 80;
+  z-index: 2147483000;
+  pointer-events: auto;
 }
 .cc-bottomNav{
   display:grid;
@@ -696,6 +697,7 @@ body{
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
   box-shadow: var(--shadow);
+  pointer-events: auto;
 }
 .cc-navItem{
   appearance:none;
@@ -736,6 +738,7 @@ button{ font-family: inherit; }
 .cc-backdrop,
 .cc-modal-backdrop,
 .modal-backdrop,
+.backdrop,
 #backdrop,
 [data-backdrop]{
   pointer-events: none !important;
@@ -744,9 +747,23 @@ button{ font-family: inherit; }
 .cc-backdrop.is-open,
 .cc-modal-backdrop.is-open,
 .modal-backdrop.is-open,
+.backdrop.is-open,
 #backdrop.is-open,
 [data-backdrop].is-open{
   pointer-events: auto !important;
+}
+
+.cc-overlay[aria-hidden="true"],
+.overlay[aria-hidden="true"],
+.backdrop[aria-hidden="true"],
+.modal-backdrop[aria-hidden="true"],
+.cc-modal-backdrop[aria-hidden="true"],
+.cc-backdrop[aria-hidden="true"],
+#overlay[aria-hidden="true"],
+#backdrop[aria-hidden="true"],
+[data-backdrop][aria-hidden="true"]{
+  pointer-events: none !important;
+  display: none !important;
 }
 
 /* --- FIX NAV: asegurar nav arriba y clickeable --- */
@@ -774,9 +791,15 @@ nav.cc-nav,
   bottom: 0 !important;
 }
 
+#cc-bottomNavBar,
+.cc-bottomNav{
+  z-index: 2147483000 !important;
+  pointer-events: auto !important;
+}
+
 /* Evita que overlays fullscreen bloqueen clicks del nav */
 .cc-overlay, .overlay, .backdrop, .modal-backdrop, .cc-backdrop, #overlay, #backdrop{
-  /* NO los desactivamos global: el JS har? "probe" y solo desactiva si tapa el nav */
+  /* Los overlays cerrados quedan sin pointer-events; los abiertos se controlan con la clase is-open */
 }
 
 </style>
