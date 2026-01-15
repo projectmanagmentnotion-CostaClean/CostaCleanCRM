@@ -1381,3 +1381,15 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 
+<!-- CC_DEBUG_BADGE -->
+<script>
+(()=>{try{
+  const badge=document.createElement('div');
+  badge.id='ccDebugBadge';
+  badge.style.cssText='position:fixed;left:12px;bottom:92px;z-index:2147483647;background:rgba(0,0,0,.75);color:#fff;padding:6px 10px;border-radius:10px;font:12px/1.2 system-ui;letter-spacing:.2px;pointer-events:auto;';
+  let n=0;
+  badge.textContent='JS OK • clicks: 0';
+  badge.addEventListener('click',e=>{n++;badge.textContent='JS OK • clicks: '+n; e.stopPropagation();});
+  document.documentElement.appendChild(badge);
+}catch(e){} })();
+</script>

@@ -1,4 +1,4 @@
-<!-- =========================
+﻿<!-- =========================
 ARCHIVO: styles.html
 UI iOS-like (dark glass) para app.html + scripts.html
 ========================= -->
@@ -48,7 +48,7 @@ body{
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Apps Script container: evita márgenes raros */
+/* Apps Script container: evita mÃ¡rgenes raros */
 .cc-body{
   padding: calc(var(--safeT) + 14px) 14px calc(var(--navH) + var(--safeB) + 18px);
 }
@@ -724,4 +724,22 @@ body{
 a{ color: inherit; }
 button{ font-family: inherit; }
 ::selection{ background: rgba(62,165,255,.25); }
+/* === CC_OVERLAY_HOTFIX2 (anti-click-block) ===
+   Si algo invisible está encima, esto devuelve los clicks a la app.
+*/
+.backdrop, .overlay, .modal-backdrop, .cc-backdrop, .cc-overlay, [class*="backdrop"], [class*="overlay"]{
+  pointer-events: none !important;
+}
+
+.backdrop.is-open, .overlay.is-open, .modal-backdrop.is-open, .cc-backdrop.is-open, .cc-overlay.is-open{
+  pointer-events: auto !important;
+}
+
+/* Asegura que la navbar siempre sea clickeable y por encima */
+.cc-bottomNavBar, .cc-bottomNav, .bottomNav, [class*="bottomNav"]{
+  pointer-events: auto !important;
+  z-index: 2147483646 !important;
+  position: relative !important;
+}
 </style>
+
