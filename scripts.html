@@ -365,6 +365,41 @@ function setDetailState(mode, msg){
   stateEl.textContent = '';
 }
 
+/* __CC_DEBUG_BOOT__ */
+(() => {
+  try {
+    const id = 'cc-js-alive';
+    const paint = (text, bg) => {
+      let el = document.getElementById(id);
+      if (!el) {
+        el = document.createElement('div');
+        el.id = id;
+        el.style.cssText = [
+          'position:fixed',
+          'top:10px',
+          'left:10px',
+          'z-index:999999',
+          'background:#16a34a',
+          'color:#fff',
+          'padding:6px 10px',
+          'border-radius:999px',
+          'font:12px/1.2 system-ui',
+          'box-shadow:0 6px 18px rgba(0,0,0,.35)',
+          'pointer-events:none'
+        ].join(';');
+        document.body.appendChild(el);
+      }
+      el.textContent = text;
+      el.style.background = bg || '#16a34a';
+    };
+    paint('JS: OK');
+    window.__CC_JS_OK = true;
+    document.addEventListener('click', () => {
+      paint('CLICK OK', 'rgba(59,130,246,0.95)');
+    }, true);
+  } catch (_) {}
+})();
+
 /* =========================
    UI: Navegación por pantallas
 ========================= */
