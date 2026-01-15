@@ -808,7 +808,7 @@ function onEditPresupuestos_(e) {
   if (row < 2) return;
   if (e.range.getNumRows() > 1 || e.range.getNumColumns() > 1) return;
 
-  const cache = CacheService.getDocumentCache();
+  const cache = CacheService.getScriptCache();
   const guardKey = 'pres_onedit_guard';
   if (cache && cache.get(guardKey)) return;
 
@@ -2265,4 +2265,5 @@ function crearLineasDesdeForm_(presId, obj) {
     // shLin.getRange(r, 5).setValue(lineas[i].precio);
   }
 }
+
 

@@ -1,4 +1,4 @@
-const CC_VIEW_NAMES = {
+﻿const CC_VIEW_NAMES = {
   CLIENTES: 'VW_CLIENTES',
   LEADS: 'VW_LEADS',
   PRESUPUESTOS: 'VW_PRESUPUESTOS',
@@ -29,7 +29,7 @@ function ccSetupAndAudit() {
 }
 
 function ccEnsureViews_(force) {
-  const props = PropertiesService.getDocumentProperties();
+  const props = PropertiesService.getScriptProperties();
   const dirty = props.getProperty(CC_VIEWS_DIRTY_KEY) === '1';
   const lastBuild = props.getProperty(CC_VIEWS_LAST_BUILD_KEY);
 
@@ -48,11 +48,11 @@ function ccEnsureViews_(force) {
 }
 
 function ccMarkViewsDirty_() {
-  PropertiesService.getDocumentProperties().setProperty(CC_VIEWS_DIRTY_KEY, '1');
+  PropertiesService.getScriptProperties().setProperty(CC_VIEWS_DIRTY_KEY, '1');
 }
 
 function ccInvalidateIndex_() {
-  CacheService.getDocumentCache().remove(CC_INDEX_KEY);
+  CacheService.getScriptCache().remove(CC_INDEX_KEY);
 }
 
 function ccBuildIndex_() {
@@ -93,7 +93,7 @@ function ccBuildIndex_() {
       index.views[name] = { byId, byEstado };
     });
 
-    CacheService.getDocumentCache().put(CC_INDEX_KEY, JSON.stringify(index), 21600);
+    CacheService.getScriptCache().put(CC_INDEX_KEY, JSON.stringify(index), 21600);
     return index;
   } finally {
     lock.releaseLock();
@@ -101,7 +101,7 @@ function ccBuildIndex_() {
 }
 
 function ccGetIndex_() {
-  const cache = CacheService.getDocumentCache();
+  const cache = CacheService.getScriptCache();
   const raw = cache.get(CC_INDEX_KEY);
   if (raw) {
     try { return JSON.parse(raw); } catch (_) {}
@@ -121,7 +121,7 @@ function ccNormalizeEstadoOnEdit_(e) {
   const idx = headers.indexOf('Estado');
   if (idx === -1 || col !== idx + 1) return;
 
-  const cache = CacheService.getDocumentCache();
+  const cache = CacheService.getScriptCache();
   const guardKey = 'cc_state_norm_guard';
   if (cache && cache.get(guardKey)) return;
   if (cache) cache.put(guardKey, '1', 5);
@@ -163,9 +163,9 @@ function ccBuildClientesView_(ss) {
     const id = ccPick_(row, data.headers, ['Cliente_ID','ID']);
     const nombre = ccPick_(row, data.headers, ['Nombre','Cliente']);
     const email = ccPick_(row, data.headers, ['Email','Email_cliente']);
-    const telefono = ccPick_(row, data.headers, ['Telefono','Teléfono','Phone']);
+    const telefono = ccPick_(row, data.headers, ['Telefono','TelÃ©fono','Phone']);
     const nif = ccPick_(row, data.headers, ['NIF','DNI','CIF']);
-    const direccion = ccPick_(row, data.headers, ['Direccion','Dirección']);
+    const direccion = ccPick_(row, data.headers, ['Direccion','DirecciÃ³n']);
     const cp = ccPick_(row, data.headers, ['CP','Codigo_postal','Codigo_Postal']);
     const ciudad = ccPick_(row, data.headers, ['Ciudad','Municipio','Poblacion']);
     const tipo = ccPick_(row, data.headers, ['Tipo_cliente','Tipo']);
@@ -202,7 +202,7 @@ function ccBuildLeadsView_(ss) {
     const email = ccPick_(row, data.headers, ['Email','Lead_Email']);
     const telefono = ccPick_(row, data.headers, ['Telefono','Lead_Telefono']);
     const nif = ccPick_(row, data.headers, ['NIF/CIF','NIF','CIF']);
-    const direccion = ccPick_(row, data.headers, ['Direccion','Dirección']);
+    const direccion = ccPick_(row, data.headers, ['Direccion','DirecciÃ³n']);
     const cp = ccPick_(row, data.headers, ['CP','Codigo_postal','Codigo_Postal']);
     const ciudad = ccPick_(row, data.headers, ['Poblacion','Ciudad','Municipio']);
     const estado = ccPick_(row, data.headers, ['Estado']);
@@ -718,3 +718,4 @@ function ccBuildSearchText_(parts) {
     .join(' ')
     .toLowerCase();
 }
+
