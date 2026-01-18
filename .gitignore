@@ -3,3 +3,7 @@ node_modules/
 .env
 .env.*
 .clasp.json
+
+# Local reports (no versionar)
+REPORT_*_MAP.txt
+
