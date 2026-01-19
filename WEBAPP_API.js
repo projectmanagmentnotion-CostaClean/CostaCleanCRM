@@ -553,7 +553,8 @@ function _createLead_(p) {
 }
 
 function _createFactura_(p) {
-  const sh = _sh_(CC_SHEETS.FACTURA);
+  const ss = _ss_();
+  const sh = ss.getSheetByName('HISTORIAL') || ss.getSheetByName('FACTURAS') || ss.getSheetByName('FACTURA');
   const headers = _getHeaders_(sh);
 
   // Si ya tienes generador de Factura_ID en tu CRM, lo conectamos en el PASO 2.
@@ -1078,4 +1079,5 @@ function testDiagPresFact(){
   console.log(JSON.stringify({TEST:'testDiagPresFact', sample:{pres: out.pres && out.pres[0], fact: out.fact && out.fact[0]}, counts:{pres: out.pres && out.pres.length, fact: out.fact && out.fact.length}}, null, 2));
   return out;
 }
+
 

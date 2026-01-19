@@ -1,4 +1,4 @@
-const SH_FACTURAS = 'FACTURAS';
+﻿const SH_FACTURAS = 'FACTURAS';
 const SH_FACT_LINEAS = 'FACT_LINEAS';
 
 const FACT_HEADERS = [
@@ -613,3 +613,4 @@ function seedInsertPresLineas_(shLineas, presId, lineas) {
     shLineas.getRange(start, 1, rows.length, headerInfo.headers.length).setValues(rows);
   }
 }
+
