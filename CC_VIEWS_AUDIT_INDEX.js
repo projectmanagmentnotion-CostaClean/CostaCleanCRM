@@ -760,3 +760,11 @@ function ccBuildSearchText_(parts) {
 
 
 
+
+function ccRebuildViews() {
+  try {
+    PropertiesService.getScriptProperties().setProperty(CC_VIEWS_DIRTY_KEY, '1');
+  } catch(e){}
+  // fuerza rebuild completo
+  return ccEnsureViews_(true);
+}
