@@ -284,49 +284,79 @@ function ccBuildPresupuestosView_(ss) {
 }
 
 function ccBuildFacturasView_(ss) {
-  const shFact = ss.getSheetByName('FACTURAS') || ss.getSheetByName('FACTURA');
+  // SOURCE OF TRUTH (reales): HISTORIAL (segun tu captura)
+  // Fallbacks: FACTURAS / FACTURA (por compatibilidad)
+  const shFact =
+    ss.getSheetByName('HISTORIAL') ||
+    ss.getSheetByName('FACTURAS') ||
+    ss.getSheetByName('FACTURA');
+
   const view = ccGetSheet_(CC_VIEW_NAMES.FACTURAS, true);
+
+  // Headers normalizados para UI/API (VW_FACTURAS)
   const headers = [
     'Factura_ID','Pres_ID','Cliente_ID','Cliente','Email','NIF','Direccion','CP','Ciudad','Estado',
     'Fecha','Fecha_envio','Fecha_pago','Base','IVA_total','Total','PDF_link',
-    'created_at','updated_at','estado_normalizado','total_base','total_iva','total','pdf_url','search_text'
+    'created_at','updated_at','estado_normalizado','total_base','total_iva','total','pdf_url','search_text',
+    'SourceSheet'
   ];
 
-  if (!shFact) return ccWriteView_(view, headers, []);
+  view.clearContents();
+  view.getRange(1,1,1,headers.length).setValues([headers]);
+
+  if (!shFact) return;
 
   const data = ccGetSheetData_(shFact);
+  if (!data || !data.rows || !data.rows.length) return;
+
   const rows = data.rows.map((row) => {
+    // ID: en tu hoja real parece ser Numero_factura
     const id = ccPick_(row, data.headers, ['Factura_ID','Numero_factura','ID']);
     const presId = ccPick_(row, data.headers, ['Pres_ID']);
-    const clienteId = ccPick_(row, data.headers, ['Cliente_ID','Lead_ID']);
-    const cliente = ccPick_(row, data.headers, ['Cliente','Nombre']);
-    const email = ccPick_(row, data.headers, ['Email','Email_cliente']);
-    const nif = ccPick_(row, data.headers, ['NIF','DNI','CIF']);
-    const direccion = ccPick_(row, data.headers, ['Direccion']);
-    const cp = ccPick_(row, data.headers, ['CP','Codigo_postal','Codigo_Postal']);
-    const ciudad = ccPick_(row, data.headers, ['Ciudad','Municipio']);
-    const estado = ccPick_(row, data.headers, ['Estado']);
-    const fecha = ccPick_(row, data.headers, ['Fecha']);
-    const fechaEnvio = ccPick_(row, data.headers, ['Fecha_envio']);
-    const fechaPago = ccPick_(row, data.headers, ['Fecha_pago']);
-    const base = ccToNumber_(ccPick_(row, data.headers, ['Base','Subtotal']));
-    const iva = ccToNumber_(ccPick_(row, data.headers, ['IVA_total','IVA']));
-    const total = ccToNumber_(ccPick_(row, data.headers, ['Total','Importe_total','Total_con_IVA'])) || (base != null && iva != null ? base + iva : null);
-    const pdfLink = ccPick_(row, data.headers, ['PDF_link','Pdf_link']);
-    const createdAt = ccFormatDateIso_(fecha);
-    const updatedAt = ccFormatDateIso_(ccLatestDate_([fechaPago, fechaEnvio, fecha]));
-    const estadoNorm = ccNormalizeEstado_(estado);
-    const search = ccBuildSearchText_([id, presId, clienteId, cliente, email, nif, ciudad, direccion, estado]);
 
-    return [
-      id, presId, clienteId, cliente, email, nif, direccion, cp, ciudad, estado,
-      ccFormatDateIso_(fecha), ccFormatDateIso_(fechaEnvio), ccFormatDateIso_(fechaPago),
-      base, iva, total, pdfLink,
-      createdAt, updatedAt, estadoNorm, base, iva, total, pdfLink, search
+    const clienteId = ccPick_(row, data.headers, ['Cliente_ID','Lead_ID']);
+    const cliente   = ccPick_(row, data.headers, ['Cliente','Nombre']);
+    const email     = ccPick_(row, data.headers, ['Email','Email_cliente']);
+    const nif       = ccPick_(row, data.headers, ['NIF','DNI','CIF']);
+    const dir       = ccPick_(row, data.headers, ['Direccion','Direccion_cliente','Direccion_facturacion']);
+    const cp        = ccPick_(row, data.headers, ['CP','Codigo_postal','Codigo_Postal']);
+    const ciudad    = ccPick_(row, data.headers, ['Ciudad','Municipio']);
+    const estado    = ccPick_(row, data.headers, ['Estado','estado_normalizado','Status']);
+
+    const fecha     = ccPick_(row, data.headers, ['Fecha','created_at']);
+    const fEnv      = ccPick_(row, data.headers, ['Fecha_envio']);
+    const fPago     = ccPick_(row, data.headers, ['Fecha_pago']);
+
+    // Totales: tu hoja real usa Base / IVA / Total
+    const base      = ccPick_(row, data.headers, ['Base','Subtotal','total_base']);
+    const iva       = ccPick_(row, data.headers, ['IVA_total','IVA','total_iva']);
+    const total     = ccPick_(row, data.headers, ['Total','total','Importe_total']);
+
+    const pdf       = ccPick_(row, data.headers, ['PDF_link','PDF (link)','pdf_url','Pdf_link','pdfUrl']);
+
+    // Campos extra para UI/busqueda (no rompen si vacios)
+    const createdAt = ccPick_(row, data.headers, ['created_at']) || '';
+    const updatedAt = ccPick_(row, data.headers, ['updated_at']) || '';
+    const estadoNorm= ccPick_(row, data.headers, ['estado_normalizado']) || estado || '';
+    const totalBase = ccPick_(row, data.headers, ['total_base']) || base || '';
+    const totalIva  = ccPick_(row, data.headers, ['total_iva']) || iva || '';
+    const totalAny  = ccPick_(row, data.headers, ['total']) || total || '';
+    const pdfUrl    = ccPick_(row, data.headers, ['pdf_url']) || pdf || '';
+
+    const st = [
+      id, presId, clienteId, cliente, email, nif, dir, cp, ciudad, estado,
+      fecha, fEnv, fPago, base, iva, total, pdf,
+      createdAt, updatedAt, estadoNorm, totalBase, totalIva, totalAny, pdfUrl,
+      '', // search_text (lo puedes mejorar luego)
+      (shFact.getName() || '')
     ];
+
+    return st;
   });
 
-  ccWriteView_(view, headers, rows);
+  if (rows.length){
+    view.getRange(2,1,rows.length,headers.length).setValues(rows);
+  }
 }
 
 function ccBuildGastosView_(ss) {
@@ -726,6 +756,7 @@ function ccBuildSearchText_(parts) {
     .join(' ')
     .toLowerCase();
 }
+
 
 
 
