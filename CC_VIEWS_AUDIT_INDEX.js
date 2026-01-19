@@ -332,40 +332,36 @@ function ccBuildFacturasView_(ss) {
 function ccBuildGastosView_(ss) {
   const sh = ss.getSheetByName('GASTOS');
   const view = ccGetSheet_(CC_VIEW_NAMES.GASTOS, true);
+
   const headers = [
-    'Gasto_ID','Fecha','Proveedor','Concepto','Categoria','Base','IVA','Total','Metodo_pago','Referencia','Deducible','Notas','PDF_link',
-    'created_at','updated_at','estado_normalizado','total_base','total_iva','total','pdf_url','search_text'
+    'Gasto_ID','Cliente_ID','Cliente','Categoria','Concepto','Importe','Fecha','Estado','Notas',
+    'SourceSheet','Updated_at'
   ];
 
-  if (!sh) return ccWriteView_(view, headers, []);
+  view.clearContents();
+  view.getRange(1,1,1,headers.length).setValues([headers]);
 
+  if (!sh) return;
   const data = ccGetSheetData_(sh);
+  if (!data || !data.rows || !data.rows.length) return;
+
   const rows = data.rows.map((row) => {
     const id = ccPick_(row, data.headers, ['Gasto_ID','ID']);
-    const fecha = ccPick_(row, data.headers, ['Fecha']);
-    const proveedor = ccPick_(row, data.headers, ['Proveedor','Empresa']);
-    const concepto = ccPick_(row, data.headers, ['Concepto','Descripcion','Detalle']);
-    const categoria = ccPick_(row, data.headers, ['Categoria','Tipo']);
-    const base = ccToNumber_(ccPick_(row, data.headers, ['Base','Subtotal']));
-    const iva = ccToNumber_(ccPick_(row, data.headers, ['IVA']));
-    const total = ccToNumber_(ccPick_(row, data.headers, ['Total','Importe_total','Total_con_IVA'])) || (base != null && iva != null ? base + iva : null);
-    const metodo = ccPick_(row, data.headers, ['Metodo_pago']);
-    const referencia = ccPick_(row, data.headers, ['Referencia']);
-    const deducible = ccPick_(row, data.headers, ['Deducible']);
-    const notas = ccPick_(row, data.headers, ['Notas']);
-    const pdfLink = ccPick_(row, data.headers, ['PDF_link','Pdf_link']);
-    const createdAt = ccFormatDateIso_(fecha);
-    const updatedAt = createdAt;
-    const estadoNorm = ccNormalizeEstado_(categoria);
-    const search = ccBuildSearchText_([id, proveedor, concepto, categoria, referencia]);
-
-    return [
-      id, ccFormatDateIso_(fecha), proveedor, concepto, categoria, base, iva, total, metodo, referencia, deducible, notas, pdfLink,
-      createdAt, updatedAt, estadoNorm, base, iva, total, pdfLink, search
-    ];
+    const cliId = ccPick_(row, data.headers, ['Cliente_ID','CLI_ID','Lead_ID']);
+    const cli = ccPick_(row, data.headers, ['Cliente','Nombre','Razon_social']);
+    const cat = ccPick_(row, data.headers, ['Categoria','Tipo']);
+    const con = ccPick_(row, data.headers, ['Concepto','Descripcion']);
+    const imp = ccPick_(row, data.headers, ['Importe','Total','Monto']);
+    const fecha = ccPick_(row, data.headers, ['Fecha','created_at']);
+    const estado = ccPick_(row, data.headers, ['Estado','Status']);
+    const notas = ccPick_(row, data.headers, ['Notas','Observaciones']);
+    const updated = new Date().toISOString();
+    return [id, cliId, cli, cat, con, imp, fecha, estado, notas, (sh.getName()||''), updated];
   });
 
-  ccWriteView_(view, headers, rows);
+  if (rows.length){
+    view.getRange(2,1,rows.length,headers.length).setValues(rows);
+  }
 }
 
 function ccMergePresupuestoSources_(shPres, shHist) {
@@ -730,5 +726,6 @@ function ccBuildSearchText_(parts) {
     .join(' ')
     .toLowerCase();
 }
+
 
 
