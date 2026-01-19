@@ -33,6 +33,23 @@ function ccEnsureViews_(force) {
   const dirty = props.getProperty(CC_VIEWS_DIRTY_KEY) === '1';
   const lastBuild = props.getProperty(CC_VIEWS_LAST_BUILD_KEY);
 
+// AUTO_REBUILD_IF_EMPTY_VIEWS
+// Si las vistas existen pero están vacías (solo headers), forzamos rebuild.
+// Esto evita depender de clasp run / permisos y hace el sistema auto-reparable.
+try {
+  const ss = _ss_ ? _ss_() : SpreadsheetApp.getActiveSpreadsheet();
+  const mustHave = [CC_VIEW_NAMES.CLIENTES, CC_VIEW_NAMES.LEADS, CC_VIEW_NAMES.PRESUPUESTOS, CC_VIEW_NAMES.FACTURAS, CC_VIEW_NAMES.GASTOS];
+  let anyEmpty = false;
+  mustHave.forEach((name) => {
+    const sh = ccGetSheet_(name, false);
+    if (sh && sh.getLastRow() <= 1) anyEmpty = true;
+  });
+  if (anyEmpty) {
+    force = true;
+    try { props.setProperty(CC_VIEWS_DIRTY_KEY, '1'); } catch(e){}
+  }
+} catch(e) {}
+
   if (!force && !dirty && lastBuild) {
     const anyMissing = !ccGetSheet_(CC_VIEW_NAMES.CLIENTES, false)
       || !ccGetSheet_(CC_VIEW_NAMES.LEADS, false)
@@ -768,4 +785,5 @@ function ccRebuildViews() {
   // fuerza rebuild completo
   return ccEnsureViews_(true);
 }
+
 
