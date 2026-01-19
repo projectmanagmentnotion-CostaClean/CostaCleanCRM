@@ -3,3 +3,8 @@ node_modules/
 .env
 .env.*
 .clasp.json
+
+.clasp.json
+.clasp.json.bad_*
+__WRITE_TEST*.txt
+
