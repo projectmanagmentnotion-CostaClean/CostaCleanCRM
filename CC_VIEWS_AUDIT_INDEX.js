@@ -229,46 +229,58 @@ function ccBuildPresupuestosView_(ss) {
   const shPres = ss.getSheetByName('PRESUPUESTOS');
   const shHist = ss.getSheetByName('HISTORIAL_PRESUPUESTOS');
   const view = ccGetSheet_(CC_VIEW_NAMES.PRESUPUESTOS, true);
+
+  // Headers normalizados para UI/API (VW_PRESUPUESTOS)
   const headers = [
     'Pres_ID','Cliente_ID','Cliente','Email_cliente','NIF','Direccion','CP','Ciudad','Estado',
-    'Fecha','Fecha_envio','Fecha_aceptacion','Base','IVA_total','Total','Notas','PDF_link','Factura_ID',
-    'created_at','updated_at','estado_normalizado','total_base','total_iva','total','pdf_url','search_text'
+    'Base','IVA_total','Total','Fecha','Fecha_envio','Fecha_aceptacion','PDF_link','Notas',
+    'Tipo','IsDemo','SourceSheet','Updated_at'
   ];
 
+  view.clearContents();
+  view.getRange(1,1,1,headers.length).setValues([headers]);
+
+  // Merge seguro: PRESUPUESTOS + HISTORIAL_PRESUPUESTOS (si existe)
   const merged = ccMergePresupuestoSources_(shPres, shHist);
+  if (!merged || !merged.rows || !merged.rows.length) return;
+
   const rows = merged.rows.map((row) => {
     const id = ccPick_(row, merged.headers, ['Pres_ID','Presupuesto_ID','ID']);
-    const clienteId = ccPick_(row, merged.headers, ['Cliente_ID','Lead_ID']);
-    const cliente = ccPick_(row, merged.headers, ['Cliente','Lead_Nombre']);
-    const email = ccPick_(row, merged.headers, ['Email_cliente','Lead_Email','Email']);
+    const cliId = ccPick_(row, merged.headers, ['Cliente_ID','CLI_ID','Lead_ID']);
+    const cli = ccPick_(row, merged.headers, ['Cliente','Nombre','Razon_social']);
+    const email = ccPick_(row, merged.headers, ['Email_cliente','Email','Lead_Email']);
     const nif = ccPick_(row, merged.headers, ['NIF','DNI','CIF']);
-    const direccion = ccPick_(row, merged.headers, ['Direccion','Direccion_cliente','Direccion_servicio','Direccion_facturacion']);
+    const dir = ccPick_(row, merged.headers, ['Direccion','Direccion_cliente','Direccion_servicio','Direccion_facturacion']);
     const cp = ccPick_(row, merged.headers, ['CP','Codigo_postal','Codigo_Postal']);
     const ciudad = ccPick_(row, merged.headers, ['Ciudad','Municipio']);
-    const estado = ccPick_(row, merged.headers, ['Estado']);
-    const fecha = ccPick_(row, merged.headers, ['Fecha']);
-    const fechaEnvio = ccPick_(row, merged.headers, ['Fecha_envio']);
-    const fechaAcept = ccPick_(row, merged.headers, ['Fecha_aceptacion']);
-    const base = ccToNumber_(ccPick_(row, merged.headers, ['Base','Importe','Subtotal']));
-    const iva = ccToNumber_(ccPick_(row, merged.headers, ['IVA_total','IVA']));
-    const total = ccToNumber_(ccPick_(row, merged.headers, ['Total','Importe_total','Total_con_IVA'])) || (base != null && iva != null ? base + iva : null);
+    const estado = ccPick_(row, merged.headers, ['Estado','estado_normalizado','Status']);
+    const base = ccPick_(row, merged.headers, ['Base','Subtotal','total_base']);
+    const iva = ccPick_(row, merged.headers, ['IVA_total','IVA','iva_total']);
+    const total = ccPick_(row, merged.headers, ['Total','Importe_total','total','Total_con_IVA']);
+    const fecha = ccPick_(row, merged.headers, ['Fecha','created_at','Fecha_presupuesto']);
+    const fEnv = ccPick_(row, merged.headers, ['Fecha_envio']);
+    const fAcep = ccPick_(row, merged.headers, ['Fecha_aceptacion']);
+    const pdf = ccPick_(row, merged.headers, ['PDF_link','Pdf_link','pdf_url','pdfUrl']);
     const notas = ccPick_(row, merged.headers, ['Notas','Nota','Observaciones']);
-    const pdfLink = ccPick_(row, merged.headers, ['PDF_link','Pdf_link']);
-    const facturaId = ccPick_(row, merged.headers, ['Factura_ID']);
-    const createdAt = ccFormatDateIso_(fecha);
-    const updatedAt = ccFormatDateIso_(ccLatestDate_([fechaAcept, fechaEnvio, fecha]));
-    const estadoNorm = ccNormalizeEstado_(estado);
-    const search = ccBuildSearchText_([id, clienteId, cliente, email, nif, ciudad, direccion, estado]);
+
+    // Tipo/IsDemo (sin tocar datos source)
+    const idStr = String(id || '');
+    const tipo = (/^(PRO|PF|PROFORMA)[-_]/i.test(idStr)) ? 'PROFORMA' : 'PRESUPUESTO';
+    const isDemo = (/demo|mock|fictic/i.test(String(notas||''))) ? 'TRUE' : 'FALSE';
+
+    const updated = new Date().toISOString();
+    const source = ccPick_(row, merged.headers, ['SourceSheet']) || '';
 
     return [
-      id, clienteId, cliente, email, nif, direccion, cp, ciudad, estado,
-      ccFormatDateIso_(fecha), ccFormatDateIso_(fechaEnvio), ccFormatDateIso_(fechaAcept),
-      base, iva, total, notas, pdfLink, facturaId,
-      createdAt, updatedAt, estadoNorm, base, iva, total, pdfLink, search
+      id, cliId, cli, email, nif, dir, cp, ciudad, estado,
+      base, iva, total, fecha, fEnv, fAcep, pdf, notas,
+      tipo, isDemo, source, updated
     ];
   });
 
-  ccWriteView_(view, headers, rows);
+  if (rows.length){
+    view.getRange(2,1,rows.length,headers.length).setValues(rows);
+  }
 }
 
 function ccBuildFacturasView_(ss) {
@@ -718,4 +730,5 @@ function ccBuildSearchText_(parts) {
     .join(' ')
     .toLowerCase();
 }
+
 
