@@ -8,3 +8,6 @@ node_modules/
 .clasp.json.bad_*
 __WRITE_TEST*.txt
 
+
+PROMPT_*.txt
+
