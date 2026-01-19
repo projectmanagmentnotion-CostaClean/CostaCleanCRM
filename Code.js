@@ -1,4 +1,4 @@
-function doGet() {
+﻿function doGet() {
   return HtmlService.createTemplateFromFile('app')
     .evaluate()
     .setTitle('Costa Clean CRM')
@@ -9,3 +9,13 @@ function doGet() {
 function include(filename) {
   return HtmlService.createHtmlOutputFromFile(filename).getContent();
 }
+
+
+
+
+
+// STUB para evitar errores por triggers antiguos
+function onOpenRouter_(){
+  console.log('onOpenRouter_ STUB called');
+}
+

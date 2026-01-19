@@ -1,4 +1,4 @@
-/*************************************************
+﻿/*************************************************
  * WEBAPP_API.gs — Backend para la App móvil (Costa Clean CRM)
  * - APIs para Dashboard, Listas, Detalles, Create/Update y Acciones
  * - Setup de hojas faltantes (GASTOS / CIERRES_TRIMESTRE)
@@ -203,7 +203,9 @@ function apiGet(entity, id) {
 }
 
 /** ========= API UI: PRESUPUESTOS ========= **/
-function apiListPresupuestos(params) {
+function apiListPresupuestos(params){
+  params = params || {};
+  if (params.includeHistorial === undefined) params.includeHistorial = true;
   const ss = _ss_();
   const limit = Number(params?.limit || 100);
 
@@ -1055,4 +1057,25 @@ function _nextIdFromSheet_(sh, idCol, prefix) {
 }
 
 
+
+
+
+
+function testWebappListPresupuestosDirect(){
+  const items = apiListPresupuestos({ includeHistorial: true, limit: 20 });
+  console.log('[testWebappListPresupuestosDirect] items=', items && items.length);
+  if (items && items.length) console.log('[sample]', JSON.stringify(items[0]));
+  return items;
+}
+
+
+
+function testDiagPresFact(){
+  const out = {};
+  out.ss = (typeof apiPresupuestosDebug==='function') ? apiPresupuestosDebug() : null;
+  out.pres = (typeof apiListPresupuestos==='function') ? apiListPresupuestos({includeHistorial:true,limit:300}) : null;
+  out.fact = (typeof apiListFacturas==='function') ? apiListFacturas({limit:300}) : null;
+  console.log(JSON.stringify({TEST:'testDiagPresFact', sample:{pres: out.pres && out.pres[0], fact: out.fact && out.fact[0]}, counts:{pres: out.pres && out.pres.length, fact: out.fact && out.fact.length}}, null, 2));
+  return out;
+}
 

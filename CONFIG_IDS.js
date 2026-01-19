@@ -5,3 +5,7 @@ const CC_DEFAULT_IDS = {
   PRESUPUESTO_TEMPLATE_ID: '1M2tpK-Iq6_WuVmHxahkHbtJrmOtLmPu502-TjnqkQ8',
   FACTURA_TEMPLATE_ID: '10U_1CxZBEc46OP5W1d98a11y1I0OUV7T1n7qShH6as'
 };
+
+// Build stamp (solo debug)
+const BUILD_STAMP = new Date().toISOString();
+

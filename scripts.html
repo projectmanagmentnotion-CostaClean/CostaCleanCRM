@@ -1,8 +1,35 @@
-﻿<!-- =========================
+﻿
+/**************
+ * DEBUG SAFE LOG
+ **************/
+catch(_){}
+}
+// Alias por si en algún sitio llaman safeLog() sin _
+}catch(_){}
+}
+
+<!-- =========================
 ARCHIVO: scripts.html
 Lógica UI (mock) + router de acciones + listas + detalle
 ========================= -->
 <script>
+
+  
+  /**************
+   * DEBUG SAFE LOG
+   **************/
+  function safeLog_(label, obj){
+    try {
+      if (typeof console !== 'undefined' && console && console.log) console.log('[CC]', label, obj);
+    } catch(_){}
+  }
+  function safeLog(label, obj){ return safeLog_(label, obj); }
+/**************
+   * DEBUG SAFE LOG
+   **************/
+catch(_){}
+  }
+  // Alias por si en algún sitio llaman safeLog() sin _
 /* =========================
    Helpers DOM
 ========================= */
@@ -184,7 +211,32 @@ function loadMockPreference_(){
       localStorage.removeItem(STORAGE_KEYS.legacyUseMock);
     }
   } catch (_) {}
+    // Override por URL: ?mock=1 o ?mock=0 (prioridad máxima)
+    try {
+      const params = new URLSearchParams(location.search);
+      const q = params.get('mock');
+      if (q === '1' || q === 'true') {
+        state.useMock = true;
+        localStorage.setItem(STORAGE_KEYS.useMock, 'true');
+      }
+      if (q === '0' || q === 'false') {
+        state.useMock = false;
+        localStorage.setItem(STORAGE_KEYS.useMock, 'false');
+      }
+    } catch(err) {}
+
 }
+function applyMockFromUrl_(){
+  try{
+    const sp = new URLSearchParams(location.search);
+    if (!sp.has('mock')) return;
+    const v = String(sp.get('mock')).trim().toLowerCase();
+    if (v === '0' || v === 'false') state.useMock = false;
+    if (v === '1' || v === 'true')  state.useMock = true;
+    saveMockPreference_();
+  }catch(_){}
+}
+
 
 function saveMockPreference_(){
   try {
@@ -194,9 +246,10 @@ function saveMockPreference_(){
 
 function updateMockChip_(){
   const chip = qs('[data-action="toggle_mock"]');
-  if (!chip) return;
-  chip.classList.toggle('cc-chip--ok', state.useMock);
+  if(!chip) return;
+  chip.classList.toggle('cc-chip--ok', !!state.useMock);
   chip.setAttribute('aria-pressed', state.useMock ? 'true' : 'false');
+  chip.textContent = state.useMock ? 'Mock data' : 'Real data';
 }
 
 function callServer(fnName, ...args){
@@ -539,7 +592,9 @@ async function loadEntityDetail(entity, id){
   setDetailState('loading', 'Cargando detalle...');
   try {
     const res = await callServer('apiGet', entity, id);
-    const view = mapEntityDetail_(entity, res);
+    
+    safeLog_('fetchEntityList '+entity, res);
+const view = mapEntityDetail_(entity, res);
     if (!view) throw new Error('No se encontro informacion');
     setDetailState();
     loadDetail(entity, view.id, view);
@@ -553,8 +608,12 @@ async function loadEntityDetail(entity, id){
 async function fetchPresupuestos(search, filterClientId){
   setListState('loading', 'Cargando presupuestos...');
   try {
-    const res = await callServer('apiListPresupuestos', { q: search || '', includeHistorial: false });
-    const items = Array.isArray(res) ? res : (Array.isArray(res?.items) ? res.items : []);
+    const res = await callServer('apiListPresupuestos', { q: search || '', includeHistorial: true });
+    
+    
+    safeLog_('fetchEntityList '+entity, res);
+safeLog_('apiListPresupuestos', res);
+const items = Array.isArray(res) ? res : (Array.isArray(res?.items) ? res.items : []);
     store.presupuestos = items;
 
     let list = store.presupuestos.slice();
@@ -1381,16 +1440,13 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 
-<!-- CC_DEBUG_BADGE -->
-<script>
-(()=>{try{
-  const badge=document.createElement('div');
-  badge.id='ccDebugBadge';
-  badge.style.cssText='position:fixed;left:12px;bottom:92px;z-index:2147483647;background:rgba(0,0,0,.75);color:#fff;padding:6px 10px;border-radius:10px;font:12px/1.2 system-ui;letter-spacing:.2px;pointer-events:auto;';
-  let n=0;
-  badge.textContent='JS OK • clicks: 0';
-  badge.addEventListener('click',e=>{n++;badge.textContent='JS OK • clicks: '+n; e.stopPropagation();});
-  document.documentElement.appendChild(badge);
-}catch(e){} })();
-</script>
+
+
+
+
+
+
+
+
+
 
