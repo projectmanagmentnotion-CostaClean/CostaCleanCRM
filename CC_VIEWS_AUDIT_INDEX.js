@@ -476,7 +476,7 @@ function runSpreadsheetAudit() {
 
 function ccAuditRelationships_(ss, add) {
   const presIds = ccCollectIds_(ss, ['PRESUPUESTOS', 'HISTORIAL_PRESUPUESTOS'], 'Pres_ID');
-  const factIds = ccCollectIds_(ss, ['FACTURAS', 'FACTURA'], 'Factura_ID');
+  const factIds = ccCollectIds_(ss, ['HISTORIAL','FACTURAS','FACTURA'], 'Factura_ID');
 
   const presLineas = ccCollectIds_(ss, ['PRES_LINEAS', 'LINEAS_PRES_HIST'], 'Pres_ID', true);
   const missingPres = presLineas.filter(id => id && !presIds.has(id));
@@ -768,3 +768,4 @@ function ccRebuildViews() {
   // fuerza rebuild completo
   return ccEnsureViews_(true);
 }
+
