@@ -1,4 +1,4 @@
-{
+﻿{
   "timeZone": "Europe/Madrid",
   "dependencies": {},
   "exceptionLogging": "STACKDRIVER",
@@ -7,4 +7,7 @@
     "executeAs": "USER_DEPLOYING",
     "access": "MYSELF"
   }
+,
+  "executionApi": { "access": "MYSELF" }
 }
+
