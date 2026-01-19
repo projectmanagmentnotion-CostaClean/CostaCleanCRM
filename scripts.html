@@ -3,8 +3,6 @@ ARCHIVO: scripts.html
 Lógica UI (mock) + router de acciones + listas + detalle
 ========================= -->
 <script>
-
-  
   /**************
    * DEBUG SAFE LOG
    **************/
@@ -14,12 +12,6 @@ Lógica UI (mock) + router de acciones + listas + detalle
     } catch(_){}
   }
   function safeLog(label, obj){ return safeLog_(label, obj); }
-/**************
-   * DEBUG SAFE LOG
-   **************/
-catch(_){}
-  }
-  // Alias por si en algún sitio llaman safeLog() sin _
 /* =========================
    Helpers DOM
 ========================= */
@@ -1428,16 +1420,5 @@ document.addEventListener('DOMContentLoaded', () => {
   showScreen('screen-home');
   setNavActive('home');
 });
+
 </script>
-
-
-
-
-
-
-
-
-
-
-
-
