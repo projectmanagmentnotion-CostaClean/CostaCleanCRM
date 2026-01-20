@@ -415,6 +415,7 @@ function mapEntityListRow_(entity, row){
       id,
       title: name || id,
       sub: joinParts_([
+        `ID: ${id}`,
         email ? `Email: ${email}` : '',
         phone ? `Tel: ${phone}` : ''
       ]),
@@ -575,7 +576,7 @@ async function loadEntityDetail(entity, id){
   try {
     const res = await callServer('apiGet', entity, id);
     
-    safeLog_('fetchEntityList '+entity, res);
+    safeLog_('fetchEntityList proformas', res);
 const view = mapEntityDetail_(entity, res);
     if (!view) throw new Error('No se encontro informacion');
     setDetailState();
@@ -593,7 +594,7 @@ async function fetchPresupuestos(search, filterClientId){
     const res = await callServer('apiListPresupuestos', { q: search || '', includeHistorial: true });
     
     
-    safeLog_('fetchEntityList '+entity, res);
+    safeLog_('fetchEntityList proformas', res);
 safeLog_('apiListPresupuestos', res);
 const items = Array.isArray(res) ? res : (Array.isArray(res?.items) ? res.items : []);
     store.presupuestos = items;
@@ -1422,5 +1423,6 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 </script>
+
 
 

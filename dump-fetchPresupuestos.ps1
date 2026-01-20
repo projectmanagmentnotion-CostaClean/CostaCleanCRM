@@ -1,0 +1,6 @@
+﻿$L = Get-Content .\scripts.html
+$start = 591
+$end   = 689
+for($i=$start; $i -le $end; $i++){
+  "{0,4}: {1}" -f $i, $L[$i-1]
+}

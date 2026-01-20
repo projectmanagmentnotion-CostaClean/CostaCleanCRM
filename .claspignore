@@ -1,0 +1,14 @@
+﻿# --- local tools / diagnostics ---
+diag-*.js
+check-*.ps1
+dump-*.ps1
+*.ps1
+__REAL_*.txt
+
+# --- patch scripts (node) ---
+patch-*.js
+*.tmp.js
+*.local.js
+
+# --- secrets / local config ---
+creds.json
