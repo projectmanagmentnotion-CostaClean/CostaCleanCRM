@@ -51,17 +51,17 @@ function convertirLeadEnCliente_(ss, row) {
   const COL_CLIENTE_ID = 23; // W
   const yaTieneCliente = String(lead[COL_CLIENTE_ID - 1] || '').trim();
   if (yaTieneCliente) {
-    SpreadsheetApp.getActive().toast(`ℹ️ Lead ${leadId} ya tiene Cliente_ID: ${yaTieneCliente}`, 'LEADS → CLIENTE', 4);
+    _safeToast_(`ℹ️ Lead ${leadId} ya tiene Cliente_ID: ${yaTieneCliente}`, 'LEADS → CLIENTE', 4);
     return;
   }
 
   // Validación mínima
   if (!nombre) {
-    SpreadsheetApp.getActive().toast('⚠️ No puedo convertir: falta Nombre en el lead.', 'LEADS → CLIENTE', 6);
+    _safeToast_('⚠️ No puedo convertir: falta Nombre en el lead.', 'LEADS → CLIENTE', 6);
     return;
   }
   if (!nif && !email) {
-    SpreadsheetApp.getActive().toast('⚠️ No puedo convertir: falta NIF o Email para evitar duplicados.', 'LEADS → CLIENTE', 6);
+    _safeToast_('⚠️ No puedo convertir: falta NIF o Email para evitar duplicados.', 'LEADS → CLIENTE', 6);
     return;
   }
 
@@ -108,7 +108,7 @@ shCli.getRange(targetRow, 1, 1, 11).setValues([[
   } catch (err) {
     logEvent_(ss, 'LEADS', 'LINK_PRES', 'PRESUPUESTO', leadId, 'ERROR', err.message || String(err), null);
   }
-  SpreadsheetApp.getActive().toast(`✅ Lead convertido: ${leadId} → ${clienteId}`, 'LEADS → CLIENTE', 6);
+  _safeToast_(`✅ Lead convertido: ${leadId} → ${clienteId}`, 'LEADS → CLIENTE', 6);
 }
 
 function buscarClienteExistente_(shCli, nif, email) {
@@ -143,5 +143,12 @@ function nextEmptyRow_(sh, keyCol = 1, startRow = 2) {
 }
 
 
+
+
+
+
+function _safeToast_(msg, title, secs){
+  try { SpreadsheetApp.getActive().toast(msg, title || 'INFO', secs || 4); } catch(e) { console.log(String(title||'INFO')+': '+String(msg)); }
+}
 
 
