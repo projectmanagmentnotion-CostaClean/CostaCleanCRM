@@ -1099,6 +1099,10 @@ function runAction(action, entity, id, dataset){
 
   // Lead: marcar GANADO → convertir a Cliente
   if (a === 'lead_ganar'){
+  if (!id){
+    toast('LEADS', 'Lead_ID vacio', 'info');
+    return;
+  }
     (async () => {
       try{
         toast('LEADS', 'Marcando GANADO y convirtiendo…', 'info');
@@ -1106,7 +1110,7 @@ function runAction(action, entity, id, dataset){
         safeLog_('apiLeadMarcarGanado', res);
 
         if (res && res.ok && res.clienteId){
-          toast('LEADS', ✅ Convertido a cliente: , 'ok');
+          toast('LEADS', ✅ Convertido a cliente: ${res.clienteId}`, 'ok');
           // Abrir detalle del cliente creado
           await loadEntityDetail('clientes', res.clienteId);
         } else {
@@ -1448,6 +1452,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 </script>
+
 
 
 
