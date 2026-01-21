@@ -1095,13 +1095,6 @@ function runAction(action, entity, id, dataset){
       goToList('proformas', null);
       return;
     }
-    
-
-    // Lead: marcar GANADO → convertir a Cliente
-  if (a === 'lead_ganar'){
-    toast('Error', 'Lead_ID vacio', 'info');
-      return;
-    }
     google.script.run
       .withSuccessHandler((res) => {
         const presId = res && res.presId ? res.presId : '(sin id)';
@@ -1113,7 +1106,38 @@ function runAction(action, entity, id, dataset){
       })
       .apiCrearPresupuestoLead(id);
     return;
+  }  
+  // Lead: marcar GANADO → convertir a Cliente (REAL)
+  if (a === 'lead_ganar'){
+    if (state.useMock){
+      toast('LEADS', 'Mock activo: desactiva MOCK para convertir.', 'info');
+      return;
+    }
+    if (!id){
+      toast('LEADS', 'Lead_ID vacio', 'info');
+      return;
+    }
+
+    (async () => {
+      try{
+        toast('LEADS', 'Marcando GANADO y convirtiendo…', 'info');
+        const res = await callServer('apiLeadMarcarGanado', id);
+        safeLog_('apiLeadMarcarGanado', res);
+
+        if (res && res.ok && res.clienteId){
+          toast('LEADS', `✅ Convertido a cliente: ${res.clienteId}`, 'ok');
+          loadEntityDetail('clientes', res.clienteId);
+        } else {
+          toast('LEADS', 'No se pudo convertir (sin Cliente_ID). Revisa el lead.', 'warn');
+        }
+      } catch(err){
+        toast('LEADS', (err && err.message) ? err.message : String(err), 'error');
+      }
+    })();
+
+    return;
   }
+
   if (a === 'ver_historial'){
     toast('Historial', `Mostrando facturas de ${id} (mock)`, 'info');
     goToList('facturas', id);
@@ -1428,6 +1452,8 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 </script>
+
+
 
 
 
