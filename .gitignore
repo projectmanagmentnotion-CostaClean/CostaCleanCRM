@@ -11,3 +11,8 @@ __WRITE_TEST*.txt
 
 PROMPT_*.txt
 
+# Local patch scripts / tools
+patch-*.ps1
+dump-*.ps1
+check-*.ps1
+*.bak
