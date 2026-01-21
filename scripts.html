@@ -1099,46 +1099,7 @@ function runAction(action, entity, id, dataset){
 
     // Lead: marcar GANADO → convertir a Cliente
   if (a === 'lead_ganar'){
-    if (!id){
-      toast('LEADS', 'Lead_ID vacío', 'info');
-      return;
-    }
-
-    (async () => {
-      try{
-        toast('LEADS', 'Marcando GANADO y convirtiendo…', 'info');
-
-        const res = await callServer('apiLeadMarcarGanado', id);
-        safeLog_('apiLeadMarcarGanado', res);
-
-        if (res && res.ok && res.clienteId){
-          toast('LEADS', ✅ Convertido a cliente: , 'ok');
-          await loadEntityDetail('clientes', res.clienteId);
-        } else {
-          toast('LEADS', 'No se pudo convertir (sin Cliente_ID). Revisa el lead.', 'warn');
-        }
-      } catch(err){
-        toast('LEADS', (err && err.message) ? err.message : String(err), 'error');
-      }
-    })();
-
-    return;
-  }
-if (!id){
-    toast('LEADS', `✅ Convertido a cliente: ${res.clienteId}`, 'ok');
-          // Abrir detalle del cliente creado
-          await loadEntityDetail('clientes', res.clienteId);
-        } else {
-          toast('LEADS', 'No se pudo convertir (sin Cliente_ID). Revisa el lead.', 'warn');
-        }
-      } catch(err){
-        toast('LEADS', (err && err.message) ? err.message : String(err), 'error');
-      }
-    })();
-    return;
-  }
-if (!id){
-      toast('Error', 'Lead_ID vacio', 'info');
+    toast('Error', 'Lead_ID vacio', 'info');
       return;
     }
     google.script.run
@@ -1467,6 +1428,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 </script>
+
 
 
 
