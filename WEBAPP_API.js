@@ -408,6 +408,39 @@ function apiCrearPresupuestoLead(leadId) {
   return { ok: true, leadId: id, presId: res && res.presId ? res.presId : '' };
 }
 
+function apiLeadMarcarGanado(leadId){
+  const ss = _ss_();
+  const id = String(leadId || '').trim();
+  if (!id) throw new Error('Lead_ID requerido');
+
+  // Encontrar lead en hoja LEADS por Lead_ID
+  const found = _findById_(CC_SHEETS.LEADS, 'Lead_ID', id);
+  if (!found) throw new Error('No encontrado: lead ' + id);
+
+  const sh = _sh_(CC_SHEETS.LEADS);
+
+  // Set Estado = Ganado (por header si existe; fallback: col V=22)
+  const headers = found.headers || [];
+  const estadoIx = headers.indexOf('Estado') + 1; // 1-based
+  if (estadoIx > 0) {
+    sh.getRange(found.rowNumber, estadoIx).setValue('Ganado');
+  } else {
+    sh.getRange(found.rowNumber, 22).setValue('Ganado'); // V
+  }
+
+  // Convertir a cliente usando tu lógica existente
+  if (typeof convertirLeadEnCliente_ !== 'function') {
+    throw new Error('No existe convertirLeadEnCliente_ (LEADS_A_CLIENTES.js)');
+  }
+  convertirLeadEnCliente_(ss, found.rowNumber);
+
+  // Leer Cliente_ID (W=23) luego de convertir
+  const clienteId = String(sh.getRange(found.rowNumber, 23).getValue() || '').trim();
+  return { ok: true, leadId: id, clienteId };
+}
+
+
+
 function apiUpdate(entity, id, payload) {
   const map = _entityMap_();
   const cfg = map[entity];
@@ -1079,5 +1112,6 @@ function testDiagPresFact(){
   console.log(JSON.stringify({TEST:'testDiagPresFact', sample:{pres: out.pres && out.pres[0], fact: out.fact && out.fact[0]}, counts:{pres: out.pres && out.pres.length, fact: out.fact && out.fact.length}}, null, 2));
   return out;
 }
+
 
 

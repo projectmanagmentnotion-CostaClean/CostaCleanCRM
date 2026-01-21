@@ -795,6 +795,9 @@ function renderDetail(entity, id, data){
         <button class="cc-btn cc-btn--primary cc-btn--wide" type="button" data-action="crear_presupuesto_lead" data-entity="leads" data-id="${escapeHtml(id)}">
           <span aria-hidden="true">+</span> Crear presupuesto
         </button>
+        <button class="cc-btn cc-btn--primary cc-btn--wide" type="button" data-action="lead_ganar" data-entity="leads" data-id="${escapeHtml(id)}">
+          <span aria-hidden="true">✅</span> Marcar GANADO → Pasar a Cliente
+        </button>
       `;
     }
 
@@ -1422,6 +1425,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 </script>
+
 
 
 
