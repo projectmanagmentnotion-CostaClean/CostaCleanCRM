@@ -593,7 +593,7 @@ async function fetchPresupuestos(search, filterClientId){
     const res = await callServer('apiListPresupuestos', { q: search || '', includeHistorial: true });
     
     
-    safeLog_('fetchEntityList '+entity, res);
+    safeLog_('fetchPresupuestos', res);
 safeLog_('apiListPresupuestos', res);
 const items = Array.isArray(res) ? res : (Array.isArray(res?.items) ? res.items : []);
     store.presupuestos = items;
