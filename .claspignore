@@ -1,6 +1,2 @@
-﻿_scripts_extracted.js
-patch-*.ps1
-
-# local tooling
-tools/
-
+﻿tools/**
+_scripts_extracted.js
