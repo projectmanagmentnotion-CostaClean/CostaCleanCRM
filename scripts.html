@@ -1294,7 +1294,33 @@ function runAction(action, entity, id, dataset){
       toast('Fuente', 'Mock: abrir spreadsheet', 'info');
       return;
     }
-    callServer('apiPresupuestosDebug')
+
+    callServer('apiDbInfo')
+      .then((res) => {
+        const t = res && res.targets ? res.targets : {};
+        const ssid = res && res.spreadsheetId ? res.spreadsheetId : '-';
+
+        const f = t.FACTURA || {};
+        const p = t.PRESUPUESTOS || {};
+        const h = t.PRES_HIST || {};
+        const g = t.GASTOS || {};
+
+        const msg =
+          SS:  |  +
+          FACTURA:  ( filas) |  +
+          PRESUPUESTOS:  ( filas) |  +
+          HIST:  ( filas) |  +
+          GASTOS:  ( filas);
+
+        toast('Fuente', msg, 'info');
+      })
+      .catch((err) => {
+        toast('Fuente', err?.message || 'No se pudo leer apiDbInfo', 'error');
+      });
+
+    return;
+  }
+callServer('apiPresupuestosDebug')
       .then((res) => {
         const pres = res?.sheets?.PRESUPUESTOS || {};
         const hist = res?.sheets?.HISTORIAL_PRESUPUESTOS || {};
@@ -1452,6 +1478,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 </script>
+
 
 
 
