@@ -1456,7 +1456,40 @@ document.addEventListener('input', (e) => {
 /* =========================
    INIT APP
 ========================= */
+
+function __forceRealFromUrl_(){
+  try{
+    const sp = new URLSearchParams(window.location.search || '');
+    if (sp.get('real') === '1'){
+      state.useMock = false;
+      try{ localStorage.removeItem('cc_useMock'); }catch(_){}
+      try{ saveMockPreference_(); }catch(_){}
+      try{ updateMockChip_(); }catch(_){}
+      try{ toast('Modo', 'REAL activado (?real=1)', 'ok'); }catch(_){}
+      return true;
+    }
+  }catch(_){}
+  return false;
+}
+
+function __installGlobalErrorCatcher_(){
+  try{
+    window.addEventListener('error', (e) => {
+      const msg = (e && e.message) ? e.message : String(e);
+      try{ toast('JS Error', msg, 'error'); } catch(_){ try{ alert('JS Error: ' + msg); }catch(__){} }
+    });
+
+    window.addEventListener('unhandledrejection', (e) => {
+      const r = e && e.reason ? e.reason : e;
+      const msg = (r && r.message) ? r.message : String(r);
+      try{ toast('Promise', msg, 'error'); } catch(_){ try{ alert('Promise: ' + msg); }catch(__){} }
+    });
+  }catch(_){}
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+  __installGlobalErrorCatcher_();
+  __forceRealFromUrl_();
   loadMockPreference_();
   loadDashboard();
   initNav();
@@ -1469,6 +1502,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 </script>
+
 
 
 
