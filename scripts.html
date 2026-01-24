@@ -424,27 +424,6 @@ function __installGlobalErrorCatcher_(){
 }
 
 
-  param($m)
-  $block = $m.Value
-
-  # si encuentra ambas llamadas, las reordena
-  if ($block -match '__forceRealFromUrl_\(\);\s*[\r\n]+\s*loadMockPreference_\(\);') {
-    $block = $block -replace '__forceRealFromUrl_\(\);\s*([\r\n]+\s*)loadMockPreference_\(\);', 'loadMockPreference_();__installGlobalErrorCatcher_();
-  __forceRealFromUrl_();
-  loadMockPreference_();
-  loadDashboard();
-  initNav();
-  initListTabs();
-  updateMockChip_();
-
-  // estado inicial
-  showScreen('screen-home');
-  setNavActive('home');
-__forceRealFromUrl_();'
-  }
-
-  return $block
-);
 
 </script>
 
