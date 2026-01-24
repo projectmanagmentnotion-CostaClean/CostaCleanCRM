@@ -236,30 +236,33 @@ function updateMockChip_(){
 
 function callServer(fnName, ...args){
   return new Promise((resolve, reject) => {
-    const runner = google?.script?.run;
-    if (!runner) {
-      reject(new Error('API no disponible (google.script.run)'));
-      return;
+    try{
+      const runner = (typeof google !== 'undefined' && google.script && google.script.run)
+        ? google.script.run
+        : null;
+
+      if (!runner){
+        reject(new Error('API no disponible (google.script.run)'));
+        return;
+      }
+
+      const call = runner
+        .withSuccessHandler((res) => resolve(res))
+        .withFailureHandler((err) => {
+          const msg = (err && err.message) ? err.message : String(err);
+          reject(new Error(msg));
+        });
+
+      if (typeof call[fnName] !== 'function'){
+        reject(new Error('Función server no encontrada: ' + fnName));
+        return;
+      }
+
+      call[fnName](...args);
+    } catch(ex){
+      reject(ex);
     }
-    const call = runner.withSuccessHandler(resolve).withFailureHandler(err => {
-      const msg =
-  'SS: ' + ssid + '\n' +
-  'FACTURA: ' + (f.exists ? 'OK' : 'NO') + ' (' + (f.lastRow||0) + ' filas)\n' +
-  'PRESUPUESTOS: ' + (p.exists ? 'OK' : 'NO') + ' (' + (p.lastRow||0) + ' filas)\n' +
-  'HIST: ' + (h.exists ? 'OK' : 'NO') + ' (' + (h.lastRow||0) + ' filas)\n' +
-  'GASTOS: ' + (g.exists ? 'OK' : 'NO') + ' (' + (g.lastRow||0) + ' filas)';toast('Fuente', msg, 'info');
-      })
-      .catch((err) => {
-        toast('Fuente', (err && err.message) ? err.message : String(err), 'error');
-      });
-
-    return;
-  }
-
-  if (a === 'ir_facturas_pendientes'){{ goToList('facturas', null); return; }
-
-  // default
-  toast('Info', `Acción no implementada: ${action}`, 'info');
+  });
 }
 
 /* =========================
@@ -444,6 +447,7 @@ __forceRealFromUrl_();'
 );
 
 </script>
+
 
 
 
