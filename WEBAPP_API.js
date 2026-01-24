@@ -1116,3 +1116,34 @@ function testDiagPresFact(){
 
 
 
+
+function apiDbInfo(){
+  const ss = _ss_();
+  const names = ss.getSheets().map(s => s.getName());
+
+  function info_(name){
+    const sh = ss.getSheetByName(name);
+    if (!sh) return { exists:false, lastRow:0, lastCol:0 };
+    return { exists:true, lastRow:sh.getLastRow(), lastCol:sh.getLastColumn() };
+  }
+
+  const out = {
+    ok: true,
+    spreadsheetId: ss.getId(),
+    sheets: names,
+    targets: {
+      CLIENTES: info_(CC_SHEETS.CLIENTES),
+      LEADS: info_(CC_SHEETS.LEADS),
+      FACTURA: info_(CC_SHEETS.FACTURA),
+      LINEAS: info_(CC_SHEETS.LINEAS),
+      PRESUPUESTOS: info_(CC_SHEETS.PRESUPUESTOS),
+      PRES_HIST: info_(CC_SHEETS.PRES_HIST),
+      PRES_LINEAS: info_(CC_SHEETS.PRES_LINEAS),
+      GASTOS: info_(CC_SHEETS.GASTOS),
+      CONFIG: info_(CC_SHEETS.CONFIG),
+    }
+  };
+
+  return out;
+}
+
