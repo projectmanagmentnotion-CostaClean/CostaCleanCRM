@@ -48,14 +48,14 @@ const HEADERS_CIERRES = [
 
 /** ========= HELPERS BASE ========= **/
 function _ss_() {
-  if (typeof SS_ID !== 'undefined' && SS_ID) {
-    try {
-      return SpreadsheetApp.openById(SS_ID);
-    } catch (err) {
-      // fallback a spreadsheet activo si el ID no es valido
-    }
+  if (typeof SS_ID === 'undefined' || !SS_ID) {
+    throw new Error('SS_ID no está definido. Revisa API.js (const SS_ID=...)');
   }
-  return SpreadsheetApp.getActiveSpreadsheet();
+  try {
+    return SpreadsheetApp.openById(SS_ID);
+  } catch (err) {
+    throw new Error('No pude abrir el Spreadsheet por SS_ID. ID=' + SS_ID + ' | ' + (err && err.message ? err.message : String(err)));
+  }
 }
 
 function _sh_(name) {
@@ -1112,6 +1112,7 @@ function testDiagPresFact(){
   console.log(JSON.stringify({TEST:'testDiagPresFact', sample:{pres: out.pres && out.pres[0], fact: out.fact && out.fact[0]}, counts:{pres: out.pres && out.pres.length, fact: out.fact && out.fact.length}}, null, 2));
   return out;
 }
+
 
 
 
