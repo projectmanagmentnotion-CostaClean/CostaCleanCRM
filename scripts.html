@@ -1288,8 +1288,7 @@ function runAction(action, entity, id, dataset){
     return;
   }
 
-  // fuente / pendientes etc
-  if (a === 'ver_fuente'){
+  // fuente / pendientes etc  if (a === 'ver_fuente'){
     if (state.useMock){
       toast('Fuente', 'Mock: abrir spreadsheet', 'info');
       return;
@@ -1297,22 +1296,24 @@ function runAction(action, entity, id, dataset){
 
     callServer('apiDbInfo')
       .then((res) => {
-        const t = res && res.targets ? res.targets : {};
-        const ssid = res && res.spreadsheetId ? res.spreadsheetId : '-';
+        const t = (res && res.targets) ? res.targets : {};
+        const ssid = (res && res.spreadsheetId) ? res.spreadsheetId : '-';
 
         const f = t.FACTURA || {};
         const p = t.PRESUPUESTOS || {};
         const h = t.PRES_HIST || {};
         const g = t.GASTOS || {};
 
-        const filas_ = (x) => Math.max(((x && x.lastRow) ? (x.lastRow - 1) : 0), 0);
-        const ok_ = (x) => (x && x.exists) ? 'OK' : 'NO';
+        const filas = (x) => {
+          const lr = Number(x && x.lastRow ? x.lastRow : 0);
+          return Math.max(0, lr - 1); // descuenta headers
+        };
 
         const msg =
-          SS:  |  +
-          FACTURA:  ( filas) |  +
-          PRESUPUESTOS:  ( filas) |  +
-          HIST:  ( filas) |  +
+          SS: \n +
+          FACTURA:  ( filas)\n +
+          PRESUPUESTOS:  ( filas)\n +
+          HIST:  ( filas)\n +
           GASTOS:  ( filas);
 
         toast('Fuente', msg, 'info');
@@ -1323,7 +1324,8 @@ function runAction(action, entity, id, dataset){
 
     return;
   }
-if (a === 'ir_facturas_pendientes'){ goToList('facturas', null); return; }
+
+  if (a === 'ir_facturas_pendientes'){{ goToList('facturas', null); return; }
 
   // default
   toast('Info', `Acción no implementada: ${action}`, 'info');
@@ -1502,6 +1504,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 </script>
+
 
 
 
