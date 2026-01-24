@@ -1305,6 +1305,9 @@ function runAction(action, entity, id, dataset){
         const h = t.PRES_HIST || {};
         const g = t.GASTOS || {};
 
+        const filas_ = (x) => Math.max(((x && x.lastRow) ? (x.lastRow - 1) : 0), 0);
+        const ok_ = (x) => (x && x.exists) ? 'OK' : 'NO';
+
         const msg =
           SS:  |  +
           FACTURA:  ( filas) |  +
@@ -1315,24 +1318,12 @@ function runAction(action, entity, id, dataset){
         toast('Fuente', msg, 'info');
       })
       .catch((err) => {
-        toast('Fuente', err?.message || 'No se pudo leer apiDbInfo', 'error');
+        toast('Fuente', (err && err.message) ? err.message : String(err), 'error');
       });
 
     return;
   }
-callServer('apiPresupuestosDebug')
-      .then((res) => {
-        const pres = res?.sheets?.PRESUPUESTOS || {};
-        const hist = res?.sheets?.HISTORIAL_PRESUPUESTOS || {};
-        const msg = `SS: ${res?.spreadsheetId || '-'} | PRESUPUESTOS: ${pres.dataRows || 0} | HIST: ${hist.dataRows || 0}`;
-        toast('Fuente', msg, 'info');
-      })
-      .catch((err) => {
-        toast('Fuente', err?.message || 'No se pudo leer el debug', 'info');
-      });
-    return;
-  }
-  if (a === 'ir_facturas_pendientes'){ goToList('facturas', null); return; }
+if (a === 'ir_facturas_pendientes'){ goToList('facturas', null); return; }
 
   // default
   toast('Info', `Acción no implementada: ${action}`, 'info');
@@ -1478,6 +1469,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 </script>
+
 
 
 
