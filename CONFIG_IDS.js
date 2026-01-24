@@ -9,3 +9,54 @@ const CC_DEFAULT_IDS = {
 // Build stamp (solo debug)
 const BUILD_STAMP = new Date().toISOString();
 
+
+/* =========================
+   DB Spreadsheet binding
+   - Guarda Spreadsheet ID de la "DB" en ScriptProperties
+   - WebApp NO debe depender de getActiveSpreadsheet()
+========================= */
+
+const CC_DB_SPREADSHEET_ID_KEY = "CC_DB_SPREADSHEET_ID";
+
+/**
+ * Setea el Spreadsheet ID de la DB.
+ * Uso recomendado:
+ *  - ccSetDbSpreadsheetId("TU_SPREADSHEET_ID")
+ * Opcional:
+ *  - ccSetDbSpreadsheetId() si estás ejecutando desde un editor ligado a la DB (no webapp)
+ */
+function ccSetDbSpreadsheetId(spreadsheetIdOpt){
+  const props = PropertiesService.getScriptProperties();
+  let ssid = spreadsheetIdOpt || "";
+
+  if (!ssid){
+    try{
+      const ss = SpreadsheetApp.getActiveSpreadsheet();
+      ssid = ss ? ss.getId() : "";
+    }catch(e){
+      ssid = "";
+    }
+  }
+
+  if (!ssid){
+    throw new Error(
+      'CC_DB_SPREADSHEET_ID no está seteado. Ejecuta ccSetDbSpreadsheetId("SPREADSHEET_ID") (recomendado).'
+    );
+  }
+
+  props.setProperty(CC_DB_SPREADSHEET_ID_KEY, ssid);
+  return { ok:true, spreadsheetId:ssid };
+}
+
+function ccGetDbSpreadsheetId_(){
+  return PropertiesService.getScriptProperties().getProperty(CC_DB_SPREADSHEET_ID_KEY) || "";
+}
+
+function ccGetDbSpreadsheet_(){
+  const ssid = ccGetDbSpreadsheetId_();
+  if (!ssid){
+    throw new Error('CC_DB_SPREADSHEET_ID is not set. Run ccSetDbSpreadsheetId("SPREADSHEET_ID") once.');
+  }
+  return SpreadsheetApp.openById(ssid);
+}
+
