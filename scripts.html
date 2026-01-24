@@ -1310,11 +1310,11 @@ function runAction(action, entity, id, dataset){
         };
 
         const msg =
-          SS: \n +
-          FACTURA:  ( filas)\n +
-          PRESUPUESTOS:  ( filas)\n +
-          HIST:  ( filas)\n +
-          GASTOS:  ( filas);
+          'SS: ' + ssid + '\n' +
+          'FACTURA: ' + (f.exists ? 'OK' : 'NO') + ' (' + filas(f) + ' filas)\n' +
+          'PRESUPUESTOS: ' + (p.exists ? 'OK' : 'NO') + ' (' + filas(p) + ' filas)\n' +
+          'HIST: ' + (h.exists ? 'OK' : 'NO') + ' (' + filas(h) + ' filas)\n' +
+          'GASTOS: ' + (g.exists ? 'OK' : 'NO') + ' (' + filas(g) + ' filas)';
 
         toast('Fuente', msg, 'info');
       })

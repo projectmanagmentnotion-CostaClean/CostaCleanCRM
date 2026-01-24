@@ -16,3 +16,8 @@ patch-*.ps1
 dump-*.ps1
 check-*.ps1
 *.bak
+
+# temp extracted js
+_scripts_extracted.js
+extract.js
+
