@@ -1491,12 +1491,20 @@ function __installGlobalErrorCatcher_(){
 
 document.addEventListener('DOMContentLoaded', () => {
   __installGlobalErrorCatcher_();
-  __forceRealFromUrl_();
+
+  // 1) Base desde storage
   loadMockPreference_();
+
+  // 2) Override por URL (?mock=0 / ?mock=1) — prioridad máxima
+  applyMockFromUrl_();
+
+  // 3) Compat/override adicional (si existe)
+  __forceRealFromUrl_();
+
+  updateMockChip_();
   loadDashboard();
   initNav();
   initListTabs();
-  updateMockChip_();
 
   // estado inicial
   showScreen('screen-home');
@@ -1504,6 +1512,9 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 </script>
+
+
+
 
 
 
