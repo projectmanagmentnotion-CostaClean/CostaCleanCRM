@@ -1492,23 +1492,26 @@ function __installGlobalErrorCatcher_(){
 document.addEventListener('DOMContentLoaded', () => {
   __installGlobalErrorCatcher_();
 
-  // 1) Base desde storage
+  // mock/real (storage -> url -> force real)
   loadMockPreference_();
-
-  // 2) Override por URL (?mock=0 / ?mock=1) — prioridad máxima
   applyMockFromUrl_();
-
-  // 3) Compat/override adicional (si existe)
   __forceRealFromUrl_();
 
-  updateMockChip_();
-  loadDashboard();
+  // UI primero: que los botones funcionen aunque dashboard falle
   initNav();
   initListTabs();
+  updateMockChip_();
 
   // estado inicial
   showScreen('screen-home');
   setNavActive('home');
+
+  // dashboard al final y protegido
+  try {
+    loadDashboard();
+  } catch (e) {
+    try { toast('Init', (e && e.message) ? e.message : String(e), 'error'); } catch(_) {}
+  }
 });
 
 </script>
