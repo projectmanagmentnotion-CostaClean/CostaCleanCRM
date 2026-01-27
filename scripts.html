@@ -1493,28 +1493,29 @@ document.addEventListener('DOMContentLoaded', () => {
   __installGlobalErrorCatcher_();
 
   // mock/real (storage -> url -> force real)
-  loadMockPreference_();
-  applyMockFromUrl_();
-  __forceRealFromUrl_();
+  try { loadMockPreference_(); } catch(e){ try{ toast('Init', 'loadMockPreference: ' + ((e&&e.message)?e.message:String(e)), 'error'); }catch(_){ } }
+  try { applyMockFromUrl_(); } catch(e){ try{ toast('Init', 'applyMockFromUrl: ' + ((e&&e.message)?e.message:String(e)), 'error'); }catch(_){ } }
+  try { __forceRealFromUrl_(); } catch(e){ try{ toast('Init', '__forceRealFromUrl: ' + ((e&&e.message)?e.message:String(e)), 'error'); }catch(_){ } }
 
-  // UI primero: que los botones funcionen aunque dashboard falle
-  initNav();
-  initListTabs();
-  updateMockChip_();
+  // UI primero (blindado)
+  try { initNav(); } catch(e){ try{ toast('Init', 'initNav: ' + ((e&&e.message)?e.message:String(e)), 'error'); }catch(_){ } }
+  try { initListTabs(); } catch(e){ try{ toast('Init', 'initListTabs: ' + ((e&&e.message)?e.message:String(e)), 'error'); }catch(_){ } }
+  try { updateMockChip_(); } catch(e){}
 
   // estado inicial
-  showScreen('screen-home');
-  setNavActive('home');
+  try { showScreen('screen-home'); } catch(e){}
+  try { setNavActive('home'); } catch(e){}
+
+  // toast diagnóstico
+  try { toast('Init', 'OK · mode=' + (state && state.useMock ? 'mock' : 'real'), 'info'); } catch(_){ }
 
   // dashboard al final y protegido
-  try {
-    loadDashboard();
-  } catch (e) {
-    try { toast('Init', (e && e.message) ? e.message : String(e), 'error'); } catch(_) {}
-  }
+  try { loadDashboard(); } catch(e){ try{ toast('Dashboard', (e && e.message) ? e.message : String(e), 'error'); }catch(_){ } }
 });
 
 </script>
+
+
 
 
 
