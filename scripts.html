@@ -1,7 +1,7 @@
-﻿<!-- =========================
+﻿/* =========================
 ARCHIVO: scripts.html
 Lógica UI (mock) + router de acciones + listas + detalle
-========================= -->
+========================= */
 /* BOOT MARKER (no depende de DOMContentLoaded) */
 try{
   const __boot = document.createElement('div');
@@ -1570,4 +1570,5 @@ document.addEventListener('DOMContentLoaded', () => {
   // dashboard al final y protegido
   try { loadDashboard(); } catch(e){ try{ toast('Dashboard', (e && e.message) ? e.message : String(e), 'error'); }catch(_){ } }
 });
+
 
