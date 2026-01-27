@@ -1,4 +1,5 @@
-﻿/* =========================
+﻿console.log('CC BOOT: scripts.html loaded'); try{alert('CC BOOT OK');}catch(_){}
+/* =========================
 ARCHIVO: scripts.html
 Lógica UI (mock) + router de acciones + listas + detalle
 ========================= */
@@ -1570,5 +1571,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // dashboard al final y protegido
   try { loadDashboard(); } catch(e){ try{ toast('Dashboard', (e && e.message) ? e.message : String(e), 'error'); }catch(_){ } }
 });
+
 
 
