@@ -1,4 +1,11 @@
-﻿function __ensureDebugPanel_(){
+﻿<!-- =========================
+ARCHIVO: scripts.html
+Lógica UI (mock) + router de acciones + listas + detalle
+========================= -->
+<script>
+
+/* moved-from-top (debug panel) */
+function __ensureDebugPanel_(){
   try{
     if(document.getElementById('cc-debug-panel')) return;
     const d = document.createElement('div');
@@ -29,11 +36,7 @@ function __debugShow_(title, msg){
     d.textContent = '[' + title + '] ' + String(msg);
   }catch(_){}
 }
-<!-- =========================
-ARCHIVO: scripts.html
-Lógica UI (mock) + router de acciones + listas + detalle
-========================= -->
-<script>
+
   /**************
    * DEBUG SAFE LOG
    **************/
@@ -1554,28 +1557,5 @@ document.addEventListener('DOMContentLoaded', () => {
   // dashboard al final y protegido
   try { loadDashboard(); } catch(e){ try{ toast('Dashboard', (e && e.message) ? e.message : String(e), 'error'); }catch(_){ } }
 });
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+</script>
 
