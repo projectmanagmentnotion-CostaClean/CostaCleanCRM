@@ -1,2 +1,6 @@
-﻿tools/**
-_scripts_extracted.js
+﻿audit/**
+tools/**
+*.ps1
+creds.json
+_scripts_extracted.*
+extract.js
