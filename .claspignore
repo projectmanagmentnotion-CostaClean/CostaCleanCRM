@@ -4,3 +4,11 @@ tools/**
 creds.json
 _scripts_extracted.*
 extract.js
+
+__scripts_check.js
+__scripts_check*.js
+__*.js
+*.bak_*
+audit/
+tools-audit.ps1
+
