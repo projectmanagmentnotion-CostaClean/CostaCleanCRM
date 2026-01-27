@@ -21,3 +21,10 @@ check-*.ps1
 _scripts_extracted.js
 extract.js
 
+
+# local debug/backups
+__scripts_check*.js
+*.bak_*
+audit/
+tools-audit.ps1
+
