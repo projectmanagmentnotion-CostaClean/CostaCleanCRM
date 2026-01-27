@@ -1535,6 +1535,9 @@ function __installGlobalErrorCatcher_(){
     });
   }catch(_){}
 document.addEventListener('DOMContentLoaded', () => {
+  try{ __debugShow_('INIT', 'DOMContentLoaded fired · search=' + (location && location.search ? location.search : '')); }catch(_){}
+  try{ toast('INIT', 'DOMContentLoaded fired', 'info'); }catch(_){}
+
   __installGlobalErrorCatcher_();
 
   // mock/real (storage -> url -> force real)
@@ -1558,4 +1561,5 @@ document.addEventListener('DOMContentLoaded', () => {
   try { loadDashboard(); } catch(e){ try{ toast('Dashboard', (e && e.message) ? e.message : String(e), 'error'); }catch(_){ } }
 });
 </script>
+
 
