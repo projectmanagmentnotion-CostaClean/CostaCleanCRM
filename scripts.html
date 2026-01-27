@@ -3,6 +3,17 @@ ARCHIVO: scripts.html
 Lógica UI (mock) + router de acciones + listas + detalle
 ========================= -->
 <script>
+/* BOOT MARKER (no depende de DOMContentLoaded) */
+try{
+  const __boot = document.createElement('div');
+  __boot.id='__boot';
+  __boot.style.position='fixed'; __boot.style.bottom='6px'; __boot.style.right='6px'; __boot.style.zIndex='999999';
+  __boot.style.background='rgba(0,160,255,.16)'; __boot.style.border='1px solid rgba(0,160,255,.45)';
+  __boot.style.padding='4px 8px'; __boot.style.borderRadius='10px'; __boot.style.font='12px ui-monospace,monospace'; __boot.style.color='#dff';
+  __boot.textContent='BOOT OK · ' + (location && location.search ? location.search : '');
+  document.body.appendChild(__boot);
+}catch(_){}
+
 
 /* moved-from-top (debug panel) */
 function __ensureDebugPanel_(){
@@ -1561,5 +1572,6 @@ document.addEventListener('DOMContentLoaded', () => {
   try { loadDashboard(); } catch(e){ try{ toast('Dashboard', (e && e.message) ? e.message : String(e), 'error'); }catch(_){ } }
 });
 </script>
+
 
 
