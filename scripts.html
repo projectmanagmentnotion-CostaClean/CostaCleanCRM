@@ -1319,7 +1319,8 @@ function runAction(action, entity, id, dataset){
     return;
   }
 
-  // fuente / pendientes etc  if (a === 'ver_fuente'){
+  // fuente / pendientes etc
+  if (a === 'ver_fuente'){
     if (state.useMock){
       toast('Fuente', 'Mock: abrir spreadsheet', 'info');
       return;
@@ -1356,7 +1357,7 @@ function runAction(action, entity, id, dataset){
     return;
   }
 
-  if (a === 'ir_facturas_pendientes'){{ goToList('facturas', null); return; }
+  if (a === 'ir_facturas_pendientes'){ goToList('facturas', null); return; }
 
   // default
   toast('Info', `Acción no implementada: ${action}`, 'info');
