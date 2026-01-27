@@ -1,4 +1,35 @@
-﻿<!-- =========================
+﻿function __ensureDebugPanel_(){
+  try{
+    if(document.getElementById('cc-debug-panel')) return;
+    const d = document.createElement('div');
+    d.id = 'cc-debug-panel';
+    d.style.position = 'fixed';
+    d.style.bottom = '12px';
+    d.style.left = '12px';
+    d.style.zIndex = '999999';
+    d.style.maxWidth = '92vw';
+    d.style.padding = '8px 10px';
+    d.style.borderRadius = '10px';
+    d.style.background = 'rgba(0,0,0,0.82)';
+    d.style.color = '#fff';
+    d.style.fontSize = '12px';
+    d.style.fontFamily = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
+    d.style.whiteSpace = 'pre-wrap';
+    d.style.display = 'none';
+    d.textContent = 'DEBUG PANEL';
+    document.body.appendChild(d);
+  }catch(_){}
+}
+function __debugShow_(title, msg){
+  try{
+    __ensureDebugPanel_();
+    const d = document.getElementById('cc-debug-panel');
+    if(!d) return;
+    d.style.display = 'block';
+    d.textContent = '[' + title + '] ' + String(msg);
+  }catch(_){}
+}
+<!-- =========================
 ARCHIVO: scripts.html
 Lógica UI (mock) + router de acciones + listas + detalle
 ========================= -->
@@ -1475,6 +1506,8 @@ function __forceRealFromUrl_(){
 }
 
 function __installGlobalErrorCatcher_(){
+  try{ __ensureDebugPanel_(); }catch(_){}
+
   try{
     window.addEventListener('error', (e) => {
       const msg = (e && e.message) ? e.message : String(e);
@@ -1486,10 +1519,18 @@ function __installGlobalErrorCatcher_(){
       const msg = (r && r.message) ? r.message : String(r);
       try{ toast('Promise', msg, 'error'); } catch(_){ try{ alert('Promise: ' + msg); }catch(__){} }
     });
+  }catch(_){}  try{
+    window.addEventListener('error', (ev) => {
+      const m = (ev && ev.message) ? ev.message : 'unknown error';
+      __debugShow_('JS ERROR', m);
+    });
+    window.addEventListener('unhandledrejection', (ev) => {
+      const r = ev && ev.reason ? ev.reason : '';
+      const m = (r && r.message) ? r.message : String(r);
+      __debugShow_('PROMISE', m);
+    });
   }catch(_){}
-}
-
-document.addEventListener('DOMContentLoaded', () => {
+.addEventListener('DOMContentLoaded', () => {
   __installGlobalErrorCatcher_();
 
   // mock/real (storage -> url -> force real)
@@ -1514,6 +1555,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 </script>
+
 
 
 
