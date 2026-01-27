@@ -1,4 +1,5 @@
-﻿console.log('CC BOOT: scripts.html loaded'); try{alert('CC BOOT OK');}catch(_){}
+﻿<script>
+console.log('CC BOOT: scripts.html loaded'); try{alert('CC BOOT OK');}catch(_){}
 /* =========================
 ARCHIVO: scripts.html
 Lógica UI (mock) + router de acciones + listas + detalle
@@ -1527,24 +1528,18 @@ function __installGlobalErrorCatcher_(){
     window.addEventListener('error', (e) => {
       const msg = (e && e.message) ? e.message : String(e);
       try{ toast('JS Error', msg, 'error'); } catch(_){ try{ alert('JS Error: ' + msg); }catch(__){} }
+      try{ __debugShow_('JS ERROR', msg); }catch(_){}
     });
 
     window.addEventListener('unhandledrejection', (e) => {
       const r = e && e.reason ? e.reason : e;
       const msg = (r && r.message) ? r.message : String(r);
       try{ toast('Promise', msg, 'error'); } catch(_){ try{ alert('Promise: ' + msg); }catch(__){} }
-    });
-  }catch(_){}  try{
-    window.addEventListener('error', (ev) => {
-      const m = (ev && ev.message) ? ev.message : 'unknown error';
-      __debugShow_('JS ERROR', m);
-    });
-    window.addEventListener('unhandledrejection', (ev) => {
-      const r = ev && ev.reason ? ev.reason : '';
-      const m = (r && r.message) ? r.message : String(r);
-      __debugShow_('PROMISE', m);
+      try{ __debugShow_('PROMISE', msg); }catch(_){}
     });
   }catch(_){}
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   try{ __debugShow_('INIT', 'DOMContentLoaded fired · search=' + (location && location.search ? location.search : '')); }catch(_){}
   try{ toast('INIT', 'DOMContentLoaded fired', 'info'); }catch(_){}
@@ -1571,6 +1566,5 @@ document.addEventListener('DOMContentLoaded', () => {
   // dashboard al final y protegido
   try { loadDashboard(); } catch(e){ try{ toast('Dashboard', (e && e.message) ? e.message : String(e), 'error'); }catch(_){ } }
 });
-
-
+</script>
 
