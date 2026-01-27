@@ -1531,7 +1531,7 @@ function __installGlobalErrorCatcher_(){
       __debugShow_('PROMISE', m);
     });
   }catch(_){}
-.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', () => {
   __installGlobalErrorCatcher_();
 
   // mock/real (storage -> url -> force real)
