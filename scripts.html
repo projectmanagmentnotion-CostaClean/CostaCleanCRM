@@ -313,7 +313,32 @@ function joinParts_(parts){
   return parts.filter(Boolean).join(' | ');
 }
 
-function setListState(mode, msg){
+ 
+// Normaliza respuestas del server:
+// - [ ... ]                               => items
+// - { items:[...]}                        => items
+// - { data:{ items:[...]} }               => items
+// - { ok:true, items:[...]}               => items
+// - { ok:true, data:[...]}                => items
+// - { ok:true, item:{...} }               => item (ver normalizeApiItem_)
+function normalizeApiList_(res){
+  if (!res) return [];
+  if (Array.isArray(res)) return res;
+  if (Array.isArray(res.items)) return res.items;
+  if (Array.isArray(res.data)) return res.data;
+  if (res.data && Array.isArray(res.data.items)) return res.data.items;
+  if (res.result && Array.isArray(res.result.items)) return res.result.items;
+  return [];
+}
+
+function normalizeApiItem_(res){
+  if (!res) return null;
+  if (res.item && typeof res.item === 'object') return res.item;
+  if (res.data && typeof res.data === 'object' && !Array.isArray(res.data)) return res.data;
+  if (res.result && typeof res.result === 'object') return res.result;
+  if (typeof res === 'object' && !Array.isArray(res)) return res;
+  return null;
+}function setListState(mode, msg){
   const status = qs('#listState');
   const empty = qs('#listEmpty');
   const box = qs('#listContainer');
@@ -392,25 +417,67 @@ function setActiveTab(entity){
 /* =========================
    DASHBOARD (mock simple)
 ========================= */
-function loadDashboard(){
-  // KPI simples (mock)
-  if (qs('#kpiVentasMes')) qs('#kpiVentasMes').textContent = '-';
-  if (qs('#kpiCobrado')) qs('#kpiCobrado').textContent = '-';
-  if (qs('#kpiPendiente')) qs('#kpiPendiente').textContent = '-';
-
-  if (qs('#kpiFactPendientes')) qs('#kpiFactPendientes').textContent = '—';
-  if (qs('#kpiFactPendientesSub')) qs('#kpiFactPendientesSub').textContent = '—';
-
-  if (qs('#kpiIvaNeto')) qs('#kpiIvaNeto').textContent = '—';
-  if (qs('#kpiRepercutido')) qs('#kpiRepercutido').textContent = '—';
-  if (qs('#kpiSoportado')) qs('#kpiSoportado').textContent = '—';
-
-  if (qs('#kpiGastoDeducible')) qs('#kpiGastoDeducible').textContent = '-';
-  if (qs('#kpiCompras')) qs('#kpiCompras').textContent = '-';
-  if (qs('#kpiOperacion')) qs('#kpiOperacion').textContent = '-';
-}
-
 /* =========================
+   DASHBOARD (real)
+ ========================= */
+async function loadDashboard(){
+  // Default UI mientras carga
+  if (qs('#kpiVentasMes')) qs('#kpiVentasMes').textContent = '';
+  if (qs('#kpiCobrado')) qs('#kpiCobrado').textContent = '';
+  if (qs('#kpiPendiente')) qs('#kpiPendiente').textContent = '';
+
+  if (qs('#kpiFactPendientes')) qs('#kpiFactPendientes').textContent = '';
+  if (qs('#kpiFactPendientesSub')) qs('#kpiFactPendientesSub').textContent = '';
+
+  if (qs('#kpiIvaNeto')) qs('#kpiIvaNeto').textContent = '';
+  if (qs('#kpiRepercutido')) qs('#kpiRepercutido').textContent = '';
+  if (qs('#kpiSoportado')) qs('#kpiSoportado').textContent = '';
+
+  if (qs('#kpiGastoDeducible')) qs('#kpiGastoDeducible').textContent = '';
+  if (qs('#kpiCompras')) qs('#kpiCompras').textContent = '';
+  if (qs('#kpiOperacion')) qs('#kpiOperacion').textContent = '';
+
+  // Si estás en mock, no llamamos server
+  if (state && state.useMock) return;
+
+  try{
+    const raw = await callServer('apiDashboard'); // period opcional
+    const d = normalizeApiItem_(raw) || {};
+
+    const ventasMes    = toNumber_(pickValue_(d, ['ventasMes','ventas_mes','ventas']));
+    const cobradoMes   = toNumber_(pickValue_(d, ['cobradoMes','cobrado','cobrado_mes']));
+    const pendienteMes = toNumber_(pickValue_(d, ['pendienteMes','pendiente','pendiente_mes']));
+
+    const factPendCount = pickValue_(d, ['facturasPendientes','factPendientes','pendientesCount','countPendientes']);
+    const factPendAmt   = toNumber_(pickValue_(d, ['facturasPendientesTotal','factPendientesTotal','pendientesTotal','totalPendiente']));
+
+    const ivaNeto     = toNumber_(pickValue_(d, ['ivaNetoTrimestre','ivaNeto','iva_neto']));
+    const repercutido = toNumber_(pickValue_(d, ['ivaRepercutido','repercutido','iva_repercutido']));
+    const soportado   = toNumber_(pickValue_(d, ['ivaSoportado','soportado','iva_soportado']));
+
+    const gastoDed    = toNumber_(pickValue_(d, ['gastoDeducibleTrimestre','gastoDeducible','gasto_deducible']));
+    const comprasTri  = toNumber_(pickValue_(d, ['comprasTrimestre','compras','compras_tri']));
+    const operacionTri= toNumber_(pickValue_(d, ['operacionTrimestre','operacion','operacion_tri']));
+
+    if (qs('#kpiVentasMes')) qs('#kpiVentasMes').textContent = (ventasMes!=null ? formatMoney(ventasMes) : '');
+    if (qs('#kpiCobrado')) qs('#kpiCobrado').textContent = (cobradoMes!=null ? formatMoney(cobradoMes) : '');
+    if (qs('#kpiPendiente')) qs('#kpiPendiente').textContent = (pendienteMes!=null ? formatMoney(pendienteMes) : '');
+
+    if (qs('#kpiFactPendientes')) qs('#kpiFactPendientes').textContent = (factPendCount!=='' && factPendCount!=null ? String(factPendCount) : '');
+    if (qs('#kpiFactPendientesSub')) qs('#kpiFactPendientesSub').textContent = (factPendAmt!=null ? formatMoney(factPendAmt) : '');
+
+    if (qs('#kpiIvaNeto')) qs('#kpiIvaNeto').textContent = (ivaNeto!=null ? formatMoney(ivaNeto) : '');
+    if (qs('#kpiRepercutido')) qs('#kpiRepercutido').textContent = (repercutido!=null ? formatMoney(repercutido) : '');
+    if (qs('#kpiSoportado')) qs('#kpiSoportado').textContent = (soportado!=null ? formatMoney(soportado) : '');
+
+    if (qs('#kpiGastoDeducible')) qs('#kpiGastoDeducible').textContent = (gastoDed!=null ? formatMoney(gastoDed) : '');
+    if (qs('#kpiCompras')) qs('#kpiCompras').textContent = (comprasTri!=null ? formatMoney(comprasTri) : '');
+    if (qs('#kpiOperacion')) qs('#kpiOperacion').textContent = (operacionTri!=null ? formatMoney(operacionTri) : '');
+  }catch(e){
+    console.error(e);
+    try{ toast('Dashboard', e?.message ? e.message : String(e), 'error'); }catch(_){}
+  }
+}/* =========================
    PRESUPUESTOS (API)
 ========================= */
 function mapPresupuestoToView(p){
@@ -573,16 +640,16 @@ async function fetchEntityList(entity, search, filterClientId){
   setListState('loading', `Cargando ${label}...`);
 
   try {
-    let items = [];
+    let raw = null;
     if (entity === 'clientes'){
-      items = await callServer('apiListClientes', { q: search || '' });
+      raw = await callServer('apiListClientes', { q: search || '' });
     } else if (entity === 'leads'){
-      items = await callServer('apiListLeads', { q: search || '' });
+      raw = await callServer('apiListLeads', { q: search || '' });
     } else {
-      items = await callServer('apiList', entity, { q: search || '', limit: 120 });
+      raw = await callServer('apiList', entity, { q: search || '', limit: 120 });
     }
-
-    let rows = (Array.isArray(items) ? items : []).map(r => mapEntityListRow_(entity, r)).filter(r => r && r.id);
+    const items = normalizeApiList_(raw);
+    let rows = items.map(r => mapEntityListRow_(entity, r)).filter(r => r && r.id);
     if (filterClientId && entity !== 'clientes'){
       const needle = String(filterClientId).toLowerCase();
       rows = rows.filter(r => (r.clientId || '').toString().toLowerCase() === needle);
@@ -606,7 +673,7 @@ async function loadEntityDetail(entity, id){
   showScreen('screen-detalle');
   setDetailState('loading', 'Cargando detalle...');
   try {
-    const res = await callServer('apiGet', entity, id);
+    const raw = await callServer('apiGet', entity, id);
     
     safeLog_('fetchEntityList '+entity, res);
 const view = mapEntityDetail_(entity, res);
@@ -1554,5 +1621,6 @@ document.addEventListener('DOMContentLoaded', () => {
   try { loadDashboard(); } catch(e){ try{ toast('Dashboard', (e && e.message) ? e.message : String(e), 'error'); }catch(_){ } }
 });
 </script>
+
 
 
