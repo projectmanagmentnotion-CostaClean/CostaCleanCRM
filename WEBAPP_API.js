@@ -217,8 +217,8 @@ function apiListPresupuestos(params){
       cliente: r.Cliente || r.Cliente_ID || r.Lead_ID || '',
       clienteId: r.Cliente_ID || r.Lead_ID || '',
       estado: r.estado_normalizado || r.Estado || '',
-      base: _safeNumber_(r.total_base || r.Base || r.Importe || r.Subtotal),
-      total: _safeNumber_(r.total || r.Total || r.Importe_total || r.Total_con_IVA),
+      base: _firstNumber_(r.total_base, r.Base, r.Importe, r.Subtotal),
+      total: _firstNumber_(r.total, r.Total, r.Importe_total, r.Total_con_IVA),
       fecha: r.Fecha || r.created_at || '',
       fechaRaw: r.Fecha || '',
       email: r.Email_cliente || r.Lead_Email || r.Email || '',
@@ -282,8 +282,8 @@ function apiGetPresupuesto(id) {
       cliente: row.Cliente || row.Cliente_ID || row.Lead_ID || '',
       clienteId: row.Cliente_ID || row.Lead_ID || '',
       estado: row.estado_normalizado || row.Estado || '',
-      base: _safeNumber_(row.total_base || row.Base),
-      total: _safeNumber_(row.total || row.Total),
+      base: _firstNumber_(row.total_base, row.Base),
+      total: _firstNumber_(row.total, row.Total),
       fecha: row.Fecha || row.created_at || '',
       email: row.Email_cliente || row.Lead_Email || row.Email || '',
       nif: row.NIF || row.DNI || row.CIF || '',
@@ -757,8 +757,37 @@ function _pickValue_(obj, keys) {
 }
 
 function _safeNumber_(v) {
-  const n = Number(v);
-  return isNaN(n) ? null : n;
+  if (v === undefined || v === null) return null;
+  if (v instanceof Date) return null;
+
+  let s = String(v).trim();
+  if (!s) return null;
+
+  // quitar € y espacios
+  s = s.replace(/€/g, '').replace(/\s+/g, '');
+
+  // EU: 1.234,56 -> 1234.56
+  if (/^\d{1,3}(\.\d{3})+(,\d+)?$/.test(s)) {
+    s = s.replace(/\./g, '').replace(',', '.');
+  } else if (/^\d+,\d+$/.test(s) && !s.includes('.')) {
+    // 1234,56 -> 1234.56
+    s = s.replace(',', '.');
+  } else if (/^\d{1,3}(,\d{3})+(\.\d+)?$/.test(s)) {
+    // US: 1,234.56 -> 1234.56
+    s = s.replace(/,/g, '');
+  }
+
+  const n = Number(s);
+  return Number.isFinite(n) ? n : null;
+}
+
+// Primer número válido (evita que un Date "truthy" gane por ||)
+function _firstNumber_() {
+  for (let i = 0; i < arguments.length; i++) {
+    const n = _safeNumber_(arguments[i]);
+    if (n !== null) return n;
+  }
+  return null;
 }
 
 function _formatDateIso_(v) {
@@ -1146,4 +1175,5 @@ function apiDbInfo(){
 
   return out;
 }
+
 
