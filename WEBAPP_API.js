@@ -147,7 +147,14 @@ function apiDashboard(period) {
   const rangeMonth = _monthRange_(year, month);
   const rangeQuarter = _quarterRange_(year, quarter);
 
-  const facturas = _getAll_(CC_SHEETS.FACTURA);
+  // FACTURAS: en tu sistema real suelen estar en HISTORIAL (y/o VW_FACTURAS).
+  // Fallback robusto para no depender de ""FACTURA"".
+  const shFact =
+    _getSheetIfExists_('HISTORIAL') ||
+    _getSheetIfExists_('VW_FACTURAS') ||
+    _getSheetIfExists_('FACTURAS') ||
+    _getSheetIfExists_('FACTURA');
+  const facturas = shFact ? (_getAllWithHeadersFromSheet_(shFact).rows || []) : [];
   const gastos = _getAll_(CC_SHEETS.GASTOS);
 
   const ventasMes = _sumByDateRange_(facturas, 'Fecha', 'Total', rangeMonth.from, rangeMonth.to, (f) => true);
@@ -237,11 +244,23 @@ function apiListPresupuestos(params){
   }
 }
 function _findByIdInView_(sheetName, idCol, id) {
-  const data = _getViewData_(sheetName);
+  const data = _getViewData_(sheetName) || { headers: [], rows: [] };
   const needle = String(id || '').trim();
   if (!needle) return null;
-  const row = (data.rows || []).find(r => String(r[idCol] || '').trim() === needle);
+
+  const getCI = (obj, key) => {
+    if (!obj) return '';
+    if (obj[key] !== undefined && obj[key] !== null) return obj[key];
+    const k = String(key || '').toLowerCase();
+    const foundKey = Object.keys(obj).find(h => String(h).toLowerCase() === k);
+    if (foundKey && obj[foundKey] !== undefined && obj[foundKey] !== null) return obj[foundKey];
+    return '';
+  };
+
+  const row = (data.rows || []).find(r => String(getCI(r, idCol) || '').trim() === needle);
   return row ? { headers: data.headers, obj: row } : null;
+}
+: null;
 }
 
 function _ensureViews_() {
@@ -250,9 +269,12 @@ function _ensureViews_() {
 
 function _getViewData_(viewName) {
   _ensureViews_();
-  return _getAllWithHeaders_(viewName);
+  try {
+    return _getAllWithHeaders_(viewName);
+  } catch (e) {
+    return { headers: [], rows: [] };
+  }
 }
-
 function testListPresupuestos() {
   const ss = _ss_();
   try {
@@ -518,7 +540,14 @@ function apiCloseQuarter(payload) {
   row['IRPF_estimado'] = irpf;
 
   // Contadores útiles
-  const facturas = _getAll_(CC_SHEETS.FACTURA);
+  // FACTURAS: en tu sistema real suelen estar en HISTORIAL (y/o VW_FACTURAS).
+  // Fallback robusto para no depender de ""FACTURA"".
+  const shFact =
+    _getSheetIfExists_('HISTORIAL') ||
+    _getSheetIfExists_('VW_FACTURAS') ||
+    _getSheetIfExists_('FACTURAS') ||
+    _getSheetIfExists_('FACTURA');
+  const facturas = shFact ? (_getAllWithHeadersFromSheet_(shFact).rows || []) : [];
   row['Facturas_emitidas'] = facturas.filter(f => _isInRange_(f.Fecha, range.from, range.to)).length;
   row['Facturas_pagadas'] = facturas.filter(f => _isInRange_(f.Fecha, range.from, range.to) && _isPaidInvoice_(f)).length;
   row['Facturas_pendientes'] = facturas.filter(f => _isInRange_(f.Fecha, range.from, range.to) && _isPendingInvoice_(f)).length;
@@ -1175,5 +1204,7 @@ function apiDbInfo(){
 
   return out;
 }
+
+
 
 

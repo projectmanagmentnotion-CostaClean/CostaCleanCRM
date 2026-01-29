@@ -186,9 +186,96 @@ const MOCK_DETAIL = {
    UI: Toasts
 ========================= */
 function toast(title, msg, tone='ok'){
-  const host = qs('.cc-toasts');
-  if (!host) return;
+  // Asegura host .cc-toasts (si no existe, créalo)
+  let host = qs('.cc-toasts');
+  if (!host) {
+    host = document.createElement('div');
+    host.className = 'cc-toasts';
+    host.style.position = 'fixed';
+    host.style.top = '12px';
+    host.style.right = '12px';
+    host.style.zIndex = '99999';
+    host.style.display = 'flex';
+    host.style.flexDirection = 'column';
+    host.style.gap = '10px';
+    document.body.appendChild(host);
+  }
 
+  // Detectar debug=1 (preferencia: state.urlParams si ya existe)
+  let debug = false;
+  try {
+    const d = state?.urlParams?.debug;
+    const s = String(d ?? '').trim().toLowerCase();
+    debug = (s === '1' || s === 'true');
+  } catch (_) {}
+  if (!debug) {
+    try {
+      const sp = new URLSearchParams(location.search || '');
+      const s = String(sp.get('debug') ?? '').trim().toLowerCase();
+      debug = (s === '1' || s === 'true');
+    } catch (_) {}
+  }
+
+  // Panel fijo para debug (copiable)
+  if (debug) {
+    let panel = document.getElementById('ccDebugPanel');
+    if (!panel) {
+      panel = document.createElement('div');
+      panel.id = 'ccDebugPanel';
+      panel.style.position = 'fixed';
+      panel.style.left = '12px';
+      panel.style.top = '12px';
+      panel.style.zIndex = '99998';
+      panel.style.maxWidth = '620px';
+      panel.style.width = 'calc(100vw - 24px)';
+      panel.style.background = 'rgba(0,0,0,.55)';
+      panel.style.border = '1px solid rgba(255,255,255,.12)';
+      panel.style.borderRadius = '14px';
+      panel.style.padding = '10px 12px';
+      panel.style.backdropFilter = 'blur(8px)';
+      panel.style.fontFamily = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace';
+      panel.style.fontSize = '12px';
+      panel.style.color = '#EDEDED';
+
+      panel.innerHTML = `
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+          <div style="font-weight:700;">DEBUG (API)</div>
+          <div style="display:flex; gap:8px;">
+            <button id="ccDebugCopy" style="cursor:pointer; padding:6px 10px; border-radius:10px; border:1px solid rgba(255,255,255,.15); background:rgba(255,255,255,.06); color:#EDEDED;">Copiar</button>
+            <button id="ccDebugClear" style="cursor:pointer; padding:6px 10px; border-radius:10px; border:1px solid rgba(255,255,255,.15); background:rgba(255,255,255,.06); color:#EDEDED;">Limpiar</button>
+          </div>
+        </div>
+        <div id="ccDebugLog" style="margin-top:8px; max-height:160px; overflow:auto; white-space:pre-wrap;"></div>
+      `;
+      document.body.appendChild(panel);
+
+      // handlers
+      const copyBtn = panel.querySelector('#ccDebugCopy');
+      const clearBtn = panel.querySelector('#ccDebugClear');
+      copyBtn?.addEventListener('click', async () => {
+        try {
+          const txt = panel.querySelector('#ccDebugLog')?.innerText || '';
+          await navigator.clipboard.writeText(txt);
+          // mini feedback
+          try { toast('DEBUG', 'Log copiado al portapapeles', 'ok'); } catch (_) {}
+        } catch (_) {}
+      });
+      clearBtn?.addEventListener('click', () => {
+        const log = panel.querySelector('#ccDebugLog');
+        if (log) log.textContent = '';
+      });
+    }
+
+    const log = document.getElementById('ccDebugLog');
+    if (log) {
+      const t = new Date().toLocaleTimeString('es-ES');
+      const line = document.createElement('div');
+      line.textContent = `${t} [${tone}] ${title}: ${msg}`;
+      log.prepend(line);
+    }
+  }
+
+  // Toast normal (visual)
   const el = document.createElement('div');
   el.className = `cc-toast cc-toast--${tone}`;
   el.innerHTML = `
@@ -198,10 +285,11 @@ function toast(title, msg, tone='ok'){
   host.appendChild(el);
 
   setTimeout(() => el.classList.add('is-in'), 10);
+  const ttl = debug ? 10000 : 2500;
   setTimeout(() => {
     el.classList.remove('is-in');
     setTimeout(() => el.remove(), 200);
-  }, 2500);
+  }, ttl);
 }
 
 function escapeHtml(s){
@@ -275,11 +363,84 @@ function callServer(fnName, ...args){
       reject(new Error('API no disponible (google.script.run)'));
       return;
     }
-    const call = runner.withSuccessHandler(resolve).withFailureHandler(err => {
-      const msg = err?.message || err?.toString() || 'Error desconocido';
-      reject(new Error(msg));
+
+    // Lee parámetros reales de la URL (en WebApp location.search puede ser del iframe)
+    const getParams_ = (cb) => {
+      try {
+        if (state && state.urlParams) return cb(state.urlParams);
+      } catch (_) {}
+
+      const locFn = google?.script?.url?.getLocation;
+      if (locFn) {
+        try {
+          locFn((loc) => {
+            const p = (loc && loc.parameter) ? loc.parameter : {};
+            try { state.urlParams = p; } catch (_) {}
+            cb(p);
+          });
+          return;
+        } catch (_) {}
+      }
+
+      // fallback mínimo
+      try {
+        const sp = new URLSearchParams(location.search || '');
+        const p = {};
+        sp.forEach((v,k) => p[k] = v);
+        try { state.urlParams = p; } catch (_) {}
+        cb(p);
+      } catch (_) {
+        cb({});
+      }
+    };
+
+    getParams_((params) => {
+      const dbg = String(params?.debug || '').trim().toLowerCase();
+      const debug = (dbg === '1' || dbg === 'true');
+      const t0 = Date.now();
+
+      const safeKeys_ = (obj) => {
+        try {
+          if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return [];
+          return Object.keys(obj).slice(0, 12);
+        } catch (_) {
+          return [];
+        }
+      };
+
+      const describeRes_ = (res) => {
+        const type = Array.isArray(res) ? 'array' : (res === null ? 'null' : typeof res);
+        const keys = safeKeys_(res);
+        let len = null;
+        try { len = normalizeApiList_(res).length; } catch (_) {}
+        return { type, keys, len };
+      };
+
+      if (debug) {
+        try { toast('API', `${fnName}  enviando...`, 'info'); } catch (_) {}
+      }
+
+      const call = runner
+        .withSuccessHandler((res) => {
+          if (debug) {
+            const ms = Date.now() - t0;
+            const d = describeRes_(res);
+            const k = d.keys.length ? ` | keys: ${d.keys.join(', ')}` : '';
+            const l = (typeof d.len === 'number') ? ` | len:${d.len}` : '';
+            try { toast('API OK', `${fnName}  ${d.type}${l}${k} | ${ms}ms`, 'success'); } catch (_) {}
+          }
+          resolve(res);
+        })
+        .withFailureHandler((err) => {
+          const msg = err?.message || err?.toString() || 'Error desconocido';
+          if (debug) {
+            try { toast('API ERROR', `${fnName}  ${msg}`, 'error'); } catch (_) {}
+          }
+          reject(new Error(msg));
+        });
+
+      call[fnName].apply(call, args || []);
     });
-    call[fnName].apply(call, args || []);
   });
 }
 
