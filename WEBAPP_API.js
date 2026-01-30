@@ -186,15 +186,14 @@ function apiDashboard(period) {
 
 /** ========= LISTAS / DETALLES ========= **/
 function apiList(entity, params) {
-  setupSheetsIfMissing_();
   _ensureViews_();
-
   const map = _entityMap_();
   const cfg = map[entity];
   if (!cfg) throw new Error('Entidad no soportada: ' + entity);
 
   const viewName = cfg.view || cfg.sheet;
-  return _listFromView_(viewName, params || {}, Number(params?.limit || 40));
+  const out = _listFromView_(viewName, params || {}, Number(params?.limit || 40));
+  return (out === undefined || out === null) ? [] : out;
 }
 
 function apiGet(entity, id) {
@@ -237,7 +236,15 @@ function apiListPresupuestos(params){
       notas: r.Notas || r.Nota || r.Observaciones || '',
       sourceSheet: r.SourceSheet || ''
     });
-    return _mapListResult_(result, mapItem);
+
+    const out = _mapListResult_(result, mapItem);
+
+    // Blindaje: si por alguna razón queda undefined, no devolvemos null al frontend
+    if (out === undefined || out === null) {
+      return { items: [], page: 1, pageSize: limit, total: 0 };
+    }
+    return out;
+
   } catch (err) {
     logEvent_(ss, 'WEBAPP', 'listPresupuestos', 'presupuestos', '', 'ERROR', err.message, { stack: err.stack });
     throw err;
