@@ -28,3 +28,7 @@ __scripts_check*.js
 audit/
 tools-audit.ps1
 
+_params.json
+patch_*.patch
+tools/
+*.bak.*
