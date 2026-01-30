@@ -1,4 +1,4 @@
-/***************
+﻿/***************
  * API — CostaClean CRM (Sheets)
  * Basado en tus pestañas reales:
  *  - CLIENTES
@@ -71,7 +71,7 @@ function _includesQuery(rowObj, qLower) {
 }
 
 /** ====== 1) Dashboard KPIs (por ahora placeholder REALISTA, luego lo calculamos) ====== */
-function apiDashboard() {
+function apiDashboardLegacy_() {
   const tz = Session.getScriptTimeZone();
 
   const shFact = _sh(SHEETS.facturas); // HISTORIAL
@@ -190,3 +190,4 @@ function apiHealth() {
     mapped: SHEETS
   };
 }
+
