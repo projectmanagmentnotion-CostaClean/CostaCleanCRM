@@ -260,8 +260,6 @@ function _findByIdInView_(sheetName, idCol, id) {
   const row = (data.rows || []).find(r => String(getCI(r, idCol) || '').trim() === needle);
   return row ? { headers: data.headers, obj: row } : null;
 }
-: null;
-}
 
 function _ensureViews_() {
   if (typeof ccEnsureViews_ === 'function') ccEnsureViews_(false);
