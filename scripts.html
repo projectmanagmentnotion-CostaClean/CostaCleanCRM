@@ -4,7 +4,7 @@ ARCHIVO: scripts.html
 Lógica UI (mock) + router de acciones + listas + detalle
 ========================= */
 /* moved-from-top (debug panel) */
-function __ensureDebugPanel_(){
+function __ensureDebugPanel_(){ if(!env.debug) return;
   try{
     if(document.getElementById('cc-debug-panel')) return;
     const d = document.createElement('div');
@@ -56,6 +56,22 @@ const qsa = (sel, root=document) => Array.from(root.querySelectorAll(sel));
    Estado UI
 ========================= */
 const state = {
+
+const env = (() => {
+  try {
+    const sp = new URLSearchParams(location.search || '');
+    const debug = ['1','true'].includes(String(sp.get('debug')).toLowerCase());
+    const mock  = ['1','true'].includes(String(sp.get('mock')).toLowerCase());
+    return {
+      debug,
+      mock,
+      dev: debug || mock
+    };
+  } catch (_) {
+    return { debug:false, mock:false, dev:false };
+  }
+})();
+
   useMock: false,
   currentEntity: 'clientes',        // entidad activa en listas
   listFilterClientId: null,         // filtro por cliente (historial)
@@ -349,6 +365,11 @@ function saveMockPreference_(){
 }
 
 function updateMockChip_(){
+  if (!env.dev) {
+    const chip = qs('[data-action=""toggle_mock""]');
+    if (chip) chip.remove();
+    return;
+  }
   const chip = qs('[data-action="toggle_mock"]');
   if(!chip) return;
   chip.classList.toggle('cc-chip--ok', !!state.useMock);
@@ -1793,4 +1814,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 
+
+
+
+
+
+function hideDevOnlyUI_(){
+  if (env.dev) return;
+  qsa('[data-action=""toggle_quick_create""]').forEach(b => b.remove());
+}
 
