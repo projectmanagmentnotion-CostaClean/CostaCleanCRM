@@ -366,7 +366,7 @@ function saveMockPreference_(){
 
 function updateMockChip_(){
   if (!env.dev) {
-    const chip = qs('[data-action=""toggle_mock""]');
+    const chip = qs('[data-action="toggle_mock"]');
     if (chip) chip.remove();
     return;
   }
@@ -1823,6 +1823,7 @@ function hideDevOnlyUI_(){
   if (env.dev) return;
   qsa('[data-action="toggle_quick_create"]').forEach(b => b.remove());
 }
+
 
 
 
