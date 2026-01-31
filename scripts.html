@@ -55,8 +55,6 @@ const qsa = (sel, root=document) => Array.from(root.querySelectorAll(sel));
 /* =========================
    Estado UI
 ========================= */
-const state = {
-
 const env = (() => {
   try {
     const sp = new URLSearchParams(location.search || '');
@@ -71,6 +69,8 @@ const env = (() => {
     return { debug:false, mock:false, dev:false };
   }
 })();
+
+const state = {
 
   useMock: false,
   currentEntity: 'clientes',        // entidad activa en listas
@@ -1823,4 +1823,5 @@ function hideDevOnlyUI_(){
   if (env.dev) return;
   qsa('[data-action=""toggle_quick_create""]').forEach(b => b.remove());
 }
+
 
