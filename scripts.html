@@ -1687,10 +1687,9 @@ function initListTabs(){
     btn.addEventListener('click', () => {
       const entity = btn.dataset.entity;
       if (!entity) return;
-      state.listFilterClientId = null;
-      setActiveTab(entity);
-      setNavActive(entity);
-      loadList(entity);
+
+      // Centralizamos en goToList: mantiene state.currentEntity + UI + filtro + búsqueda
+      goToList(entity, null);
     });
   });
 }
@@ -1814,20 +1813,4 @@ function hideDevOnlyUI_(){
   qsa('[data-action="toggle_quick_create"]').forEach(b => b.remove());
 }
 </script>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
