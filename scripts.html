@@ -1809,6 +1809,10 @@ document.addEventListener('DOMContentLoaded', () => {
   // dashboard al final y protegido
   try { loadDashboard(); } catch(e){ try{ toast('Dashboard', (e && e.message) ? e.message : String(e), 'error'); }catch(_){ } }
 });
+function hideDevOnlyUI_(){
+  if (env.dev) return;
+  qsa('[data-action="toggle_quick_create"]').forEach(b => b.remove());
+}
 </script>
 
 
@@ -1819,10 +1823,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 
-function hideDevOnlyUI_(){
-  if (env.dev) return;
-  qsa('[data-action="toggle_quick_create"]').forEach(b => b.remove());
-}
+
+
 
 
 
