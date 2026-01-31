@@ -1821,7 +1821,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function hideDevOnlyUI_(){
   if (env.dev) return;
-  qsa('[data-action=""toggle_quick_create""]').forEach(b => b.remove());
+  qsa('[data-action="toggle_quick_create"]').forEach(b => b.remove());
 }
+
 
 
