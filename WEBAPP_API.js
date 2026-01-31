@@ -8,6 +8,27 @@ function apiPing() {
   return { ok: true, ts: new Date().toISOString() };
 }
 
+function diagSheets_() {
+  const ss = _ss_();
+  const names = ss.getSheets().map(s => s.getName());
+  const counts = {};
+  names.forEach(n => {
+    try {
+      const sh = ss.getSheetByName(n);
+      counts[n] = sh ? sh.getLastRow() : 0;
+    } catch(e){
+      counts[n] = -1;
+    }
+  });
+  return {
+    ok: true,
+    ssId: (typeof SS_ID !== 'undefined' ? SS_ID : null),
+    wants: { views: CC_VIEWS, sheets: CC_SHEETS },
+    names,
+    lastRow: counts
+  };
+}
+
 /** ========= CONFIG DE HOJAS ========= **/
 const CC_SHEETS = {
   CLIENTES: 'CLIENTES',
@@ -1209,6 +1230,7 @@ function apiDbInfo(){
 
   return out;
 }
+
 
 
 

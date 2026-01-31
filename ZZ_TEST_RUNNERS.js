@@ -43,3 +43,31 @@ function __test_apiDashboard(){
   const r = apiDashboard();
   __logJson_('apiDashboard', r);
 }
+
+function __test_diagSheets(){
+  const r = diagSheets_();
+  __logJson_('diagSheets_', r);
+  return r;
+}
+
+
+function __test_forceRebuildViews(){
+  // Fuerza rebuild de vistas + index, usando tu capa cc*
+  const did = (typeof ccEnsureViews_ === 'function') ? ccEnsureViews_(true) : null;
+  const idx = (typeof ccBuildIndex_ === 'function') ? ccBuildIndex_() : null;
+  const diag = (typeof diagSheets_ === 'function') ? diagSheets_() : { ok:false, error:'diagSheets_ missing' };
+  __logJson_('forceRebuildViews.did', did);
+  __logJson_('forceRebuildViews.index', idx);
+  __logJson_('forceRebuildViews.diag', diag);
+  return diag;
+}
+
+function __test_ccSetupWebAppLayer(){
+  // Wrapper visible para ejecutar ccSetupWebAppLayer_ desde el desplegable
+  const r = (typeof ccSetupWebAppLayer_ === 'function') ? ccSetupWebAppLayer_() : { ok:false, error:'ccSetupWebAppLayer_ missing' };
+  __logJson_('ccSetupWebAppLayer_', r);
+  const diag = (typeof diagSheets_ === 'function') ? diagSheets_() : { ok:false, error:'diagSheets_ missing' };
+  __logJson_('diagSheets_', diag);
+  return diag;
+}
+

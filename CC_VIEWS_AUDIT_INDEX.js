@@ -155,7 +155,7 @@ function ccNormalizeEstadoOnEdit_(e) {
 }
 
 function ccBuildViews_() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = (typeof _ss_ === 'function') ? _ss_() : SpreadsheetApp.getActiveSpreadsheet();
 
   ccBuildClientesView_(ss);
   ccBuildLeadsView_(ss);
@@ -598,7 +598,7 @@ function ccWriteAudit_(ss, rows) {
 }
 
 function ccGetSheet_(name, createIfMissing) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = (typeof _ss_ === 'function') ? _ss_() : SpreadsheetApp.getActiveSpreadsheet();
   let sh = ss.getSheetByName(name);
   if (!sh && createIfMissing) sh = ss.insertSheet(name);
   return sh;
@@ -615,15 +615,47 @@ function ccGetSheetData_(sh) {
   const lastCol = sh.getLastColumn();
   if (lastRow < 1 || lastCol < 1) return { headerRow: 1, headers: [], rows: [] };
 
-  const values = sh.getRange(1, 1, lastRow, lastCol).getValues();
+  // Escaneo inteligente de headers en las primeras filas (evita cortar a 8 filas)
+  const maxScan = Math.min(lastRow, 50);
+  const scan = sh.getRange(1, 1, maxScan, lastCol).getValues();
+
+  const hints = [
+    'Cliente_ID','Lead_ID','Pres_ID','Factura_ID','Gasto_ID',
+    'Nombre','Email','Telefono','Estado','Fecha','Direccion','CP','Ciudad'
+  ];
+  const normHints = hints.map(h => ccNormalizeKey_(h));
+
   let headerRow = 1;
-  for (let i = 0; i < values.length; i++) {
-    const nonEmpty = values[i].filter(v => String(v || '').trim() !== '');
-    if (nonEmpty.length >= 2) {
+  let foundSmart = false;
+
+  for (let i = 0; i < scan.length; i++) {
+    const rowNorm = scan[i].map(v => ccNormalizeKey_(String(v || '').trim()));
+    const nonEmpty = scan[i].filter(v => String(v || '').trim() !== '');
+    if (nonEmpty.length < 2) continue;
+
+    let matches = 0;
+    for (let k = 0; k < normHints.length; k++) {
+      if (rowNorm.indexOf(normHints[k]) !== -1) matches++;
+      if (matches >= 2) break;
+    }
+    if (matches >= 2) {
       headerRow = i + 1;
+      foundSmart = true;
       break;
     }
   }
+
+  // Leer el rango completo una vez
+  const values = sh.getRange(1, 1, lastRow, lastCol).getValues();
+
+  // Fallback al método anterior si no detectamos headers por hints
+  if (!foundSmart) {
+    for (let i = 0; i < values.length; i++) {
+      const nonEmpty = values[i].filter(v => String(v || '').trim() !== '');
+      if (nonEmpty.length >= 2) { headerRow = i + 1; break; }
+    }
+  }
+
   const headers = values[headerRow - 1].map(h => String(h || '').trim());
   const rows = values.slice(headerRow)
     .filter(r => r.some(c => c !== '' && c !== null && c !== undefined))
