@@ -186,14 +186,36 @@ function apiDashboard(period) {
   const ivaSopTri = _sumByDateRange_(gastos, 'Fecha', 'IVA', rangeQuarter.from, rangeQuarter.to, (g) => _toBool_(g.Deducible, true));
   const ivaNeto = (Number(ivaRepTri) || 0) - (Number(ivaSopTri) || 0);
 
+  // Extra: total € pendiente (para el KPI del dashboard)
+  const pendTotal = _sumByDateRange_(facturas, 'Fecha', 'Total', rangeMonth.from, rangeMonth.to, (f) => _isPendingInvoice_(f));
+
+  // Compatibilidad: keys planas (lo que el frontend espera hoy) + formato nuevo (kpis)
   return {
     periodo: {
       year, month, quarter,
       monthLabel: _monthLabel_(month),
-      quarterLabel: `Q${quarter} ${year}`,
+      quarterLabel: Q ,
       fromQuarter: rangeQuarter.from,
       toQuarter: rangeQuarter.to
     },
+
+    // ---- legacy / frontend actual ----
+    ventasMes: Number(ventasMes) || 0,
+    cobradoMes: 0,
+    pendienteMes: 0,
+
+    facturasPendientes: Number(pendientes) || 0,
+    facturasPendientesTotal: Number(pendTotal) || 0,
+
+    ivaRepercutido: Number(ivaRepTri) || 0,
+    ivaSoportado: Number(ivaSopTri) || 0,
+    ivaNetoTrimestre: Number(ivaNeto) || 0,
+
+    gastoDeducibleTrimestre: Number(gastoDedTri) || 0,
+    comprasTrimestre: Number(gastoDedTri) || 0,
+    operacionTrimestre: 0,
+
+    // ---- formato nuevo (se mantiene) ----
     kpis: {
       ventasMes: Number(ventasMes) || 0,
       facturasPendientes: Number(pendientes) || 0,
