@@ -160,13 +160,12 @@ function apiDashboard(period) {
   setupSheetsIfMissing_();
 
   // period: { year: 2025, month: 12 } o { year: 2025, quarter: 4 }
+  // Si no llega period, usaremos el mes más reciente con datos (última Fecha en facturas).
+  // OJO: rangeMonth/rangeQuarter se calculan DESPUÉS de cargar facturas.
   const now = new Date();
-  const year = period?.year || now.getFullYear();
-  const month = period?.month || (now.getMonth() + 1);
-  const quarter = period?.quarter || (Math.floor((month - 1) / 3) + 1);
-
-  const rangeMonth = _monthRange_(year, month);
-  const rangeQuarter = _quarterRange_(year, quarter);
+  let year = period?.year || now.getFullYear();
+  let month = period?.month || (now.getMonth() + 1);
+  const hasExplicitPeriod = !!(period && (period.year || period.month || period.quarter));
 
   // FACTURAS: en tu sistema real suelen estar en HISTORIAL (y/o VW_FACTURAS).
   // Fallback robusto para no depender de ""FACTURA"".
@@ -177,6 +176,31 @@ function apiDashboard(period) {
     _getSheetIfExists_('FACTURA');
   const facturas = shFact ? (_getAllWithHeadersFromSheet_(shFact).rows || []) : [];
   const gastos = _getAll_(CC_SHEETS.GASTOS);
+
+  // Si no viene period explícito, inferimos year/month desde la última factura
+  if (!hasExplicitPeriod) {
+    const parseDate_ = (v) => {
+      if (!v) return null;
+      const d = (v instanceof Date) ? v : new Date(v);
+      return isNaN(d.getTime()) ? null : d;
+    };
+
+    let last = null;
+    for (const f of (facturas || [])) {
+      const d = parseDate_(f.Fecha);
+      if (!d) continue;
+      if (!last || d.getTime() > last.getTime()) last = d;
+    }
+    if (last) {
+      year = last.getFullYear();
+      month = last.getMonth() + 1;
+    }
+  }
+
+  const quarter = period?.quarter || (Math.floor((month - 1) / 3) + 1);
+
+  const rangeMonth = _monthRange_(year, month);
+  const rangeQuarter = _quarterRange_(year, quarter);
 
   const ventasMes = _sumByDateRange_(facturas, 'Fecha', 'Total', rangeMonth.from, rangeMonth.to, (f) => true);
   const pendientes = facturas.filter(f => _isInRange_(f.Fecha, rangeMonth.from, rangeMonth.to) && _isPendingInvoice_(f)).length;
@@ -1252,13 +1276,4 @@ function apiDbInfo(){
 
   return out;
 }
-
-
-
-
-
-
-
-
-
 
