@@ -194,7 +194,7 @@ function apiDashboard(period) {
     periodo: {
       year, month, quarter,
       monthLabel: _monthLabel_(month),
-      quarterLabel: Q ,
+      quarterLabel: `Q${quarter} ${year}`,
       fromQuarter: rangeQuarter.from,
       toQuarter: rangeQuarter.to
     },
@@ -1252,6 +1252,7 @@ function apiDbInfo(){
 
   return out;
 }
+
 
 
 
