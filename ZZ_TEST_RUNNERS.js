@@ -203,6 +203,8 @@ function __test_diagSourceSheets(){
   result.sheets.PRESUPUESTOS= __diagOneSheet__('PRESUPUESTOS',['Pres_ID','Presupuesto_ID','ID','PresID','Cliente_ID']);
   result.sheets.GASTOS      = __diagOneSheet__('GASTOS',      ['Gasto_ID','ID','GastoID','Cliente_ID']);
 
+  result.sheets.HISTORIAL   = __diagOneSheet__('HISTORIAL',   ['Numero_factura','Factura_ID','ID','Cliente_ID']);
+  result.sheets.HIST_PRES   = __diagOneSheet__('HISTORIAL_PRESUPUESTOS', ['Pres_ID','Presupuesto_ID','ID','Cliente_ID']);
   __logJson_('diagSourceSheets_', result);
   return result;
 }
@@ -261,4 +263,5 @@ function __test_peekSheetHead(){
   __logJson_('peekSheetHead', out);
   return out;
 }
+
 
