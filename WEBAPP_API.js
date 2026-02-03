@@ -284,7 +284,8 @@ function apiListPresupuestos(params){
 
   try {
     _ensureViews_();
-    const result = _listFromView_(CC_VIEWS.PRESUPUESTOS, params || {}, limit);
+    const viewName = (params && params.includeHistorial) ? 'HISTORIAL_PRESUPUESTOS' : CC_VIEWS.PRESUPUESTOS;
+    const result = _listFromView_(viewName, params || {}, limit);
     const mapItem = (r) => ({
       id: r.Pres_ID || r.Presupuesto_ID || r.ID,
       cliente: r.Cliente || r.Cliente_ID || r.Lead_ID || '',
@@ -366,7 +367,8 @@ function apiGetPresupuesto(id) {
 
   try {
     _ensureViews_();
-    const found = _findByIdInView_(CC_VIEWS.PRESUPUESTOS, 'Pres_ID', presId);
+    let found = _findByIdInView_('HISTORIAL_PRESUPUESTOS', 'Pres_ID', presId);
+    if (!found) found = _findByIdInView_(CC_VIEWS.PRESUPUESTOS, 'Pres_ID', presId);
     if (!found || !found.obj) throw new Error('No se encontro el presupuesto ' + presId);
     const row = found.obj;
 
@@ -825,7 +827,7 @@ function _entityMap_() {
     clientes: { sheet: CC_SHEETS.CLIENTES, view: CC_VIEWS.CLIENTES, idCol: 'Cliente_ID' },
     leads: { sheet: CC_SHEETS.LEADS, view: CC_VIEWS.LEADS, idCol: 'Lead_ID' },
     facturas: { sheet: 'HISTORIAL', view: 'HISTORIAL', idCol: 'Numero_factura' },
-    proformas: { sheet: CC_SHEETS.PRESUPUESTOS, view: CC_VIEWS.PRESUPUESTOS, idCol: 'Pres_ID' },
+    proformas: { sheet: 'HISTORIAL_PRESUPUESTOS', view: 'HISTORIAL_PRESUPUESTOS', idCol: 'Pres_ID' },
     gastos: { sheet: CC_SHEETS.GASTOS, view: CC_VIEWS.GASTOS, idCol: 'Gasto_ID' },
     cierres: { sheet: CC_SHEETS.CIERRES, idCol: 'Cierre_ID' }
   };
@@ -1276,5 +1278,6 @@ function apiDbInfo(){
 
   return out;
 }
+
 
 
