@@ -207,3 +207,31 @@ function __test_diagSourceSheets(){
   return result;
 }
 
+// =========================
+// PEEK: ver tail de una sheet (para confirmar si es tabla o plantilla)
+// =========================
+function __test_peekSheetTail(){
+  const sheetName = 'FACTURA'; // <-- cambia aquí cuando lo vuelvas a ejecutar
+  const tail = 12;            // últimas N filas
+  const cols = 12;            // primeras N columnas
+
+  const ss = (typeof _ss_ === 'function') ? _ss_() : SpreadsheetApp.getActiveSpreadsheet();
+  const sh = ss.getSheetByName(sheetName);
+  if (!sh) {
+    const out = { ok:false, sheetName, error:'Sheet no existe' };
+    __logJson_('peekSheetTail', out);
+    return out;
+  }
+
+  const lastRow = sh.getLastRow();
+  const lastCol = sh.getLastColumn();
+  const startRow = Math.max(1, lastRow - tail + 1);
+  const width = Math.min(cols, Math.max(1, lastCol));
+  const height = Math.max(1, lastRow - startRow + 1);
+
+  const values = sh.getRange(startRow, 1, height, width).getDisplayValues();
+  const out = { ok:true, sheetName, lastRow, lastCol, startRow, height, width, values };
+  __logJson_('peekSheetTail', out);
+  return out;
+}
+
