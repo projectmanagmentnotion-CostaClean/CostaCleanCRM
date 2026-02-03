@@ -171,8 +171,32 @@ function __diagOneSheet__(sheetName, idCandidates){
 
     let nonEmpty = 0;
     const examples = [];
+
+    // Soportar rows como:
+    // - Array de arrays (vía getValues)
+    // - Array de objetos (vía ccGetSheetData_)
+    const getIdValue = (row) => {
+      if (!row) return '';
+      // Caso A: array
+      if (Array.isArray(row)) {
+        const v = (idCol >= 0 && row[idCol] != null) ? String(row[idCol]).trim() : '';
+        return v;
+      }
+      // Caso B: objeto
+      if (typeof row === 'object') {
+        const key = String(idHeader || '').trim();
+        if (key && row[key] != null) return String(row[key]).trim();
+
+        // Fallback: match case-insensitive por si cambia el case
+        const low = key.toLowerCase();
+        const k2 = Object.keys(row).find(k => String(k).toLowerCase() === low);
+        if (k2 && row[k2] != null) return String(row[k2]).trim();
+      }
+      return '';
+    };
+
     for (let i=0;i<rows.length;i++){
-      const v = (rows[i] && rows[i][idCol] != null) ? String(rows[i][idCol]).trim() : '';
+      const v = getIdValue(rows[i]);
       if (v){
         nonEmpty++;
         if (examples.length < 10) examples.push({ row: data.headerRow + 1 + i, id: v });
@@ -263,5 +287,7 @@ function __test_peekSheetHead(){
   __logJson_('peekSheetHead', out);
   return out;
 }
+
+
 
 

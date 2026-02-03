@@ -824,7 +824,7 @@ function _entityMap_() {
   return {
     clientes: { sheet: CC_SHEETS.CLIENTES, view: CC_VIEWS.CLIENTES, idCol: 'Cliente_ID' },
     leads: { sheet: CC_SHEETS.LEADS, view: CC_VIEWS.LEADS, idCol: 'Lead_ID' },
-    facturas: { sheet: CC_SHEETS.FACTURA, view: CC_VIEWS.FACTURAS, idCol: 'Factura_ID' },
+    facturas: { sheet: 'HISTORIAL', view: 'HISTORIAL', idCol: 'Numero_factura' },
     proformas: { sheet: CC_SHEETS.PRESUPUESTOS, view: CC_VIEWS.PRESUPUESTOS, idCol: 'Pres_ID' },
     gastos: { sheet: CC_SHEETS.GASTOS, view: CC_VIEWS.GASTOS, idCol: 'Gasto_ID' },
     cierres: { sheet: CC_SHEETS.CIERRES, idCol: 'Cierre_ID' }
@@ -1276,4 +1276,5 @@ function apiDbInfo(){
 
   return out;
 }
+
 
