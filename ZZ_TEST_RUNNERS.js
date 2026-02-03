@@ -235,3 +235,30 @@ function __test_peekSheetTail(){
   return out;
 }
 
+// =========================
+// PEEK: ver head de una sheet (para confirmar headers reales)
+// =========================
+function __test_peekSheetHead(){
+  const sheetName = 'HISTORIAL'; // <-- cambia a HISTORIAL_PRESUPUESTOS y re-ejecutas
+  const head = 12;              // primeras N filas
+  const cols = 12;              // primeras N columnas
+
+  const ss = (typeof _ss_ === 'function') ? _ss_() : SpreadsheetApp.getActiveSpreadsheet();
+  const sh = ss.getSheetByName(sheetName);
+  if (!sh) {
+    const out = { ok:false, sheetName, error:'Sheet no existe' };
+    __logJson_('peekSheetHead', out);
+    return out;
+  }
+
+  const lastRow = sh.getLastRow();
+  const lastCol = sh.getLastColumn();
+  const width = Math.min(cols, Math.max(1, lastCol));
+  const height = Math.min(head, Math.max(1, lastRow));
+
+  const values = sh.getRange(1, 1, height, width).getDisplayValues();
+  const out = { ok:true, sheetName, lastRow, lastCol, height, width, values };
+  __logJson_('peekSheetHead', out);
+  return out;
+}
+
