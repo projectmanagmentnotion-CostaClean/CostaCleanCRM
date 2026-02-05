@@ -1237,18 +1237,16 @@ function renderDetail(entity, id, data){
   if (actionsMain){
     // Botones principales para documentos
     if (entity === 'facturas'){
-      actionsMain.innerHTML = `
-        <button class="cc-btn cc-btn--primary cc-btn--wide" type="button" data-action="abrir_pdf" data-entity="facturas" data-id="${escapeHtml(id)}">
-          <span aria-hidden="true">📄</span> Abrir PDF
-        </button>
-        <button class="cc-btn cc-btn--wide" type="button" data-action="marcar_pagada" data-entity="facturas" data-id="${escapeHtml(id)}">
-          <span aria-hidden="true">✅</span> Marcar pagada
-        </button>
-        <button class="cc-btn cc-btn--wide" type="button" data-action="volver_cliente" data-entity="facturas" data-id="${escapeHtml(id)}" data-clientid="${escapeHtml(clientId||'')}">
-          <span aria-hidden="true"><</span> Volver a cliente
-        </button>
-      `;
-    
+      actionsMain.innerHTML =
+        '<button class="cc-btn cc-btn--primary cc-btn--wide" type="button" data-action="abrir_pdf" data-entity="facturas" data-id="' + escapeHtml(id) + '">' +
+          '<span aria-hidden="true"></span> Abrir PDF' +
+        '</button>' +
+        '<button class="cc-btn cc-btn--wide" type="button" data-action="marcar_pagada" data-entity="facturas" data-id="' + escapeHtml(id) + '">' +
+          '<span aria-hidden="true"></span> Marcar pagada' +
+        '</button>' +
+        '<button class="cc-btn cc-btn--wide" type="button" data-action="volver_cliente" data-entity="facturas" data-id="' + escapeHtml(id) + '" data-clientid="' + escapeHtml(clientId || '') + '">' +
+          '<span aria-hidden="true"></span> Volver a cliente' +
+        '</button>';
     } else if (entity === 'proformas'){
       actionsMain.innerHTML = `
         <button class="cc-btn cc-btn--primary cc-btn--wide" type="button" data-action="generar_pdf" data-entity="proformas" data-id="${escapeHtml(id)}">
@@ -1505,7 +1503,26 @@ function runAction(action, entity, id, dataset){
     return;
   }
   if (a === 'abrir_pdf'){
-    if (entity === 'proformas' && !state.useMock){
+    // FACTURAS (real): abrir pdfLink si existe
+    if (entity === 'facturas' && !state.useMock){
+      if (!id){ toast('PDF', 'Factura_ID vacío', 'info'); return; }
+
+      toast('PDF', 'Buscando enlace PDF...', 'info');
+      callServer('apiGet', 'facturas', id)
+        .then((res) => {
+          const url =
+            (res && (res.pdfLink || res.pdfUrl || res.PDF_link || res.url || res.link)) || '';
+          if (url){
+            toast('PDF', 'Abriendo PDF...', 'ok');
+            try { window.open(url, '_blank'); } catch (_) { toast('PDF', url, 'info'); }
+          } else {
+            toast('PDF', 'Esta factura no tiene PDF aún', 'info');
+          }
+        })
+        .catch((err) => toast('Error', (err && err.message) ? err.message : 'No se pudo abrir el PDF', 'error'));
+      return;
+    }
+if (entity === 'proformas' && !state.useMock){
       const detail = store.presDetalle[id];
       const saved = detail?.pdfUrl || detail?.PDF_link || '';
       if (saved){
@@ -1898,6 +1915,8 @@ function hideDevOnlyUI_(){
   qsa('[data-action="toggle_quick_create"]').forEach(b => b.remove());
 }
 </script>
+
+
 
 
 
