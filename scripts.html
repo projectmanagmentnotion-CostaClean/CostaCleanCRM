@@ -827,14 +827,16 @@ async function fetchEntityList(entity, search, filterClientId){
       raw = await callServer('apiListLeads', { q: search || '' });
     } else {
       raw = await callServer('apiList', entity, { q: search || '', limit: 120 });
-    
+
+    // DEBUG (solo con ?debug=1)
     if (env && env.debug){
       try{
         const s = JSON.stringify(raw);
         const preview = s.slice(0, 300);
         toast('apiList raw', preview + (s.length > 300 ? '' : ''), 'info');
       }catch(_){}
-    }}
+    }
+
     const items = normalizeApiList_(raw);
     let rows = items.map(r => mapEntityListRow_(entity, r)).filter(r => r && r.id);
     if (filterClientId && entity !== 'clientes'){
@@ -1879,6 +1881,7 @@ function hideDevOnlyUI_(){
   qsa('[data-action="toggle_quick_create"]').forEach(b => b.remove());
 }
 </script>
+
 
 
 
