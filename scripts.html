@@ -1621,13 +1621,21 @@ function runAction(action, entity, id, dataset){
   toast('Info', `Acción no implementada: ${action}`, 'info');
 }
 
-/*function __setHashRoute__(entity, id){
+/* =========================
+   Router por URL (hash)
+   #/facturas
+   #/proformas/PRO-2025-0019
+========================= */
+function __setHashRoute__(entity, id){
   try{
     const e = String(entity || '').trim();
     const i = (id === null || id === undefined) ? '' : String(id).trim();
     if (!e) return;
 
-    const newHash = i ? #// : #/;
+    const newHash =
+      '#/' + encodeURIComponent(e) +
+      (i ? '/' + encodeURIComponent(i) : '');
+
     if (location.hash !== newHash) location.hash = newHash;
   }catch(_){}
 }
@@ -1653,24 +1661,20 @@ function __applyRouteFromHash__(){
   const entity = (r.entity || '').trim();
   const id = (r.id || '').trim();
 
-  if (!entity){
-    // si no hay hash, no tocamos nada (queda home)
-    return;
-  }
+  if (!entity) return; // sin hash: no tocamos nada
 
   __routeLock__ = true;
   try{
     if (id){
       // Detalle
       if (!state.useMock){
+        showScreen('screen-detalle');
+        setDetailState();
+
         if (entity === 'proformas'){
-          showScreen('screen-detalle');
-          setDetailState();
           loadPresupuestoDetail(id);
           return;
         }
-        showScreen('screen-detalle');
-        setDetailState();
         loadEntityDetail(entity, id);
         return;
       }
@@ -1690,6 +1694,7 @@ function __applyRouteFromHash__(){
 
 /* ==========================
    Navegación a listas
+========================= */
 ========================= */
 function goToList(entity, filterClientId){
   state.currentEntity = entity;
@@ -1888,6 +1893,7 @@ function hideDevOnlyUI_(){
   qsa('[data-action="toggle_quick_create"]').forEach(b => b.remove());
 }
 </script>
+
 
 
 
