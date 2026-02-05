@@ -298,3 +298,15 @@ function __test_apiGetPresupuesto_PRO_2025_0019(){
   return r;
 }
 
+
+function __test_apiList_facturas(){
+  Logger.log('--- __test_apiList_facturas START ---');
+  try{
+    const raw = apiList('facturas', { q:'', limit: 5 });
+    Logger.log(JSON.stringify(raw, null, 2));
+  }catch(e){
+    Logger.log('ERROR: ' + (e && e.stack ? e.stack : e));
+  }
+  Logger.log('--- __test_apiList_facturas END ---');
+}
+
