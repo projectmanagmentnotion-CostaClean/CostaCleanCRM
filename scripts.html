@@ -702,19 +702,25 @@ function mapEntityListRow_(entity, row){
       status: status || ''
     };
   }
-
   if (entity === 'facturas'){
-    const id = pickValue_(row, ['Factura_ID', 'Numero_factura', 'ID']);
-    const cliente = pickValue_(row, ['Cliente', 'Cliente_nombre', 'Nombre']);
-    const clienteId = pickValue_(row, ['Cliente_ID', 'ClienteId', 'Lead_ID']);
-    const status = pickValue_(row, ['Estado', 'Status']);
-    const total = toNumber_(pickValue_(row, ['Total', 'Importe_total', 'Total_con_IVA', 'Importe']));
-    const base = toNumber_(pickValue_(row, ['Base', 'Subtotal', 'Base_imponible']));
-    const amount = total != null ? total : base;
+    const id = String(pickValue_(row, ['Numero_factura','Factura_ID','ID']) || '');
+    const cliente = String(pickValue_(row, ['Cliente','Cliente_nombre','Nombre']) || '');
+    const nif = String(pickValue_(row, ['NIF','nif']) || '');
+    const fecha = pickValue_(row, ['Fecha','fecha']) || '';
+    const clienteId = String(pickValue_(row, ['Cliente_ID','ClienteId','Lead_ID']) || '');
+    const status = String(pickValue_(row, ['Estado','Status','estado']) || '');
+
+    const total = toNumber_(pickValue_(row, ['Total','total','Importe_total','Total_con_IVA']));
+    const base  = toNumber_(pickValue_(row, ['Base','base','Subtotal','Base_imponible']));
+    const amount = (total != null) ? total : base;
+
     return {
       id,
-      title: id ? `Factura ${id}` : (cliente || 'Factura'),
-      sub: joinParts_([clienteId || cliente, status]),
+      title: cliente || id,
+      sub: joinParts_([
+        nif ? 'NIF: ' + nif : '',
+        fecha ? 'Fecha: ' + formatDateText(fecha) : ''
+      ]),
       right: amount != null ? formatMoney(amount) : (status || ''),
       status: status || '',
       clientId: clienteId || ''
@@ -765,25 +771,36 @@ function mapEntityDetail_(entity, row){
       address
     };
   }
-
   if (entity === 'facturas'){
-    const id = pickValue_(row, ['Factura_ID', 'Numero_factura', 'ID']);
-    const cliente = pickValue_(row, ['Cliente', 'Cliente_nombre', 'Nombre']);
-    const clienteId = pickValue_(row, ['Cliente_ID', 'ClienteId', 'Lead_ID']);
-    const status = pickValue_(row, ['Estado', 'Status']);
-    const fecha = pickValue_(row, ['Fecha', 'Fecha_emision', 'Fecha_factura']);
-    const total = toNumber_(pickValue_(row, ['Total', 'Importe_total', 'Total_con_IVA', 'Importe']));
-    const base = toNumber_(pickValue_(row, ['Base', 'Subtotal', 'Base_imponible']));
-    const amount = total != null ? total : base;
+    const id = String(pickValue_(row, ['Numero_factura','Factura_ID','ID']) || '');
+    const cliente = String(pickValue_(row, ['Cliente','cliente','Cliente_nombre','Nombre']) || '');
+    const nif = String(pickValue_(row, ['NIF','nif']) || '');
+    const fecha = pickValue_(row, ['Fecha','fecha']) || '';
+    const clienteId = String(pickValue_(row, ['Cliente_ID','ClienteId','Lead_ID']) || '');
+    const status = String(pickValue_(row, ['Estado','Status','estado']) || '');
+
+    const base = toNumber_(pickValue_(row, ['Base','base','Subtotal','Base_imponible']));
+    const iva  = toNumber_(pickValue_(row, ['IVA','iva']));
+    const total = toNumber_(pickValue_(row, ['Total','total','Total_con_IVA','Importe_total']));
+    const pdf = String(pickValue_(row, ['PDF (link)','PDF_link','PDF','pdf']) || '');
+
+    const amount = (total != null) ? total : base;
+
     return {
       id,
-      title: id ? `Factura ${id}` : (cliente || 'Factura'),
+      title: cliente || id,
+      sub: [
+        nif ? 'NIF: ' + nif : '',
+        fecha ? 'Fecha: ' + formatDateText(fecha) : ''
+      ].filter(Boolean).join(' | '),
       status: status || '',
-      amount,
-      base,
-      total,
       clientId: clienteId || '',
-      fecha
+      fecha,
+      base: base != null ? base : null,
+      iva: iva != null ? iva : null,
+      total: total != null ? total : null,
+      amount: amount != null ? amount : null,
+      pdfLink: pdf
     };
   }
 
@@ -1881,15 +1898,6 @@ function hideDevOnlyUI_(){
   qsa('[data-action="toggle_quick_create"]').forEach(b => b.remove());
 }
 </script>
-
-
-
-
-
-
-
-
-
 
 
 
