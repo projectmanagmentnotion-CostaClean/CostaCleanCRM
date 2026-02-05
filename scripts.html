@@ -2,7 +2,6 @@
 /* =========================
 ARCHIVO: scripts.html
 Lógica UI (mock) + router de acciones + listas + detalle
-========================= */
 /* moved-from-top (debug panel) */
 function __ensureDebugPanel_(){ if(!env.debug) return;
   try{
@@ -48,13 +47,11 @@ function __debugShow_(title, msg){
 
 /* ==========================
    Helpers DOM
-========================= */
 const qs  = (sel, root=document) => root.querySelector(sel);
 const qsa = (sel, root=document) => Array.from(root.querySelectorAll(sel));
 
 /* =========================
    Estado UI
-========================= */
 const env = (() => {
   try {
     const sp = new URLSearchParams(location.search || '');
@@ -94,7 +91,6 @@ const store = {
 /* =========================
    Mock: LISTAS
    (Asegúrate de que los IDs coincidan con tus capturas)
-========================= */
 const MOCK = {
   clientes: [
     { id:'CLI-2025-0007', title:'Marta R.', sub:'NIF: X1234567A · Barcelona', right:'Activo',
@@ -125,7 +121,6 @@ const MOCK = {
 /* =========================
    Mock: DETALLE
    (Si no existe aquí, mostramos fallback)
-========================= */
 const MOCK_DETAIL = {
   clientes: {
     'CLI-2025-0007': {
@@ -200,7 +195,6 @@ const MOCK_DETAIL = {
 
 /* =========================
    UI: Toasts
-========================= */
 function toast(title, msg, tone='ok'){
   // Asegura host .cc-toasts (si no existe, créalo)
   let host = qs('.cc-toasts');
@@ -587,7 +581,6 @@ function setDetailState(mode, msg){
 
 /* ==========================
    UI: Navegación por pantallas
-========================= */
 function showScreen(screenId){
   qsa('.cc-screen').forEach(s => s.classList.toggle('is-active', s.id === screenId));
   state.lastScreen = screenId;
@@ -604,10 +597,8 @@ function setActiveTab(entity){
 
 /* ==========================
    DASHBOARD (mock simple)
-========================= */
 /* =========================
    DASHBOARD (real)
- ========================= */
 async function loadDashboard(){
   // Default UI mientras carga
   if (qs('#kpiVentasMes')) qs('#kpiVentasMes').textContent = '';
@@ -669,7 +660,6 @@ async function loadDashboard(){
 
 /* ==========================
    PRESUPUESTOS (API)
-========================= */
 function mapPresupuestoToView(p){
   if (!p) return null;
   const amount = (typeof p.total === 'number') ? p.total : (typeof p.base === 'number' ? p.base : null);
@@ -945,7 +935,6 @@ async function loadPresupuestoDetail(id){
 
 /* ==========================
    LISTAS
-========================= */
 function renderListItems(entity, rows){
   const box = qs('#listContainer');
   const empty = qs('#listEmpty');
@@ -1006,7 +995,6 @@ function loadList(entity){
 
 /* ==========================
    DETALLE (render reusable)
-========================= */
 function loadDetail(entity, id, detailData){
   state.detail.entity = entity;
   state.detail.id = id;
@@ -1340,7 +1328,6 @@ function renderDetailLines(lines){
 /* ==========================
    Router de acciones (ÚNICO)
    Maneja SOLO elementos con [data-action]
-========================= */
 function runAction(action, entity, id, dataset){
   const a = (action || '').toLowerCase().trim();
 
@@ -1625,7 +1612,6 @@ function runAction(action, entity, id, dataset){
    Router por URL (hash)
    #/facturas
    #/proformas/PRO-2025-0019
-========================= */
 function __setHashRoute__(entity, id){
   try{
     const e = String(entity || '').trim();
@@ -1694,15 +1680,14 @@ function __applyRouteFromHash__(){
 
 /* ==========================
    Navegación a listas
-========================= */
-========================= */
 function goToList(entity, filterClientId){
   state.currentEntity = entity;
   state.listFilterClientId = filterClientId || null;
 
   // URL router (solo si NO venimos de hashchange)
   if (!__routeLock__) __setHashRoute__(entity, null);
-// UI
+
+  // UI
   showScreen('screen-listas');
   setNavActive(entity);
   setActiveTab(entity);
@@ -1715,7 +1700,6 @@ function goToList(entity, filterClientId){
 
 /* ==========================
    Form mock
-========================= */
 function openForm(kind){
   showScreen('screen-form');
   setNavActive('home');
@@ -1726,7 +1710,6 @@ function openForm(kind){
 
 /* ==========================
    INIT: listeners
-========================= */
 function initNav(){
   qsa('.cc-navItem').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -1772,7 +1755,6 @@ function initListTabs(){
    Listener global:
    - [data-action] => runAction
    - .cc-item (lista) => abrir detalle
-========================= */
 document.addEventListener('click', (e) => {
   // 1) Actions
   const actEl = e.target.closest('[data-action]');
@@ -1808,7 +1790,6 @@ document.addEventListener('click', (e) => {
 
 /* =========================
    Search input (filtro)
-========================= */
 document.addEventListener('input', (e) => {
   if (e.target && e.target.id === 'q'){
     loadList(state.currentEntity);
@@ -1817,8 +1798,6 @@ document.addEventListener('input', (e) => {
 
 /* =========================
    INIT APP
-========================= */
-
 function __forceRealFromUrl_(){
   try{
     const sp = new URLSearchParams(window.location.search || '');
@@ -1893,6 +1872,8 @@ function hideDevOnlyUI_(){
   qsa('[data-action="toggle_quick_create"]').forEach(b => b.remove());
 }
 </script>
+
+
 
 
 
