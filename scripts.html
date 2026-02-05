@@ -1621,6 +1621,73 @@ function runAction(action, entity, id, dataset){
   toast('Info', `Acción no implementada: ${action}`, 'info');
 }
 
+/*function __setHashRoute__(entity, id){
+  try{
+    const e = String(entity || '').trim();
+    const i = (id === null || id === undefined) ? '' : String(id).trim();
+    if (!e) return;
+
+    const newHash = i ? #// : #/;
+    if (location.hash !== newHash) location.hash = newHash;
+  }catch(_){}
+}
+
+function __parseHashRoute__(){
+  try{
+    const h = String(location.hash || '').replace(/^#\/?/, '');
+    if (!h) return { entity:'', id:'' };
+    const parts = h.split('/').filter(Boolean);
+    const entity = parts[0] ? decodeURIComponent(parts[0]) : '';
+    const id = parts[1] ? decodeURIComponent(parts[1]) : '';
+    return { entity, id };
+  }catch(_){
+    return { entity:'', id:'' };
+  }
+}
+
+// Flag para evitar loops (hashchange -> goToList -> set hash -> hashchange...)
+let __routeLock__ = false;
+
+function __applyRouteFromHash__(){
+  const r = __parseHashRoute__();
+  const entity = (r.entity || '').trim();
+  const id = (r.id || '').trim();
+
+  if (!entity){
+    // si no hay hash, no tocamos nada (queda home)
+    return;
+  }
+
+  __routeLock__ = true;
+  try{
+    if (id){
+      // Detalle
+      if (!state.useMock){
+        if (entity === 'proformas'){
+          showScreen('screen-detalle');
+          setDetailState();
+          loadPresupuestoDetail(id);
+          return;
+        }
+        showScreen('screen-detalle');
+        setDetailState();
+        loadEntityDetail(entity, id);
+        return;
+      }
+
+      showScreen('screen-detalle');
+      setDetailState();
+      loadDetail(entity, id);
+      return;
+    }
+
+    // Lista
+    goToList(entity, null);
+  }finally{
+    __routeLock__ = false;
+  }
+}
+
 /* ==========================
    Navegación a listas
 ========================= */
@@ -1628,7 +1695,9 @@ function goToList(entity, filterClientId){
   state.currentEntity = entity;
   state.listFilterClientId = filterClientId || null;
 
-  // UI
+  // URL router (solo si NO venimos de hashchange)
+  if (!__routeLock__) __setHashRoute__(entity, null);
+// UI
   showScreen('screen-listas');
   setNavActive(entity);
   setActiveTab(entity);
@@ -1720,13 +1789,10 @@ document.addEventListener('click', (e) => {
     e.preventDefault();
 
     if (!state.useMock){
-      if (entity === 'proformas'){
-        loadPresupuestoDetail(id);
-        return;
-      }
-      loadEntityDetail(entity, id);
-      return;
-    }
+  // Detalle por URL
+  __setHashRoute__(entity, id);
+  return;
+}
 
     showScreen('screen-detalle');
     setDetailState();
@@ -1805,13 +1871,26 @@ document.addEventListener('DOMContentLoaded', () => {
   // toast diagnóstico
   try { toast('Init', 'OK · mode=' + (state && state.useMock ? 'mock' : 'real'), 'info'); } catch(_){ }
 
-  // dashboard al final y protegido
-  try { loadDashboard(); } catch(e){ try{ toast('Dashboard', (e && e.message) ? e.message : String(e), 'error'); }catch(_){ } }
+  // Router URL (hash)
+try{
+  window.addEventListener('hashchange', () => {
+    try{ __applyRouteFromHash__(); }catch(_){}
+  });
+}catch(_){}
+
+try{ __applyRouteFromHash__(); }catch(_){}
+
+// dashboard al final y protegido
+try { loadDashboard(); } catch(e){ try{ toast('Dashboard', (e && e.message) ? e.message : String(e), 'error'); }catch(_){ } }
 });
 function hideDevOnlyUI_(){
   if (env.dev) return;
   qsa('[data-action="toggle_quick_create"]').forEach(b => b.remove());
 }
 </script>
+
+
+
+
 
 
