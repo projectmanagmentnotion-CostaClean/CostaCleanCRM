@@ -1579,27 +1579,23 @@ if (entity === 'proformas' && !state.useMock){
 
   // Volver a cliente (desde factura)
   if (a === 'volver_cliente'){
-    const cid = dataset?.clientid || state.detail.clientId;
-    if (!cid){ toast('Cliente', 'No hay clientId en el mock', 'info'); return; }
-    showScreen('screen-detalle');
-    loadDetail('clientes', cid);
+    const cid = (dataset && dataset.clientid) ? dataset.clientid : state.detail.clientId;
+    if (!cid){ toast('Cliente', 'No hay clientId', 'info'); return; }
+    __setHashRoute__('clientes', cid);
     return;
   }
 
   // Volver / cancelar / guardar form
   if (a === 'volver'){
-    // vuelve a listas si venías de detalle o form; si no, home
+    // URL-first
     if (state.lastScreen === 'screen-detalle' || state.lastScreen === 'screen-form'){
-      showScreen('screen-listas');
-      setNavActive(state.currentEntity);
-      loadList(state.currentEntity);
+      __setHashRoute__(state.currentEntity, null);
     } else {
-      showScreen('screen-home');
-      setNavActive('home');
-      loadDashboard();
+      __setHashRoute__('home', null);
     }
     return;
   }
+
   if (a === 'guardar_form'){
     toast('Guardado', 'Mock: registro guardado', 'ok');
     showScreen('screen-home');
@@ -1915,9 +1911,3 @@ function hideDevOnlyUI_(){
   qsa('[data-action="toggle_quick_create"]').forEach(b => b.remove());
 }
 </script>
-
-
-
-
-
-
