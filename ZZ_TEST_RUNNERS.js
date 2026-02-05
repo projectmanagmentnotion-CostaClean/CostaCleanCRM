@@ -291,3 +291,10 @@ function __test_peekSheetHead(){
 
 
 
+
+function __test_apiGetPresupuesto_PRO_2025_0019(){
+  const r = apiGetPresupuesto('PRO-2025-0019');
+  __logJson_('apiGetPresupuesto PRO-2025-0019', r);
+  return r;
+}
+
