@@ -1,7 +1,7 @@
 ﻿<script>
-/* =========================
-ARCHIVO: scripts.html
-Lógica UI (mock) + router de acciones + listas + detalle
+// =========================
+// ARCHIVO: scripts.html
+// Lógica UI (mock) + router de acciones + listas + detalle
 /* moved-from-top (debug panel) */
 function __ensureDebugPanel_(){ if(!env.debug) return;
   try{
@@ -45,22 +45,22 @@ function __debugShow_(title, msg){
   }
   function safeLog(label, obj){ return safeLog_(label, obj); }
 
-/* ==========================
-   Helpers DOM
+// ==========================
+// Helpers DOM
 const qs  = (sel, root=document) => root.querySelector(sel);
 const qsa = (sel, root=document) => Array.from(root.querySelectorAll(sel));
 
-/* =========================
-   Estado UI
+// =========================
+// Estado UI
 const env = (() => {
   try {
     const sp = new URLSearchParams(location.search || '');
     const debug = ['1','true'].includes(String(sp.get('debug')).toLowerCase());
     const mock  = ['1','true'].includes(String(sp.get('mock')).toLowerCase());
     return {
-      debug,
-      mock,
-      dev: debug || mock
+// debug,
+// mock,
+// dev: debug || mock
     };
   } catch (_) {
     return { debug:false, mock:false, dev:false };
@@ -69,16 +69,16 @@ const env = (() => {
 
 const state = {
 
-  useMock: false,
-  currentEntity: 'clientes',        // entidad activa en listas
+// useMock: false,
+// currentEntity: 'clientes',        // entidad activa en listas
   listFilterClientId: null,         // filtro por cliente (historial)
   detail: { entity:null, id:null, clientId:null },
-  lastScreen: 'screen-home'
+// lastScreen: 'screen-home'
 };
 
 const STORAGE_KEYS = {
-  useMock: 'cc_use_mock',
-  legacyUseMock: 'cc_useMock'
+// useMock: 'cc_use_mock',
+// legacyUseMock: 'cc_useMock'
 };
 
 const store = {
@@ -88,9 +88,9 @@ const store = {
   leads: []
 };
 
-/* =========================
-   Mock: LISTAS
-   (Asegúrate de que los IDs coincidan con tus capturas)
+// =========================
+// Mock: LISTAS
+// (Asegúrate de que los IDs coincidan con tus capturas)
 const MOCK = {
   clientes: [
     { id:'CLI-2025-0007', title:'Marta R.', sub:'NIF: X1234567A · Barcelona', right:'Activo',
@@ -118,83 +118,83 @@ const MOCK = {
   ]
 };
 
-/* =========================
-   Mock: DETALLE
-   (Si no existe aquí, mostramos fallback)
+// =========================
+// Mock: DETALLE
+   // (Si no existe aquí, mostramos fallback)
 const MOCK_DETAIL = {
   clientes: {
     'CLI-2025-0007': {
-      id:'CLI-2025-0007',
-      title:'Marta R.',
-      sub:'NIF: X1234567A · Barcelona',
-      status:'Activo',
-      email:'marta@email.com',
-      phone:'+34 600 123 123',
-      address:'Barcelona'
+// id:'CLI-2025-0007',
+// title:'Marta R.',
+// sub:'NIF: X1234567A · Barcelona',
+// status:'Activo',
+// email:'marta@email.com',
+// phone:'+34 600 123 123',
+// address:'Barcelona'
     },
     'CLI-2025-0008': {
-      id:'CLI-2025-0008',
-      title:'Comunidad Pineda',
-      sub:'NIF: B66778899 · Pineda de Mar',
-      status:'Lead',
-      email:'admin@pineda.com',
-      phone:'+34 611 222 333',
-      address:'Pineda de Mar'
+// id:'CLI-2025-0008',
+// title:'Comunidad Pineda',
+// sub:'NIF: B66778899 · Pineda de Mar',
+// status:'Lead',
+// email:'admin@pineda.com',
+// phone:'+34 611 222 333',
+// address:'Pineda de Mar'
     }
   },
   leads: {
     'L0009': {
-      id:'L0009',
+// id:'L0009',
       title:'Comunidad Pineda (Lead)',
-      sub:'Email: admin@pineda.com · Pineda de Mar',
-      status:'Nuevo',
-      email:'admin@pineda.com',
-      phone:'+34 611 222 333',
-      address:'Pineda de Mar'
+// sub:'Email: admin@pineda.com · Pineda de Mar',
+// status:'Nuevo',
+// email:'admin@pineda.com',
+// phone:'+34 611 222 333',
+// address:'Pineda de Mar'
     }
   },
   facturas: {
     'F-2025-0123': {
-      id:'F-2025-0123',
-      title:'Factura F-2025-0123',
-      sub:'CLI-2025-0007 · Pendiente',
-      status:'Pendiente',
-      amount:120,
-      clientId:'CLI-2025-0007'
+// id:'F-2025-0123',
+// title:'Factura F-2025-0123',
+// sub:'CLI-2025-0007 · Pendiente',
+// status:'Pendiente',
+// amount:120,
+// clientId:'CLI-2025-0007'
     },
     'F-2025-0124': {
-      id:'F-2025-0124',
-      title:'Factura F-2025-0124',
-      sub:'CLI-2025-0008 · Pagada',
-      status:'Pagada',
-      amount:240,
-      clientId:'CLI-2025-0008'
+// id:'F-2025-0124',
+// title:'Factura F-2025-0124',
+// sub:'CLI-2025-0008 · Pagada',
+// status:'Pagada',
+// amount:240,
+// clientId:'CLI-2025-0008'
     }
   },
   proformas: {
     'PRO-2025-0009': {
-      id:'PRO-2025-0009',
-      title:'Proforma PRO-2025-0009',
-      sub:'CLI-2025-0007 · Enviada',
-      status:'Enviada',
-      amount:290.40,
-      clientId:'CLI-2025-0007'
+// id:'PRO-2025-0009',
+// title:'Proforma PRO-2025-0009',
+// sub:'CLI-2025-0007 · Enviada',
+// status:'Enviada',
+// amount:290.40,
+// clientId:'CLI-2025-0007'
     }
   },
   gastos: {
     'G-2025-0042': {
-      id:'G-2025-0042',
-      title:'Gasto G-2025-0042',
-      sub:'Operación · Gasolina',
-      status:'Ok',
-      amount:48.00,
-      clientId:'CLI-2025-0007'
+// id:'G-2025-0042',
+// title:'Gasto G-2025-0042',
+// sub:'Operación · Gasolina',
+// status:'Ok',
+// amount:48.00,
+// clientId:'CLI-2025-0007'
     }
   }
 };
 
-/* =========================
-   UI: Toasts
+// =========================
+// UI: Toasts
 function toast(title, msg, tone='ok'){
   // Asegura host .cc-toasts (si no existe, créalo)
   let host = qs('.cc-toasts');
@@ -579,8 +579,8 @@ function setDetailState(mode, msg){
   stateEl.textContent = '';
 }
 
-/* ==========================
-   UI: Navegación por pantallas
+// ==========================
+// UI: Navegación por pantallas
 function showScreen(screenId){
   qsa('.cc-screen').forEach(s => s.classList.toggle('is-active', s.id === screenId));
   state.lastScreen = screenId;
@@ -595,10 +595,10 @@ function setActiveTab(entity){
   qsa('.cc-tab').forEach(b => b.classList.toggle('is-active', b.dataset.entity === entity));
 }
 
-/* ==========================
-   DASHBOARD (mock simple)
-/* =========================
-   DASHBOARD (real)
+// ==========================
+// DASHBOARD (mock simple)
+// =========================
+// DASHBOARD (real)
 async function loadDashboard(){
   // Default UI mientras carga
   if (qs('#kpiVentasMes')) qs('#kpiVentasMes').textContent = '';
@@ -658,26 +658,26 @@ async function loadDashboard(){
   }
 }
 
-/* ==========================
+// ==========================
    PRESUPUESTOS (API)
 function mapPresupuestoToView(p){
   if (!p) return null;
   const amount = (typeof p.total === 'number') ? p.total : (typeof p.base === 'number' ? p.base : null);
   return {
-    id: p.id || p.Pres_ID,
-    title: p.cliente || p.clienteId || p.id,
+// id: p.id || p.Pres_ID,
+// title: p.cliente || p.clienteId || p.id,
     sub: `${formatDateText(p.fecha || p.fechaRaw)} | ${p.estado || '-'}`,
-    status: p.estado || '',
-    amount,
-    clientId: p.clienteId || '',
-    email: p.email || '',
-    phone: p.telefono || '',
-    address: p.direccion || '',
-    base: p.base ?? null,
-    total: p.total ?? null,
+// status: p.estado || '',
+// amount,
+// clientId: p.clienteId || '',
+// email: p.email || '',
+// phone: p.telefono || '',
+// address: p.direccion || '',
+// base: p.base ?? null,
+// total: p.total ?? null,
     pdfUrl: p.pdfUrl || p.PDF_link || (p.raw && p.raw.PDF_link) || '',
-    fecha: p.fecha || p.fechaRaw || '',
-    notas: p.notas || '',
+// fecha: p.fecha || p.fechaRaw || '',
+// notas: p.notas || '',
     lineas: Array.isArray(p.lineas) ? p.lineas : []
   };
 }
@@ -692,14 +692,14 @@ function mapEntityListRow_(entity, row){
     const phone = row.telefono || pickValue_(row, ['Telefono', 'Lead_Telefono', 'Phone']);
     const status = row.estado || pickValue_(row, ['Estado', 'Status']);
     return {
-      id,
-      title: name || id,
+// id,
+// title: name || id,
       sub: joinParts_([
         email ? `Email: ${email}` : '',
         phone ? `Tel: ${phone}` : ''
       ]),
-      right: status || '',
-      status: status || ''
+// right: status || '',
+// status: status || ''
     };
   }
   if (entity === 'facturas'){
@@ -715,15 +715,15 @@ function mapEntityListRow_(entity, row){
     const amount = (total != null) ? total : base;
 
     return {
-      id,
-      title: cliente || id,
+// id,
+// title: cliente || id,
       sub: joinParts_([
-        nif ? 'NIF: ' + nif : '',
+// nif ? 'NIF: ' + nif : '',
         fecha ? 'Fecha: ' + formatDateText(fecha) : ''
       ]),
       right: amount != null ? formatMoney(amount) : (status || ''),
-      status: status || '',
-      clientId: clienteId || ''
+// status: status || '',
+// clientId: clienteId || ''
     };
   }
 
@@ -736,11 +736,11 @@ function mapEntityListRow_(entity, row){
     const base = toNumber_(pickValue_(row, ['Base', 'Subtotal', 'Base_imponible']));
     const amount = total != null ? total : base;
     return {
-      id,
-      title: concepto || proveedor || id || 'Gasto',
+// id,
+// title: concepto || proveedor || id || 'Gasto',
       sub: joinParts_([proveedor, categoria]),
       right: amount != null ? formatMoney(amount) : (categoria || ''),
-      status: categoria || '',
+// status: categoria || '',
       clientId: pickValue_(row, ['Cliente_ID', 'ClienteId']) || ''
     };
   }
@@ -759,16 +759,16 @@ function mapEntityDetail_(entity, row){
     const address = pickValue_(row, ['Direccion', 'Address', 'Direccion_cliente']);
     const status = row.estado || pickValue_(row, ['Estado', 'Status']);
     return {
-      id,
-      title: name || id,
+// id,
+// title: name || id,
       sub: joinParts_([
         email ? `Email: ${email}` : '',
         phone ? `Tel: ${phone}` : ''
       ]),
-      status: status || '',
-      email,
-      phone,
-      address
+// status: status || '',
+// email,
+// phone,
+// address
     };
   }
   if (entity === 'facturas'){
@@ -787,20 +787,20 @@ function mapEntityDetail_(entity, row){
     const amount = (total != null) ? total : base;
 
     return {
-      id,
-      title: cliente || id,
+// id,
+// title: cliente || id,
       sub: [
-        nif ? 'NIF: ' + nif : '',
+// nif ? 'NIF: ' + nif : '',
         fecha ? 'Fecha: ' + formatDateText(fecha) : ''
       ].filter(Boolean).join(' | '),
-      status: status || '',
-      clientId: clienteId || '',
-      fecha,
+// status: status || '',
+// clientId: clienteId || '',
+// fecha,
       base: base != null ? base : null,
       iva: iva != null ? iva : null,
       total: total != null ? total : null,
       amount: amount != null ? amount : null,
-      pdfLink: pdf
+// pdfLink: pdf
     };
   }
 
@@ -814,14 +814,14 @@ function mapEntityDetail_(entity, row){
     const base = toNumber_(pickValue_(row, ['Base', 'Subtotal', 'Base_imponible']));
     const amount = total != null ? total : base;
     return {
-      id,
-      title: concepto || proveedor || id || 'Gasto',
-      status: categoria || '',
-      amount,
-      base,
-      total,
+// id,
+// title: concepto || proveedor || id || 'Gasto',
+// status: categoria || '',
+// amount,
+// base,
+// total,
       clientId: pickValue_(row, ['Cliente_ID', 'ClienteId']) || '',
-      fecha
+// fecha
     };
   }
 
@@ -844,8 +844,7 @@ async function fetchEntityList(entity, search, filterClientId){
       raw = await callServer('apiListLeads', { q: search || '' });
     } else {
       raw = await callServer('apiList', entity, { q: search || '', limit: 120 });
-
-    // DEBUG (solo con ?debug=1)
+    }
     if (env && env.debug){
       try{
         const s = JSON.stringify(raw);
@@ -922,12 +921,12 @@ const items = normalizeApiList_(res);
     const rows = list.map(p => {
       const view = mapPresupuestoToView(p);
       return {
-        id: view.id,
-        title: view.title,
-        sub: view.sub,
+// id: view.id,
+// title: view.title,
+// sub: view.sub,
         right: view.amount != null ? formatMoney(view.amount) : '',
-        status: view.status,
-        clientId: view.clientId
+// status: view.status,
+// clientId: view.clientId
       };
     });
 
@@ -959,8 +958,8 @@ async function loadPresupuestoDetail(id){
   }
 }
 
-/* ==========================
-   LISTAS
+// ==========================
+// LISTAS
 function renderListItems(entity, rows){
   const box = qs('#listContainer');
   const empty = qs('#listEmpty');
@@ -1019,8 +1018,8 @@ function loadList(entity){
   }
 }
 
-/* ==========================
-   DETALLE (render reusable)
+// ==========================
+// DETALLE (render reusable)
 function loadDetail(entity, id, detailData){
   state.detail.entity = entity;
   state.detail.id = id;
@@ -1349,9 +1348,9 @@ function renderDetailLines(lines){
   }).join('');
 }
 
-/* ==========================
-   Router de acciones (ÚNICO)
-   Maneja SOLO elementos con [data-action]
+// ==========================
+// Router de acciones (ÚNICO)
+// Maneja SOLO elementos con [data-action]
 function runAction(action, entity, id, dataset){
   const a = (action || '').toLowerCase().trim();
 
@@ -1395,7 +1394,7 @@ function runAction(action, entity, id, dataset){
       goToList('proformas', null);
       return;
     }
-    google.script.run
+google.script.run
       .withSuccessHandler((res) => {
         const presId = res && res.presId ? res.presId : '(sin id)';
         toast('Listo', `Presupuesto creado: ${presId}`, 'ok');
@@ -1472,7 +1471,7 @@ function runAction(action, entity, id, dataset){
     const txt = `ID: ${id}\nEmail: ${d?.email || '—'}\nTel: ${d?.phone || '—'}`;
     navigator.clipboard?.writeText(txt).then(
       () => toast('Copiado', 'Datos copiados al portapapeles', 'ok'),
-      () => toast('Copiar', 'No se pudo copiar (permiso del navegador)', 'info')
+      // () => toast('Copiar', 'No se pudo copiar (permiso del navegador)', 'info')
     );
     return;
   }
@@ -1647,10 +1646,10 @@ if (entity === 'proformas' && !state.useMock){
   toast('Info', `Acción no implementada: ${action}`, 'info');
 }
 
-/* =========================
-   Router por URL (hash)
-   #/facturas
-   #/proformas/PRO-2025-0019
+// =========================
+// Router por URL (hash)
+// #/facturas
+// #/proformas/PRO-2025-0019
 function __setHashRoute__(entity, id){
   try{
     const e = String(entity || '').trim();
@@ -1717,8 +1716,8 @@ function __applyRouteFromHash__(){
   }
 }
 
-/* ==========================
-   Navegación a listas
+// ==========================
+// Navegación a listas
 function goToList(entity, filterClientId){
   state.currentEntity = entity;
   state.listFilterClientId = filterClientId || null;
@@ -1737,8 +1736,8 @@ function goToList(entity, filterClientId){
   loadList(entity);
 }
 
-/* ==========================
-   Form mock
+// ==========================
+// Form mock
 function openForm(kind){
   showScreen('screen-form');
   setNavActive('home');
@@ -1747,8 +1746,8 @@ function openForm(kind){
   toast('Formulario', `Mock: ${kind}`, 'info');
 }
 
-/* ==========================
-   INIT: listeners
+// ==========================
+// INIT: listeners
 function initNav(){
   qsa('.cc-navItem').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -1791,9 +1790,9 @@ function initListTabs(){
 }
 
 // ==========================
-   Listener global:
-   - [data-action] => runAction
-   - .cc-item (lista) => abrir detalle
+// Listener global:
+// - [data-action] => runAction
+// - .cc-item (lista) => abrir detalle
 document.addEventListener('click', (e) => {
   // 1) Actions
   const actEl = e.target.closest('[data-action]');
@@ -1828,7 +1827,7 @@ document.addEventListener('click', (e) => {
 });
 
 // =========================
-   Search input (filtro)
+// Search input (filtro)
 document.addEventListener('input', (e) => {
   if (e.target && e.target.id === 'q'){
     loadList(state.currentEntity);
@@ -1836,7 +1835,7 @@ document.addEventListener('input', (e) => {
 });
 
 // =========================
-   INIT APP
+// INIT APP
 function __forceRealFromUrl_(){
   try{
     const sp = new URLSearchParams(window.location.search || '');
@@ -1911,3 +1910,6 @@ function hideDevOnlyUI_(){
   qsa('[data-action="toggle_quick_create"]').forEach(b => b.remove());
 }
 </script>
+
+
+

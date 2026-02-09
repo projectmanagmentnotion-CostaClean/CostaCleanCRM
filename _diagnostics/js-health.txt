@@ -1,0 +1,4 @@
+﻿OK
+
+node --check no reporta errores.
+Archivo: .\_tmp_scripts_check.js
