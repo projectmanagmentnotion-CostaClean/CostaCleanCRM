@@ -33,3 +33,5 @@ patch_*.patch
 *.bak.*
 _tmp_scripts_check.js
 _diagnostics/
+tools/fix_scripts_realdata_bugs.ps1
+tools/patch_scripts_realdata.ps1
