@@ -32,3 +32,5 @@ _params.json
 patch_*.patch
 tools/
 *.bak.*
+_tmp_scripts_check.js
+_diagnostics/
