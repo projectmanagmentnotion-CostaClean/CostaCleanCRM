@@ -58,9 +58,9 @@ const env = (() => {
     const debug = ['1','true'].includes(String(sp.get('debug')).toLowerCase());
     const mock  = ['1','true'].includes(String(sp.get('mock')).toLowerCase());
     return {
-// debug,
-// mock,
-// dev: debug || mock
+      debug,
+      mock,
+      dev: debug || mock
     };
   } catch (_) {
     return { debug:false, mock:false, dev:false };
@@ -68,17 +68,16 @@ const env = (() => {
 })();
 
 const state = {
-
-// useMock: false,
-// currentEntity: 'clientes',        // entidad activa en listas
+  useMock: false,
+  currentEntity: 'clientes',        // entidad activa en listas
   listFilterClientId: null,         // filtro por cliente (historial)
   detail: { entity:null, id:null, clientId:null },
-// lastScreen: 'screen-home'
+  lastScreen: 'screen-home'
 };
 
 const STORAGE_KEYS = {
-// useMock: 'cc_use_mock',
-// legacyUseMock: 'cc_useMock'
+  useMock: 'cc_use_mock',
+  legacyUseMock: 'cc_useMock'
 };
 
 const store = {
@@ -124,71 +123,71 @@ const MOCK = {
 const MOCK_DETAIL = {
   clientes: {
     'CLI-2025-0007': {
-// id:'CLI-2025-0007',
-// title:'Marta R.',
-// sub:'NIF: X1234567A · Barcelona',
-// status:'Activo',
-// email:'marta@email.com',
-// phone:'+34 600 123 123',
-// address:'Barcelona'
+      id:'CLI-2025-0007',
+      title:'Marta R.',
+      sub:'NIF: X1234567A · Barcelona',
+      status:'Activo',
+      email:'marta@email.com',
+      phone:'+34 600 123 123',
+      address:'Barcelona'
     },
     'CLI-2025-0008': {
-// id:'CLI-2025-0008',
-// title:'Comunidad Pineda',
-// sub:'NIF: B66778899 · Pineda de Mar',
-// status:'Lead',
-// email:'admin@pineda.com',
-// phone:'+34 611 222 333',
-// address:'Pineda de Mar'
+      id:'CLI-2025-0008',
+      title:'Comunidad Pineda',
+      sub:'NIF: B66778899 · Pineda de Mar',
+      status:'Lead',
+      email:'admin@pineda.com',
+      phone:'+34 611 222 333',
+      address:'Pineda de Mar'
     }
   },
   leads: {
     'L0009': {
-// id:'L0009',
+      id:'L0009',
       title:'Comunidad Pineda (Lead)',
-// sub:'Email: admin@pineda.com · Pineda de Mar',
-// status:'Nuevo',
-// email:'admin@pineda.com',
-// phone:'+34 611 222 333',
-// address:'Pineda de Mar'
+      sub:'Email: admin@pineda.com · Pineda de Mar',
+      status:'Nuevo',
+      email:'admin@pineda.com',
+      phone:'+34 611 222 333',
+      address:'Pineda de Mar'
     }
   },
   facturas: {
     'F-2025-0123': {
-// id:'F-2025-0123',
-// title:'Factura F-2025-0123',
-// sub:'CLI-2025-0007 · Pendiente',
-// status:'Pendiente',
-// amount:120,
-// clientId:'CLI-2025-0007'
+      id:'F-2025-0123',
+      title:'Factura F-2025-0123',
+      sub:'CLI-2025-0007 · Pendiente',
+      status:'Pendiente',
+      amount:120,
+      clientId:'CLI-2025-0007'
     },
     'F-2025-0124': {
-// id:'F-2025-0124',
-// title:'Factura F-2025-0124',
-// sub:'CLI-2025-0008 · Pagada',
-// status:'Pagada',
-// amount:240,
-// clientId:'CLI-2025-0008'
+      id:'F-2025-0124',
+      title:'Factura F-2025-0124',
+      sub:'CLI-2025-0008 · Pagada',
+      status:'Pagada',
+      amount:240,
+      clientId:'CLI-2025-0008'
     }
   },
   proformas: {
     'PRO-2025-0009': {
-// id:'PRO-2025-0009',
-// title:'Proforma PRO-2025-0009',
-// sub:'CLI-2025-0007 · Enviada',
-// status:'Enviada',
-// amount:290.40,
-// clientId:'CLI-2025-0007'
+      id:'PRO-2025-0009',
+      title:'Proforma PRO-2025-0009',
+      sub:'CLI-2025-0007 · Enviada',
+      status:'Enviada',
+      amount:290.40,
+      clientId:'CLI-2025-0007'
     }
   },
   gastos: {
     'G-2025-0042': {
-// id:'G-2025-0042',
-// title:'Gasto G-2025-0042',
-// sub:'Operación · Gasolina',
-// status:'Ok',
-// amount:48.00,
-// clientId:'CLI-2025-0007'
+      id:'G-2025-0042',
+      title:'Gasto G-2025-0042',
+      sub:'Operación · Gasolina',
+      status:'Ok',
+      amount:48.00,
+      clientId:'CLI-2025-0007'
     }
   }
 };
@@ -1910,6 +1909,7 @@ function hideDevOnlyUI_(){
   qsa('[data-action="toggle_quick_create"]').forEach(b => b.remove());
 }
 </script>
+
 
 
 
