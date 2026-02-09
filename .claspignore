@@ -12,3 +12,7 @@ __*.js
 audit/
 tools-audit.ps1
 
+
+_tmp_scripts_check.js
+_diagnostics/
+
