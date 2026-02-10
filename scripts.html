@@ -1,4 +1,11 @@
-﻿<script>
+﻿<div id="cc-scripts-include-badge"
+     style="position:fixed;bottom:10px;right:10px;z-index:2147483647;
+            padding:6px 10px;border-radius:10px;
+            background:rgba(0,0,0,.72);border:1px solid rgba(255,255,255,.12);
+            color:#fff;font:12px/1.25 system-ui, -apple-system, Segoe UI, Roboto, Arial;">
+  SCRIPTS INCLUDE OK · scripts.html · v323 test
+</div>
+<script>
 // =========================
 // ARCHIVO: scripts.html
 // Lógica UI (mock) + router de acciones + listas + detalle
@@ -37,8 +44,11 @@ function __ensureDebugPanel_(){
     d.style.fontSize = '12px';
     d.style.fontFamily = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
     d.style.whiteSpace = 'pre-wrap';
-    d.style.display = 'none';
-    d.textContent = 'DEBUG PANEL';
+    d.style.display = 'block';
+    d.textContent = 'DEBUG PANEL READY' + 
+ + 'search=' + (location && location.search ? location.search : '') + 
+ + 'href=' + (location && location.href ? location.href : '') + 
+ + 'ref=' + (document && document.referrer ? document.referrer : '');
     document.body.appendChild(d);
   }catch(_){}
 }
@@ -1940,6 +1950,8 @@ function hideDevOnlyUI_(){
   qsa('[data-action="toggle_quick_create"]').forEach(b => b.remove());
 }
 </script>
+
+
 
 
 
