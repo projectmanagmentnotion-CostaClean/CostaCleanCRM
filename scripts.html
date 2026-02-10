@@ -41,26 +41,7 @@
 // Lógica UI (mock) + router de acciones + listas + detalle
 /* moved-from-top (debug panel) */
 function __ensureDebugPanel_(){
-  // Debug panel ON solo si viene ?debug=1|true (Apps Script puede meter iframe, así que usamos referrer fallback)
-  let dbg = false;
-  try{
-    const pick = (s) => {
-      try{
-        const sp = new URLSearchParams((s || '').split('?')[1] || '');
-        return ['1','true'].includes(String(sp.get('debug')).toLowerCase());
-      }catch(_){ return false; }
-    };
-
-    // 1) normal
-    dbg = pick(location && location.search ? ('x' + location.search) : '');
-    // 2) href
-    if(!dbg) dbg = pick(location && location.href ? location.href : '');
-    // 3) referrer (muy común en iframe Apps Script)
-    if(!dbg) dbg = pick(document && document.referrer ? document.referrer : '');
-  }catch(_){}
-  // TEMP v325: FORCE debug panel ON (para probar rendering)
-  dbg = true;
-  if(!dbg) return;try{
+  if (!isDebugEnabled_()) return;try{
     if(document.getElementById('cc-debug-panel')) return;
     const d = document.createElement('div');
     d.id = 'cc-debug-panel';
@@ -1979,6 +1960,7 @@ function hideDevOnlyUI_(){
   qsa('[data-action="toggle_quick_create"]').forEach(b => b.remove());
 }
 </script>
+
 
 
 

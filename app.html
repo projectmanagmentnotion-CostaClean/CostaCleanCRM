@@ -389,12 +389,11 @@ Requiere: styles.html y scripts.html + función include() en Code.gs
       SCRIPTS (separado)
       Archivo: scripts.html
     ========================= -->
+    <!-- CC_DEBUG (server-driven) -->
+    <script>
+      // CC_DEBUG: true/false => fuerza; null => no fuerza
+      window.__CC_DEBUG__ = <?!= (CC_DEBUG === true) ? 'true' : ((CC_DEBUG === false) ? 'false' : 'null'); ?>;
+    </script>
+
     <?!= include('scripts'); ?>
-  
-
-
-
-
-
-
 
