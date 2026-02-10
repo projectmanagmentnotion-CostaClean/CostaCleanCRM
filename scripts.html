@@ -101,8 +101,7 @@ function __debugShow_(title, msg){
 const qs  = (sel, root=document) => root.querySelector(sel);
 const qsa = (sel, root=document) => Array.from(root.querySelectorAll(sel));
 
-catch(_){}
-    }
+}
 
     // 2) Persistencia local (fuente de verdad)
     try{
@@ -117,8 +116,7 @@ const env = (() => {
   try {
     const sp = new URLSearchParams(location.search || '');
     const debug = ['1','true'].includes(String(sp.get('debug')).toLowerCase());
-    catch(_){}
-    }
+}
 
     // 2) Persistencia local (fuente de verdad)
     try{
@@ -128,8 +126,7 @@ const env = (() => {
   return false;
 }
 const mock  = ['1','true'].includes(String(sp.get('mock')).toLowerCase());
-    catch(_){}
-    }
+}
 
     // 2) Persistencia local (fuente de verdad)
     try{
@@ -402,8 +399,7 @@ function loadMockPreference_(){
     if (legacy !== null) {
       state.useMock = legacy === 'true';
       localStorage.setItem(STORAGE_KEYS.useMock, String(state.useMock));
-      catch(_){}
-    }
+}
 
     // 2) Persistencia local (fuente de verdad)
     try{
@@ -445,8 +441,7 @@ function applyMockFromUrl_(){
 function saveMockPreference_(){
   try {
     localStorage.setItem(STORAGE_KEYS.useMock, String(state.useMock));
-  catch(_){}
-    }
+}
 
     // 2) Persistencia local (fuente de verdad)
     try{
@@ -476,8 +471,7 @@ function callServer(fnName, ...args){
     const runner = google?.script?.run;
     if (!runner) {
       reject(new Error('API no disponible (google.script.run)'));
-      catch(_){}
-    }
+}
 
     // 2) Persistencia local (fuente de verdad)
     try{
@@ -562,8 +556,7 @@ return;
             try { toast('API ERROR', `${fnName}  ${msg}`, 'error'); } catch (_) {}
           }
           reject(new Error(msg));
-        catch(_){}
-    }
+}
 
     // 2) Persistencia local (fuente de verdad)
     try{
@@ -703,8 +696,7 @@ function setDetailState(mode, msg){
 // UI: Navegación por pantallas
 function showScreen(screenId){
   qsa('.cc-screen').forEach(s => s.classList.toggle('is-active', s.id === screenId));
-  catch(_){}
-    }
+}
 
     // 2) Persistencia local (fuente de verdad)
     try{
@@ -718,8 +710,7 @@ state.lastScreen = screenId;
 
 function setNavActive(entity){
   qsa('.cc-navItem').forEach(b => b.classList.toggle('is-active', b.dataset.entity === entity));
-catch(_){}
-    }
+}
 
     // 2) Persistencia local (fuente de verdad)
     try{
@@ -733,8 +724,7 @@ catch(_){}
 function setActiveTab(entity){
   state.currentEntity = entity;
   qsa('.cc-tab').forEach(b => b.classList.toggle('is-active', b.dataset.entity === entity));
-catch(_){}
-    }
+}
 
     // 2) Persistencia local (fuente de verdad)
     try{
@@ -774,8 +764,7 @@ async function loadDashboard(){
     const d = normalizeApiItem_(raw) || {};
 
     const ventasMes    = toNumber_(pickValue_(d, ['ventasMes','ventas_mes','ventas']));
-    catch(_){}
-    }
+}
 
     // 2) Persistencia local (fuente de verdad)
     try{
@@ -785,8 +774,7 @@ async function loadDashboard(){
   return false;
 }
 const cobradoMes   = toNumber_(pickValue_(d, ['cobradoMes','cobrado','cobrado_mes']));
-    catch(_){}
-    }
+}
 
     // 2) Persistencia local (fuente de verdad)
     try{
@@ -797,8 +785,7 @@ const cobradoMes   = toNumber_(pickValue_(d, ['cobradoMes','cobrado','cobrado_me
 }
 const pendienteMes = toNumber_(pickValue_(d, ['pendienteMes','pendiente','pendiente_mes']));
 
-    catch(_){}
-    }
+}
 
     // 2) Persistencia local (fuente de verdad)
     try{
@@ -810,8 +797,7 @@ const pendienteMes = toNumber_(pickValue_(d, ['pendienteMes','pendiente','pendie
 const factPendCount = pickValue_(d, ['facturasPendientes','factPendientes','pendientesCount','countPendientes']);
     const factPendAmt   = toNumber_(pickValue_(d, ['facturasPendientesTotal','factPendientesTotal','pendientesTotal','totalPendiente']));
 
-    catch(_){}
-    }
+}
 
     // 2) Persistencia local (fuente de verdad)
     try{
@@ -821,8 +807,7 @@ const factPendCount = pickValue_(d, ['facturasPendientes','factPendientes','pend
   return false;
 }
 const ivaNeto     = toNumber_(pickValue_(d, ['ivaNetoTrimestre','ivaNeto','iva_neto']));
-    catch(_){}
-    }
+}
 
     // 2) Persistencia local (fuente de verdad)
     try{
@@ -832,8 +817,7 @@ const ivaNeto     = toNumber_(pickValue_(d, ['ivaNetoTrimestre','ivaNeto','iva_n
   return false;
 }
 const repercutido = toNumber_(pickValue_(d, ['ivaRepercutido','repercutido','iva_repercutido']));
-    catch(_){}
-    }
+}
 
     // 2) Persistencia local (fuente de verdad)
     try{
@@ -844,8 +828,7 @@ const repercutido = toNumber_(pickValue_(d, ['ivaRepercutido','repercutido','iva
 }
 const soportado   = toNumber_(pickValue_(d, ['ivaSoportado','soportado','iva_soportado']));
 
-    catch(_){}
-    }
+}
 
     // 2) Persistencia local (fuente de verdad)
     try{
@@ -855,8 +838,7 @@ const soportado   = toNumber_(pickValue_(d, ['ivaSoportado','soportado','iva_sop
   return false;
 }
 const gastoDed    = toNumber_(pickValue_(d, ['gastoDeducibleTrimestre','gastoDeducible','gasto_deducible']));
-    catch(_){}
-    }
+}
 
     // 2) Persistencia local (fuente de verdad)
     try{
@@ -866,8 +848,7 @@ const gastoDed    = toNumber_(pickValue_(d, ['gastoDeducibleTrimestre','gastoDed
   return false;
 }
 const comprasTri  = toNumber_(pickValue_(d, ['comprasTrimestre','compras','compras_tri']));
-    catch(_){}
-    }
+}
 
     // 2) Persistencia local (fuente de verdad)
     try{
@@ -878,8 +859,7 @@ const comprasTri  = toNumber_(pickValue_(d, ['comprasTrimestre','compras','compr
 }
 const operacionTri= toNumber_(pickValue_(d, ['operacionTrimestre','operacion','operacion_tri']));
 
-    catch(_){}
-    }
+}
 
     // 2) Persistencia local (fuente de verdad)
     try{
@@ -961,8 +941,7 @@ function mapEntityListRow_(entity, row){
     const status = String(pickValue_(row, ['Estado','Status','estado']) || '');
 
     const total = toNumber_(pickValue_(row, ['Total','total','Importe_total','Total_con_IVA']));
-    catch(_){}
-    }
+}
 
     // 2) Persistencia local (fuente de verdad)
     try{
@@ -972,8 +951,7 @@ function mapEntityListRow_(entity, row){
   return false;
 }
 const base  = toNumber_(pickValue_(row, ['Base','base','Subtotal','Base_imponible']));
-    catch(_){}
-    }
+}
 
     // 2) Persistencia local (fuente de verdad)
     try{
@@ -1003,8 +981,7 @@ const amount = (total != null) ? total : base;
     const concepto = pickValue_(row, ['Concepto', 'Descripcion', 'Detalle']);
     const categoria = pickValue_(row, ['Categoria', 'Tipo']);
     const total = toNumber_(pickValue_(row, ['Total', 'Importe_total', 'Total_con_IVA', 'Importe']));
-    catch(_){}
-    }
+}
 
     // 2) Persistencia local (fuente de verdad)
     try{
@@ -1014,8 +991,7 @@ const amount = (total != null) ? total : base;
   return false;
 }
 const base = toNumber_(pickValue_(row, ['Base', 'Subtotal', 'Base_imponible']));
-    catch(_){}
-    }
+}
 
     // 2) Persistencia local (fuente de verdad)
     try{
@@ -1070,8 +1046,7 @@ function mapEntityDetail_(entity, row){
     const status = String(pickValue_(row, ['Estado','Status','estado']) || '');
 
     const base = toNumber_(pickValue_(row, ['Base','base','Subtotal','Base_imponible']));
-    catch(_){}
-    }
+}
 
     // 2) Persistencia local (fuente de verdad)
     try{
@@ -1081,8 +1056,7 @@ function mapEntityDetail_(entity, row){
   return false;
 }
 const iva  = toNumber_(pickValue_(row, ['IVA','iva']));
-    catch(_){}
-    }
+}
 
     // 2) Persistencia local (fuente de verdad)
     try{
@@ -1092,8 +1066,7 @@ const iva  = toNumber_(pickValue_(row, ['IVA','iva']));
   return false;
 }
 const total = toNumber_(pickValue_(row, ['Total','total','Total_con_IVA','Importe_total']));
-    catch(_){}
-    }
+}
 
     // 2) Persistencia local (fuente de verdad)
     try{
@@ -1131,8 +1104,7 @@ const pdf = String(pickValue_(row, ['PDF (link)','PDF_link','PDF','pdf']) || '')
     const categoria = pickValue_(row, ['Categoria', 'Tipo']);
     const fecha = pickValue_(row, ['Fecha']);
     const total = toNumber_(pickValue_(row, ['Total', 'Importe_total', 'Total_con_IVA', 'Importe']));
-    catch(_){}
-    }
+}
 
     // 2) Persistencia local (fuente de verdad)
     try{
@@ -1142,8 +1114,7 @@ const pdf = String(pickValue_(row, ['PDF (link)','PDF_link','PDF','pdf']) || '')
   return false;
 }
 const base = toNumber_(pickValue_(row, ['Base', 'Subtotal', 'Base_imponible']));
-    catch(_){}
-    }
+}
 
     // 2) Persistencia local (fuente de verdad)
     try{
@@ -1341,8 +1312,7 @@ function loadList(entity){
   // Filtro por cliente (historial)
   if (state.listFilterClientId && entity !== 'clientes'){
     rows = rows.filter(r => (r.clientId || '').toLowerCase() === state.listFilterClientId.toLowerCase());
-  catch(_){}
-    }
+}
 
     // 2) Persistencia local (fuente de verdad)
     try{
@@ -1823,8 +1793,7 @@ google.script.run
       () => toast('Copiado', 'Datos copiados al portapapeles', 'ok'),
       // () => toast('Copiar', 'No se pudo copiar (permiso del navegador)', 'info')
     );
-    catch(_){}
-    }
+}
 
     // 2) Persistencia local (fuente de verdad)
     try{
@@ -1859,8 +1828,7 @@ return;
         }
       })
       .catch((err) => toast('Error', err?.message || 'No se pudo generar el PDF', 'error'));
-    catch(_){}
-    }
+}
 
     // 2) Persistencia local (fuente de verdad)
     try{
@@ -1889,8 +1857,7 @@ return;
           }
         })
         .catch((err) => toast('Error', (err && err.message) ? err.message : 'No se pudo abrir el PDF', 'error'));
-      catch(_){}
-    }
+}
 
     // 2) Persistencia local (fuente de verdad)
     try{
@@ -1920,8 +1887,7 @@ if (entity === 'proformas' && !state.useMock){
           }
         })
         .catch((err) => toast('Error', err?.message || 'No se pudo abrir el PDF', 'error'));
-      catch(_){}
-    }
+}
 
     // 2) Persistencia local (fuente de verdad)
     try{
@@ -1959,8 +1925,7 @@ return;
         }
       })
       .catch((err) => toast('Error', err?.message || 'No se pudo crear la factura', 'error'));
-    catch(_){}
-    }
+}
 
     // 2) Persistencia local (fuente de verdad)
     try{
@@ -2288,8 +2253,7 @@ try{
     env: (typeof env !== 'undefined') ? env : null,
     useMock: (typeof state !== 'undefined') ? state.useMock : null
   }, null, 2));
-catch(_){}
-    }
+}
 
     // 2) Persistencia local (fuente de verdad)
     try{
@@ -2305,8 +2269,7 @@ try{
     env: (typeof env !== 'undefined') ? env : null,
     useMock: (typeof state !== 'undefined') ? state.useMock : null
   }, null, 2));
-catch(_){}
-    }
+}
 
     // 2) Persistencia local (fuente de verdad)
     try{
@@ -2352,8 +2315,7 @@ try { loadDashboard(); } catch(e){ try{ toast('Dashboard', (e && e.message) ? e.
 function hideDevOnlyUI_(){
   if (env.dev) return;
   qsa('[data-action="toggle_quick_create"]').forEach(b => b.remove());
-catch(_){}
-    }
+}
 
     // 2) Persistencia local (fuente de verdad)
     try{
@@ -2364,6 +2326,7 @@ catch(_){}
 }
 }
 </script>
+
 
 
 
