@@ -1,12 +1,38 @@
-﻿<div id="cc-scripts-include-badge"
-     style="position:fixed;bottom:10px;right:10px;z-index:2147483647;
-            padding:6px 10px;border-radius:10px;
-            background:rgba(0,0,0,.72);border:1px solid rgba(255,255,255,.12);
-            color:#fff;font:12px/1.25 system-ui, -apple-system, Segoe UI, Roboto, Arial;">
-  SCRIPTS INCLUDE OK · scripts.html · v323 test
-</div>
-<script>
-// =========================
+﻿<script>
+/* === CC JS FINGERPRINT (v324) ===
+   Si esto aparece, scripts.html se está ejecutando.
+   No depende de toast() ni del debug gate.
+*/
+(function(){
+  try{
+    var add = function(){
+      try{
+        if(document.getElementById('cc-js-fingerprint')) return;
+        var d = document.createElement('div');
+        d.id = 'cc-js-fingerprint';
+        d.style.position = 'fixed';
+        d.style.bottom = '10px';
+        d.style.right = '10px';
+        d.style.zIndex = '2147483647';
+        d.style.padding = '6px 10px';
+        d.style.borderRadius = '10px';
+        d.style.background = 'rgba(0,0,0,.72)';
+        d.style.border = '1px solid rgba(255,255,255,.12)';
+        d.style.color = '#fff';
+        d.style.font = '12px/1.25 system-ui, -apple-system, Segoe UI, Roboto, Arial';
+        d.textContent = 'JS FINGERPRINT OK · scripts.html · v324';
+        (document.body || document.documentElement).appendChild(d);
+      }catch(_){}
+    };
+    if(document.readyState === 'loading'){
+      document.addEventListener('DOMContentLoaded', add);
+      setTimeout(add, 1500);
+    }else{
+      add();
+      setTimeout(add, 1500);
+    }
+  }catch(_){}
+})();// =========================
 // ARCHIVO: scripts.html
 // Lógica UI (mock) + router de acciones + listas + detalle
 /* moved-from-top (debug panel) */
@@ -44,11 +70,8 @@ function __ensureDebugPanel_(){
     d.style.fontSize = '12px';
     d.style.fontFamily = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
     d.style.whiteSpace = 'pre-wrap';
-    d.style.display = 'block';
-    d.textContent = 'DEBUG PANEL READY' + 
- + 'search=' + (location && location.search ? location.search : '') + 
- + 'href=' + (location && location.href ? location.href : '') + 
- + 'ref=' + (document && document.referrer ? document.referrer : '');
+    d.style.display = 'none';
+    d.textContent = 'DEBUG PANEL';
     document.body.appendChild(d);
   }catch(_){}
 }
@@ -57,7 +80,7 @@ function __debugShow_(title, msg){
     __ensureDebugPanel_();
     const d = document.getElementById('cc-debug-panel');
     if(!d) return;
-    d.style.display = 'block';
+    d.style.display = 'none';
     d.textContent = '[' + title + '] ' + String(msg);
   }catch(_){}
 }
@@ -1950,6 +1973,7 @@ function hideDevOnlyUI_(){
   qsa('[data-action="toggle_quick_create"]').forEach(b => b.remove());
 }
 </script>
+
 
 
 
