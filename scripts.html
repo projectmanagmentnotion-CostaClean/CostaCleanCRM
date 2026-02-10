@@ -3,8 +3,25 @@
 // ARCHIVO: scripts.html
 // Lógica UI (mock) + router de acciones + listas + detalle
 /* moved-from-top (debug panel) */
-function __ensureDebugPanel_(){ if(!env.debug) return;
+function __ensureDebugPanel_(){
+  // Debug panel ON solo si viene ?debug=1|true (Apps Script puede meter iframe, así que usamos referrer fallback)
+  let dbg = false;
   try{
+    const pick = (s) => {
+      try{
+        const sp = new URLSearchParams((s || '').split('?')[1] || '');
+        return ['1','true'].includes(String(sp.get('debug')).toLowerCase());
+      }catch(_){ return false; }
+    };
+
+    // 1) normal
+    dbg = pick(location && location.search ? ('x' + location.search) : '');
+    // 2) href
+    if(!dbg) dbg = pick(location && location.href ? location.href : '');
+    // 3) referrer (muy común en iframe Apps Script)
+    if(!dbg) dbg = pick(document && document.referrer ? document.referrer : '');
+  }catch(_){}
+  if(!dbg) return;try{
     if(document.getElementById('cc-debug-panel')) return;
     const d = document.createElement('div');
     d.id = 'cc-debug-panel';
@@ -1871,6 +1888,20 @@ function __installGlobalErrorCatcher_(){
 
 document.addEventListener('DOMContentLoaded', () => {
   try{ __debugShow_('INIT', 'DOMContentLoaded fired · search=' + (location && location.search ? location.search : '')); }catch(_){}
+try{
+  __debugShow_('ENV', JSON.stringify({
+    search: (location && location.search) ? location.search : '',
+    env: (typeof env !== 'undefined') ? env : null,
+    useMock: (typeof state !== 'undefined') ? state.useMock : null
+  }, null, 2));
+}catch(_){}
+try{
+  __debugShow_('ENV', JSON.stringify({
+    search: (location && location.search) ? location.search : '',
+    env: (typeof env !== 'undefined') ? env : null,
+    useMock: (typeof state !== 'undefined') ? state.useMock : null
+  }, null, 2));
+}catch(_){}
   try{ toast('INIT', 'DOMContentLoaded fired', 'info'); }catch(_){}
 
   __installGlobalErrorCatcher_();
@@ -1909,6 +1940,10 @@ function hideDevOnlyUI_(){
   qsa('[data-action="toggle_quick_create"]').forEach(b => b.remove());
 }
 </script>
+
+
+
+
 
 
 
