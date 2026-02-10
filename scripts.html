@@ -41,7 +41,8 @@
 // Lógica UI (mock) + router de acciones + listas + detalle
 /* moved-from-top (debug panel) */
 function __ensureDebugPanel_(){
-  if (!isDebugEnabled_()) return;try{
+  try{
+    if (!isDebugEnabled_()) return;
     if(document.getElementById('cc-debug-panel')) return;
     const d = document.createElement('div');
     d.id = 'cc-debug-panel';
@@ -87,14 +88,71 @@ function __debugShow_(title, msg){
 const qs  = (sel, root=document) => root.querySelector(sel);
 const qsa = (sel, root=document) => Array.from(root.querySelectorAll(sel));
 
+
+/* === CC DEBUG CORE (v327 PRO) ===
+   - window.__CC_DEBUG__ (server-driven): true/false fuerza ON/OFF; null = no fuerza
+   - localStorage 'cc_debug': '1'/'0' persistente
+*/
+function isDebugEnabled_(){
+  try{
+    // 1) Server-driven override (si viene)
+    if (typeof window !== 'undefined' && window.__CC_DEBUG__ !== null && typeof window.__CC_DEBUG__ !== 'undefined'){
+      try{ localStorage.setItem('cc_debug', window.__CC_DEBUG__ === true ? '1' : '0'); }catch(_){}
+    }
+
+    // 2) Persistencia local (fuente de verdad)
+    try{
+      return localStorage.getItem('cc_debug') === '1';
+    }catch(_){}
+  }catch(_){}
+  return false;
+}
 // =========================
 // Estado UI
 const env = (() => {
   try {
     const sp = new URLSearchParams(location.search || '');
     const debug = ['1','true'].includes(String(sp.get('debug')).toLowerCase());
-    const mock  = ['1','true'].includes(String(sp.get('mock')).toLowerCase());
-    return {
+    
+/* === CC DEBUG CORE (v327 PRO) ===
+   - window.__CC_DEBUG__ (server-driven): true/false fuerza ON/OFF; null = no fuerza
+   - localStorage 'cc_debug': '1'/'0' persistente
+*/
+function isDebugEnabled_(){
+  try{
+    // 1) Server-driven override (si viene)
+    if (typeof window !== 'undefined' && window.__CC_DEBUG__ !== null && typeof window.__CC_DEBUG__ !== 'undefined'){
+      try{ localStorage.setItem('cc_debug', window.__CC_DEBUG__ === true ? '1' : '0'); }catch(_){}
+    }
+
+    // 2) Persistencia local (fuente de verdad)
+    try{
+      return localStorage.getItem('cc_debug') === '1';
+    }catch(_){}
+  }catch(_){}
+  return false;
+}
+const mock  = ['1','true'].includes(String(sp.get('mock')).toLowerCase());
+    
+/* === CC DEBUG CORE (v327 PRO) ===
+   - window.__CC_DEBUG__ (server-driven): true/false fuerza ON/OFF; null = no fuerza
+   - localStorage 'cc_debug': '1'/'0' persistente
+*/
+function isDebugEnabled_(){
+  try{
+    // 1) Server-driven override (si viene)
+    if (typeof window !== 'undefined' && window.__CC_DEBUG__ !== null && typeof window.__CC_DEBUG__ !== 'undefined'){
+      try{ localStorage.setItem('cc_debug', window.__CC_DEBUG__ === true ? '1' : '0'); }catch(_){}
+    }
+
+    // 2) Persistencia local (fuente de verdad)
+    try{
+      return localStorage.getItem('cc_debug') === '1';
+    }catch(_){}
+  }catch(_){}
+  return false;
+}
+return {
       debug,
       mock,
       dev: debug || mock
@@ -358,7 +416,26 @@ function loadMockPreference_(){
     if (legacy !== null) {
       state.useMock = legacy === 'true';
       localStorage.setItem(STORAGE_KEYS.useMock, String(state.useMock));
-      localStorage.removeItem(STORAGE_KEYS.legacyUseMock);
+      
+/* === CC DEBUG CORE (v327 PRO) ===
+   - window.__CC_DEBUG__ (server-driven): true/false fuerza ON/OFF; null = no fuerza
+   - localStorage 'cc_debug': '1'/'0' persistente
+*/
+function isDebugEnabled_(){
+  try{
+    // 1) Server-driven override (si viene)
+    if (typeof window !== 'undefined' && window.__CC_DEBUG__ !== null && typeof window.__CC_DEBUG__ !== 'undefined'){
+      try{ localStorage.setItem('cc_debug', window.__CC_DEBUG__ === true ? '1' : '0'); }catch(_){}
+    }
+
+    // 2) Persistencia local (fuente de verdad)
+    try{
+      return localStorage.getItem('cc_debug') === '1';
+    }catch(_){}
+  }catch(_){}
+  return false;
+}
+localStorage.removeItem(STORAGE_KEYS.legacyUseMock);
     }
   } catch (_) {}
     // Override por URL: ?mock=1 o ?mock=0 (prioridad máxima)
@@ -391,7 +468,26 @@ function applyMockFromUrl_(){
 function saveMockPreference_(){
   try {
     localStorage.setItem(STORAGE_KEYS.useMock, String(state.useMock));
-  } catch (_) {}
+  
+/* === CC DEBUG CORE (v327 PRO) ===
+   - window.__CC_DEBUG__ (server-driven): true/false fuerza ON/OFF; null = no fuerza
+   - localStorage 'cc_debug': '1'/'0' persistente
+*/
+function isDebugEnabled_(){
+  try{
+    // 1) Server-driven override (si viene)
+    if (typeof window !== 'undefined' && window.__CC_DEBUG__ !== null && typeof window.__CC_DEBUG__ !== 'undefined'){
+      try{ localStorage.setItem('cc_debug', window.__CC_DEBUG__ === true ? '1' : '0'); }catch(_){}
+    }
+
+    // 2) Persistencia local (fuente de verdad)
+    try{
+      return localStorage.getItem('cc_debug') === '1';
+    }catch(_){}
+  }catch(_){}
+  return false;
+}
+} catch (_) {}
 }
 
 function updateMockChip_(){
@@ -412,7 +508,26 @@ function callServer(fnName, ...args){
     const runner = google?.script?.run;
     if (!runner) {
       reject(new Error('API no disponible (google.script.run)'));
-      return;
+      
+/* === CC DEBUG CORE (v327 PRO) ===
+   - window.__CC_DEBUG__ (server-driven): true/false fuerza ON/OFF; null = no fuerza
+   - localStorage 'cc_debug': '1'/'0' persistente
+*/
+function isDebugEnabled_(){
+  try{
+    // 1) Server-driven override (si viene)
+    if (typeof window !== 'undefined' && window.__CC_DEBUG__ !== null && typeof window.__CC_DEBUG__ !== 'undefined'){
+      try{ localStorage.setItem('cc_debug', window.__CC_DEBUG__ === true ? '1' : '0'); }catch(_){}
+    }
+
+    // 2) Persistencia local (fuente de verdad)
+    try{
+      return localStorage.getItem('cc_debug') === '1';
+    }catch(_){}
+  }catch(_){}
+  return false;
+}
+return;
     }
 
     // Lee parámetros reales de la URL (en WebApp location.search puede ser del iframe)
@@ -488,7 +603,26 @@ function callServer(fnName, ...args){
             try { toast('API ERROR', `${fnName}  ${msg}`, 'error'); } catch (_) {}
           }
           reject(new Error(msg));
-        });
+        
+/* === CC DEBUG CORE (v327 PRO) ===
+   - window.__CC_DEBUG__ (server-driven): true/false fuerza ON/OFF; null = no fuerza
+   - localStorage 'cc_debug': '1'/'0' persistente
+*/
+function isDebugEnabled_(){
+  try{
+    // 1) Server-driven override (si viene)
+    if (typeof window !== 'undefined' && window.__CC_DEBUG__ !== null && typeof window.__CC_DEBUG__ !== 'undefined'){
+      try{ localStorage.setItem('cc_debug', window.__CC_DEBUG__ === true ? '1' : '0'); }catch(_){}
+    }
+
+    // 2) Persistencia local (fuente de verdad)
+    try{
+      return localStorage.getItem('cc_debug') === '1';
+    }catch(_){}
+  }catch(_){}
+  return false;
+}
+});
 
       call[fnName].apply(call, args || []);
     });
@@ -619,16 +753,73 @@ function setDetailState(mode, msg){
 // UI: Navegación por pantallas
 function showScreen(screenId){
   qsa('.cc-screen').forEach(s => s.classList.toggle('is-active', s.id === screenId));
-  state.lastScreen = screenId;
+  
+/* === CC DEBUG CORE (v327 PRO) ===
+   - window.__CC_DEBUG__ (server-driven): true/false fuerza ON/OFF; null = no fuerza
+   - localStorage 'cc_debug': '1'/'0' persistente
+*/
+function isDebugEnabled_(){
+  try{
+    // 1) Server-driven override (si viene)
+    if (typeof window !== 'undefined' && window.__CC_DEBUG__ !== null && typeof window.__CC_DEBUG__ !== 'undefined'){
+      try{ localStorage.setItem('cc_debug', window.__CC_DEBUG__ === true ? '1' : '0'); }catch(_){}
+    }
+
+    // 2) Persistencia local (fuente de verdad)
+    try{
+      return localStorage.getItem('cc_debug') === '1';
+    }catch(_){}
+  }catch(_){}
+  return false;
+}
+state.lastScreen = screenId;
 }
 
 function setNavActive(entity){
   qsa('.cc-navItem').forEach(b => b.classList.toggle('is-active', b.dataset.entity === entity));
+
+/* === CC DEBUG CORE (v327 PRO) ===
+   - window.__CC_DEBUG__ (server-driven): true/false fuerza ON/OFF; null = no fuerza
+   - localStorage 'cc_debug': '1'/'0' persistente
+*/
+function isDebugEnabled_(){
+  try{
+    // 1) Server-driven override (si viene)
+    if (typeof window !== 'undefined' && window.__CC_DEBUG__ !== null && typeof window.__CC_DEBUG__ !== 'undefined'){
+      try{ localStorage.setItem('cc_debug', window.__CC_DEBUG__ === true ? '1' : '0'); }catch(_){}
+    }
+
+    // 2) Persistencia local (fuente de verdad)
+    try{
+      return localStorage.getItem('cc_debug') === '1';
+    }catch(_){}
+  }catch(_){}
+  return false;
+}
 }
 
 function setActiveTab(entity){
   state.currentEntity = entity;
   qsa('.cc-tab').forEach(b => b.classList.toggle('is-active', b.dataset.entity === entity));
+
+/* === CC DEBUG CORE (v327 PRO) ===
+   - window.__CC_DEBUG__ (server-driven): true/false fuerza ON/OFF; null = no fuerza
+   - localStorage 'cc_debug': '1'/'0' persistente
+*/
+function isDebugEnabled_(){
+  try{
+    // 1) Server-driven override (si viene)
+    if (typeof window !== 'undefined' && window.__CC_DEBUG__ !== null && typeof window.__CC_DEBUG__ !== 'undefined'){
+      try{ localStorage.setItem('cc_debug', window.__CC_DEBUG__ === true ? '1' : '0'); }catch(_){}
+    }
+
+    // 2) Persistencia local (fuente de verdad)
+    try{
+      return localStorage.getItem('cc_debug') === '1';
+    }catch(_){}
+  }catch(_){}
+  return false;
+}
 }
 
 // ==========================
@@ -660,21 +851,211 @@ async function loadDashboard(){
     const d = normalizeApiItem_(raw) || {};
 
     const ventasMes    = toNumber_(pickValue_(d, ['ventasMes','ventas_mes','ventas']));
-    const cobradoMes   = toNumber_(pickValue_(d, ['cobradoMes','cobrado','cobrado_mes']));
-    const pendienteMes = toNumber_(pickValue_(d, ['pendienteMes','pendiente','pendiente_mes']));
+    
+/* === CC DEBUG CORE (v327 PRO) ===
+   - window.__CC_DEBUG__ (server-driven): true/false fuerza ON/OFF; null = no fuerza
+   - localStorage 'cc_debug': '1'/'0' persistente
+*/
+function isDebugEnabled_(){
+  try{
+    // 1) Server-driven override (si viene)
+    if (typeof window !== 'undefined' && window.__CC_DEBUG__ !== null && typeof window.__CC_DEBUG__ !== 'undefined'){
+      try{ localStorage.setItem('cc_debug', window.__CC_DEBUG__ === true ? '1' : '0'); }catch(_){}
+    }
 
-    const factPendCount = pickValue_(d, ['facturasPendientes','factPendientes','pendientesCount','countPendientes']);
+    // 2) Persistencia local (fuente de verdad)
+    try{
+      return localStorage.getItem('cc_debug') === '1';
+    }catch(_){}
+  }catch(_){}
+  return false;
+}
+const cobradoMes   = toNumber_(pickValue_(d, ['cobradoMes','cobrado','cobrado_mes']));
+    
+/* === CC DEBUG CORE (v327 PRO) ===
+   - window.__CC_DEBUG__ (server-driven): true/false fuerza ON/OFF; null = no fuerza
+   - localStorage 'cc_debug': '1'/'0' persistente
+*/
+function isDebugEnabled_(){
+  try{
+    // 1) Server-driven override (si viene)
+    if (typeof window !== 'undefined' && window.__CC_DEBUG__ !== null && typeof window.__CC_DEBUG__ !== 'undefined'){
+      try{ localStorage.setItem('cc_debug', window.__CC_DEBUG__ === true ? '1' : '0'); }catch(_){}
+    }
+
+    // 2) Persistencia local (fuente de verdad)
+    try{
+      return localStorage.getItem('cc_debug') === '1';
+    }catch(_){}
+  }catch(_){}
+  return false;
+}
+const pendienteMes = toNumber_(pickValue_(d, ['pendienteMes','pendiente','pendiente_mes']));
+
+    
+/* === CC DEBUG CORE (v327 PRO) ===
+   - window.__CC_DEBUG__ (server-driven): true/false fuerza ON/OFF; null = no fuerza
+   - localStorage 'cc_debug': '1'/'0' persistente
+*/
+function isDebugEnabled_(){
+  try{
+    // 1) Server-driven override (si viene)
+    if (typeof window !== 'undefined' && window.__CC_DEBUG__ !== null && typeof window.__CC_DEBUG__ !== 'undefined'){
+      try{ localStorage.setItem('cc_debug', window.__CC_DEBUG__ === true ? '1' : '0'); }catch(_){}
+    }
+
+    // 2) Persistencia local (fuente de verdad)
+    try{
+      return localStorage.getItem('cc_debug') === '1';
+    }catch(_){}
+  }catch(_){}
+  return false;
+}
+const factPendCount = pickValue_(d, ['facturasPendientes','factPendientes','pendientesCount','countPendientes']);
     const factPendAmt   = toNumber_(pickValue_(d, ['facturasPendientesTotal','factPendientesTotal','pendientesTotal','totalPendiente']));
 
-    const ivaNeto     = toNumber_(pickValue_(d, ['ivaNetoTrimestre','ivaNeto','iva_neto']));
-    const repercutido = toNumber_(pickValue_(d, ['ivaRepercutido','repercutido','iva_repercutido']));
-    const soportado   = toNumber_(pickValue_(d, ['ivaSoportado','soportado','iva_soportado']));
+    
+/* === CC DEBUG CORE (v327 PRO) ===
+   - window.__CC_DEBUG__ (server-driven): true/false fuerza ON/OFF; null = no fuerza
+   - localStorage 'cc_debug': '1'/'0' persistente
+*/
+function isDebugEnabled_(){
+  try{
+    // 1) Server-driven override (si viene)
+    if (typeof window !== 'undefined' && window.__CC_DEBUG__ !== null && typeof window.__CC_DEBUG__ !== 'undefined'){
+      try{ localStorage.setItem('cc_debug', window.__CC_DEBUG__ === true ? '1' : '0'); }catch(_){}
+    }
 
-    const gastoDed    = toNumber_(pickValue_(d, ['gastoDeducibleTrimestre','gastoDeducible','gasto_deducible']));
-    const comprasTri  = toNumber_(pickValue_(d, ['comprasTrimestre','compras','compras_tri']));
-    const operacionTri= toNumber_(pickValue_(d, ['operacionTrimestre','operacion','operacion_tri']));
+    // 2) Persistencia local (fuente de verdad)
+    try{
+      return localStorage.getItem('cc_debug') === '1';
+    }catch(_){}
+  }catch(_){}
+  return false;
+}
+const ivaNeto     = toNumber_(pickValue_(d, ['ivaNetoTrimestre','ivaNeto','iva_neto']));
+    
+/* === CC DEBUG CORE (v327 PRO) ===
+   - window.__CC_DEBUG__ (server-driven): true/false fuerza ON/OFF; null = no fuerza
+   - localStorage 'cc_debug': '1'/'0' persistente
+*/
+function isDebugEnabled_(){
+  try{
+    // 1) Server-driven override (si viene)
+    if (typeof window !== 'undefined' && window.__CC_DEBUG__ !== null && typeof window.__CC_DEBUG__ !== 'undefined'){
+      try{ localStorage.setItem('cc_debug', window.__CC_DEBUG__ === true ? '1' : '0'); }catch(_){}
+    }
 
-    if (qs('#kpiVentasMes')) qs('#kpiVentasMes').textContent = (ventasMes!=null ? formatMoney(ventasMes) : '');
+    // 2) Persistencia local (fuente de verdad)
+    try{
+      return localStorage.getItem('cc_debug') === '1';
+    }catch(_){}
+  }catch(_){}
+  return false;
+}
+const repercutido = toNumber_(pickValue_(d, ['ivaRepercutido','repercutido','iva_repercutido']));
+    
+/* === CC DEBUG CORE (v327 PRO) ===
+   - window.__CC_DEBUG__ (server-driven): true/false fuerza ON/OFF; null = no fuerza
+   - localStorage 'cc_debug': '1'/'0' persistente
+*/
+function isDebugEnabled_(){
+  try{
+    // 1) Server-driven override (si viene)
+    if (typeof window !== 'undefined' && window.__CC_DEBUG__ !== null && typeof window.__CC_DEBUG__ !== 'undefined'){
+      try{ localStorage.setItem('cc_debug', window.__CC_DEBUG__ === true ? '1' : '0'); }catch(_){}
+    }
+
+    // 2) Persistencia local (fuente de verdad)
+    try{
+      return localStorage.getItem('cc_debug') === '1';
+    }catch(_){}
+  }catch(_){}
+  return false;
+}
+const soportado   = toNumber_(pickValue_(d, ['ivaSoportado','soportado','iva_soportado']));
+
+    
+/* === CC DEBUG CORE (v327 PRO) ===
+   - window.__CC_DEBUG__ (server-driven): true/false fuerza ON/OFF; null = no fuerza
+   - localStorage 'cc_debug': '1'/'0' persistente
+*/
+function isDebugEnabled_(){
+  try{
+    // 1) Server-driven override (si viene)
+    if (typeof window !== 'undefined' && window.__CC_DEBUG__ !== null && typeof window.__CC_DEBUG__ !== 'undefined'){
+      try{ localStorage.setItem('cc_debug', window.__CC_DEBUG__ === true ? '1' : '0'); }catch(_){}
+    }
+
+    // 2) Persistencia local (fuente de verdad)
+    try{
+      return localStorage.getItem('cc_debug') === '1';
+    }catch(_){}
+  }catch(_){}
+  return false;
+}
+const gastoDed    = toNumber_(pickValue_(d, ['gastoDeducibleTrimestre','gastoDeducible','gasto_deducible']));
+    
+/* === CC DEBUG CORE (v327 PRO) ===
+   - window.__CC_DEBUG__ (server-driven): true/false fuerza ON/OFF; null = no fuerza
+   - localStorage 'cc_debug': '1'/'0' persistente
+*/
+function isDebugEnabled_(){
+  try{
+    // 1) Server-driven override (si viene)
+    if (typeof window !== 'undefined' && window.__CC_DEBUG__ !== null && typeof window.__CC_DEBUG__ !== 'undefined'){
+      try{ localStorage.setItem('cc_debug', window.__CC_DEBUG__ === true ? '1' : '0'); }catch(_){}
+    }
+
+    // 2) Persistencia local (fuente de verdad)
+    try{
+      return localStorage.getItem('cc_debug') === '1';
+    }catch(_){}
+  }catch(_){}
+  return false;
+}
+const comprasTri  = toNumber_(pickValue_(d, ['comprasTrimestre','compras','compras_tri']));
+    
+/* === CC DEBUG CORE (v327 PRO) ===
+   - window.__CC_DEBUG__ (server-driven): true/false fuerza ON/OFF; null = no fuerza
+   - localStorage 'cc_debug': '1'/'0' persistente
+*/
+function isDebugEnabled_(){
+  try{
+    // 1) Server-driven override (si viene)
+    if (typeof window !== 'undefined' && window.__CC_DEBUG__ !== null && typeof window.__CC_DEBUG__ !== 'undefined'){
+      try{ localStorage.setItem('cc_debug', window.__CC_DEBUG__ === true ? '1' : '0'); }catch(_){}
+    }
+
+    // 2) Persistencia local (fuente de verdad)
+    try{
+      return localStorage.getItem('cc_debug') === '1';
+    }catch(_){}
+  }catch(_){}
+  return false;
+}
+const operacionTri= toNumber_(pickValue_(d, ['operacionTrimestre','operacion','operacion_tri']));
+
+    
+/* === CC DEBUG CORE (v327 PRO) ===
+   - window.__CC_DEBUG__ (server-driven): true/false fuerza ON/OFF; null = no fuerza
+   - localStorage 'cc_debug': '1'/'0' persistente
+*/
+function isDebugEnabled_(){
+  try{
+    // 1) Server-driven override (si viene)
+    if (typeof window !== 'undefined' && window.__CC_DEBUG__ !== null && typeof window.__CC_DEBUG__ !== 'undefined'){
+      try{ localStorage.setItem('cc_debug', window.__CC_DEBUG__ === true ? '1' : '0'); }catch(_){}
+    }
+
+    // 2) Persistencia local (fuente de verdad)
+    try{
+      return localStorage.getItem('cc_debug') === '1';
+    }catch(_){}
+  }catch(_){}
+  return false;
+}
+if (qs('#kpiVentasMes')) qs('#kpiVentasMes').textContent = (ventasMes!=null ? formatMoney(ventasMes) : '');
     if (qs('#kpiCobrado')) qs('#kpiCobrado').textContent = (cobradoMes!=null ? formatMoney(cobradoMes) : '');
     if (qs('#kpiPendiente')) qs('#kpiPendiente').textContent = (pendienteMes!=null ? formatMoney(pendienteMes) : '');
 
@@ -747,8 +1128,46 @@ function mapEntityListRow_(entity, row){
     const status = String(pickValue_(row, ['Estado','Status','estado']) || '');
 
     const total = toNumber_(pickValue_(row, ['Total','total','Importe_total','Total_con_IVA']));
-    const base  = toNumber_(pickValue_(row, ['Base','base','Subtotal','Base_imponible']));
-    const amount = (total != null) ? total : base;
+    
+/* === CC DEBUG CORE (v327 PRO) ===
+   - window.__CC_DEBUG__ (server-driven): true/false fuerza ON/OFF; null = no fuerza
+   - localStorage 'cc_debug': '1'/'0' persistente
+*/
+function isDebugEnabled_(){
+  try{
+    // 1) Server-driven override (si viene)
+    if (typeof window !== 'undefined' && window.__CC_DEBUG__ !== null && typeof window.__CC_DEBUG__ !== 'undefined'){
+      try{ localStorage.setItem('cc_debug', window.__CC_DEBUG__ === true ? '1' : '0'); }catch(_){}
+    }
+
+    // 2) Persistencia local (fuente de verdad)
+    try{
+      return localStorage.getItem('cc_debug') === '1';
+    }catch(_){}
+  }catch(_){}
+  return false;
+}
+const base  = toNumber_(pickValue_(row, ['Base','base','Subtotal','Base_imponible']));
+    
+/* === CC DEBUG CORE (v327 PRO) ===
+   - window.__CC_DEBUG__ (server-driven): true/false fuerza ON/OFF; null = no fuerza
+   - localStorage 'cc_debug': '1'/'0' persistente
+*/
+function isDebugEnabled_(){
+  try{
+    // 1) Server-driven override (si viene)
+    if (typeof window !== 'undefined' && window.__CC_DEBUG__ !== null && typeof window.__CC_DEBUG__ !== 'undefined'){
+      try{ localStorage.setItem('cc_debug', window.__CC_DEBUG__ === true ? '1' : '0'); }catch(_){}
+    }
+
+    // 2) Persistencia local (fuente de verdad)
+    try{
+      return localStorage.getItem('cc_debug') === '1';
+    }catch(_){}
+  }catch(_){}
+  return false;
+}
+const amount = (total != null) ? total : base;
 
     return {
 // id,
@@ -769,8 +1188,46 @@ function mapEntityListRow_(entity, row){
     const concepto = pickValue_(row, ['Concepto', 'Descripcion', 'Detalle']);
     const categoria = pickValue_(row, ['Categoria', 'Tipo']);
     const total = toNumber_(pickValue_(row, ['Total', 'Importe_total', 'Total_con_IVA', 'Importe']));
-    const base = toNumber_(pickValue_(row, ['Base', 'Subtotal', 'Base_imponible']));
-    const amount = total != null ? total : base;
+    
+/* === CC DEBUG CORE (v327 PRO) ===
+   - window.__CC_DEBUG__ (server-driven): true/false fuerza ON/OFF; null = no fuerza
+   - localStorage 'cc_debug': '1'/'0' persistente
+*/
+function isDebugEnabled_(){
+  try{
+    // 1) Server-driven override (si viene)
+    if (typeof window !== 'undefined' && window.__CC_DEBUG__ !== null && typeof window.__CC_DEBUG__ !== 'undefined'){
+      try{ localStorage.setItem('cc_debug', window.__CC_DEBUG__ === true ? '1' : '0'); }catch(_){}
+    }
+
+    // 2) Persistencia local (fuente de verdad)
+    try{
+      return localStorage.getItem('cc_debug') === '1';
+    }catch(_){}
+  }catch(_){}
+  return false;
+}
+const base = toNumber_(pickValue_(row, ['Base', 'Subtotal', 'Base_imponible']));
+    
+/* === CC DEBUG CORE (v327 PRO) ===
+   - window.__CC_DEBUG__ (server-driven): true/false fuerza ON/OFF; null = no fuerza
+   - localStorage 'cc_debug': '1'/'0' persistente
+*/
+function isDebugEnabled_(){
+  try{
+    // 1) Server-driven override (si viene)
+    if (typeof window !== 'undefined' && window.__CC_DEBUG__ !== null && typeof window.__CC_DEBUG__ !== 'undefined'){
+      try{ localStorage.setItem('cc_debug', window.__CC_DEBUG__ === true ? '1' : '0'); }catch(_){}
+    }
+
+    // 2) Persistencia local (fuente de verdad)
+    try{
+      return localStorage.getItem('cc_debug') === '1';
+    }catch(_){}
+  }catch(_){}
+  return false;
+}
+const amount = total != null ? total : base;
     return {
 // id,
 // title: concepto || proveedor || id || 'Gasto',
@@ -816,9 +1273,66 @@ function mapEntityDetail_(entity, row){
     const status = String(pickValue_(row, ['Estado','Status','estado']) || '');
 
     const base = toNumber_(pickValue_(row, ['Base','base','Subtotal','Base_imponible']));
-    const iva  = toNumber_(pickValue_(row, ['IVA','iva']));
-    const total = toNumber_(pickValue_(row, ['Total','total','Total_con_IVA','Importe_total']));
-    const pdf = String(pickValue_(row, ['PDF (link)','PDF_link','PDF','pdf']) || '');
+    
+/* === CC DEBUG CORE (v327 PRO) ===
+   - window.__CC_DEBUG__ (server-driven): true/false fuerza ON/OFF; null = no fuerza
+   - localStorage 'cc_debug': '1'/'0' persistente
+*/
+function isDebugEnabled_(){
+  try{
+    // 1) Server-driven override (si viene)
+    if (typeof window !== 'undefined' && window.__CC_DEBUG__ !== null && typeof window.__CC_DEBUG__ !== 'undefined'){
+      try{ localStorage.setItem('cc_debug', window.__CC_DEBUG__ === true ? '1' : '0'); }catch(_){}
+    }
+
+    // 2) Persistencia local (fuente de verdad)
+    try{
+      return localStorage.getItem('cc_debug') === '1';
+    }catch(_){}
+  }catch(_){}
+  return false;
+}
+const iva  = toNumber_(pickValue_(row, ['IVA','iva']));
+    
+/* === CC DEBUG CORE (v327 PRO) ===
+   - window.__CC_DEBUG__ (server-driven): true/false fuerza ON/OFF; null = no fuerza
+   - localStorage 'cc_debug': '1'/'0' persistente
+*/
+function isDebugEnabled_(){
+  try{
+    // 1) Server-driven override (si viene)
+    if (typeof window !== 'undefined' && window.__CC_DEBUG__ !== null && typeof window.__CC_DEBUG__ !== 'undefined'){
+      try{ localStorage.setItem('cc_debug', window.__CC_DEBUG__ === true ? '1' : '0'); }catch(_){}
+    }
+
+    // 2) Persistencia local (fuente de verdad)
+    try{
+      return localStorage.getItem('cc_debug') === '1';
+    }catch(_){}
+  }catch(_){}
+  return false;
+}
+const total = toNumber_(pickValue_(row, ['Total','total','Total_con_IVA','Importe_total']));
+    
+/* === CC DEBUG CORE (v327 PRO) ===
+   - window.__CC_DEBUG__ (server-driven): true/false fuerza ON/OFF; null = no fuerza
+   - localStorage 'cc_debug': '1'/'0' persistente
+*/
+function isDebugEnabled_(){
+  try{
+    // 1) Server-driven override (si viene)
+    if (typeof window !== 'undefined' && window.__CC_DEBUG__ !== null && typeof window.__CC_DEBUG__ !== 'undefined'){
+      try{ localStorage.setItem('cc_debug', window.__CC_DEBUG__ === true ? '1' : '0'); }catch(_){}
+    }
+
+    // 2) Persistencia local (fuente de verdad)
+    try{
+      return localStorage.getItem('cc_debug') === '1';
+    }catch(_){}
+  }catch(_){}
+  return false;
+}
+const pdf = String(pickValue_(row, ['PDF (link)','PDF_link','PDF','pdf']) || '');
 
     const amount = (total != null) ? total : base;
 
@@ -847,8 +1361,46 @@ function mapEntityDetail_(entity, row){
     const categoria = pickValue_(row, ['Categoria', 'Tipo']);
     const fecha = pickValue_(row, ['Fecha']);
     const total = toNumber_(pickValue_(row, ['Total', 'Importe_total', 'Total_con_IVA', 'Importe']));
-    const base = toNumber_(pickValue_(row, ['Base', 'Subtotal', 'Base_imponible']));
-    const amount = total != null ? total : base;
+    
+/* === CC DEBUG CORE (v327 PRO) ===
+   - window.__CC_DEBUG__ (server-driven): true/false fuerza ON/OFF; null = no fuerza
+   - localStorage 'cc_debug': '1'/'0' persistente
+*/
+function isDebugEnabled_(){
+  try{
+    // 1) Server-driven override (si viene)
+    if (typeof window !== 'undefined' && window.__CC_DEBUG__ !== null && typeof window.__CC_DEBUG__ !== 'undefined'){
+      try{ localStorage.setItem('cc_debug', window.__CC_DEBUG__ === true ? '1' : '0'); }catch(_){}
+    }
+
+    // 2) Persistencia local (fuente de verdad)
+    try{
+      return localStorage.getItem('cc_debug') === '1';
+    }catch(_){}
+  }catch(_){}
+  return false;
+}
+const base = toNumber_(pickValue_(row, ['Base', 'Subtotal', 'Base_imponible']));
+    
+/* === CC DEBUG CORE (v327 PRO) ===
+   - window.__CC_DEBUG__ (server-driven): true/false fuerza ON/OFF; null = no fuerza
+   - localStorage 'cc_debug': '1'/'0' persistente
+*/
+function isDebugEnabled_(){
+  try{
+    // 1) Server-driven override (si viene)
+    if (typeof window !== 'undefined' && window.__CC_DEBUG__ !== null && typeof window.__CC_DEBUG__ !== 'undefined'){
+      try{ localStorage.setItem('cc_debug', window.__CC_DEBUG__ === true ? '1' : '0'); }catch(_){}
+    }
+
+    // 2) Persistencia local (fuente de verdad)
+    try{
+      return localStorage.getItem('cc_debug') === '1';
+    }catch(_){}
+  }catch(_){}
+  return false;
+}
+const amount = total != null ? total : base;
     return {
 // id,
 // title: concepto || proveedor || id || 'Gasto',
@@ -1037,7 +1589,26 @@ function loadList(entity){
   // Filtro por cliente (historial)
   if (state.listFilterClientId && entity !== 'clientes'){
     rows = rows.filter(r => (r.clientId || '').toLowerCase() === state.listFilterClientId.toLowerCase());
-  }
+  
+/* === CC DEBUG CORE (v327 PRO) ===
+   - window.__CC_DEBUG__ (server-driven): true/false fuerza ON/OFF; null = no fuerza
+   - localStorage 'cc_debug': '1'/'0' persistente
+*/
+function isDebugEnabled_(){
+  try{
+    // 1) Server-driven override (si viene)
+    if (typeof window !== 'undefined' && window.__CC_DEBUG__ !== null && typeof window.__CC_DEBUG__ !== 'undefined'){
+      try{ localStorage.setItem('cc_debug', window.__CC_DEBUG__ === true ? '1' : '0'); }catch(_){}
+    }
+
+    // 2) Persistencia local (fuente de verdad)
+    try{
+      return localStorage.getItem('cc_debug') === '1';
+    }catch(_){}
+  }catch(_){}
+  return false;
+}
+}
 
   // Filtro por búsqueda
   if (q){
@@ -1509,7 +2080,26 @@ google.script.run
       () => toast('Copiado', 'Datos copiados al portapapeles', 'ok'),
       // () => toast('Copiar', 'No se pudo copiar (permiso del navegador)', 'info')
     );
-    return;
+    
+/* === CC DEBUG CORE (v327 PRO) ===
+   - window.__CC_DEBUG__ (server-driven): true/false fuerza ON/OFF; null = no fuerza
+   - localStorage 'cc_debug': '1'/'0' persistente
+*/
+function isDebugEnabled_(){
+  try{
+    // 1) Server-driven override (si viene)
+    if (typeof window !== 'undefined' && window.__CC_DEBUG__ !== null && typeof window.__CC_DEBUG__ !== 'undefined'){
+      try{ localStorage.setItem('cc_debug', window.__CC_DEBUG__ === true ? '1' : '0'); }catch(_){}
+    }
+
+    // 2) Persistencia local (fuente de verdad)
+    try{
+      return localStorage.getItem('cc_debug') === '1';
+    }catch(_){}
+  }catch(_){}
+  return false;
+}
+return;
   }
 
   // Acciones de FACTURA / PROFORMA / GASTO (detalle)
@@ -1535,7 +2125,26 @@ google.script.run
         }
       })
       .catch((err) => toast('Error', err?.message || 'No se pudo generar el PDF', 'error'));
-    return;
+    
+/* === CC DEBUG CORE (v327 PRO) ===
+   - window.__CC_DEBUG__ (server-driven): true/false fuerza ON/OFF; null = no fuerza
+   - localStorage 'cc_debug': '1'/'0' persistente
+*/
+function isDebugEnabled_(){
+  try{
+    // 1) Server-driven override (si viene)
+    if (typeof window !== 'undefined' && window.__CC_DEBUG__ !== null && typeof window.__CC_DEBUG__ !== 'undefined'){
+      try{ localStorage.setItem('cc_debug', window.__CC_DEBUG__ === true ? '1' : '0'); }catch(_){}
+    }
+
+    // 2) Persistencia local (fuente de verdad)
+    try{
+      return localStorage.getItem('cc_debug') === '1';
+    }catch(_){}
+  }catch(_){}
+  return false;
+}
+return;
   }
   if (a === 'abrir_pdf'){
     // FACTURAS (real): abrir pdfLink si existe
@@ -1555,7 +2164,26 @@ google.script.run
           }
         })
         .catch((err) => toast('Error', (err && err.message) ? err.message : 'No se pudo abrir el PDF', 'error'));
-      return;
+      
+/* === CC DEBUG CORE (v327 PRO) ===
+   - window.__CC_DEBUG__ (server-driven): true/false fuerza ON/OFF; null = no fuerza
+   - localStorage 'cc_debug': '1'/'0' persistente
+*/
+function isDebugEnabled_(){
+  try{
+    // 1) Server-driven override (si viene)
+    if (typeof window !== 'undefined' && window.__CC_DEBUG__ !== null && typeof window.__CC_DEBUG__ !== 'undefined'){
+      try{ localStorage.setItem('cc_debug', window.__CC_DEBUG__ === true ? '1' : '0'); }catch(_){}
+    }
+
+    // 2) Persistencia local (fuente de verdad)
+    try{
+      return localStorage.getItem('cc_debug') === '1';
+    }catch(_){}
+  }catch(_){}
+  return false;
+}
+return;
     }
 if (entity === 'proformas' && !state.useMock){
       const detail = store.presDetalle[id];
@@ -1576,7 +2204,26 @@ if (entity === 'proformas' && !state.useMock){
           }
         })
         .catch((err) => toast('Error', err?.message || 'No se pudo abrir el PDF', 'error'));
-      return;
+      
+/* === CC DEBUG CORE (v327 PRO) ===
+   - window.__CC_DEBUG__ (server-driven): true/false fuerza ON/OFF; null = no fuerza
+   - localStorage 'cc_debug': '1'/'0' persistente
+*/
+function isDebugEnabled_(){
+  try{
+    // 1) Server-driven override (si viene)
+    if (typeof window !== 'undefined' && window.__CC_DEBUG__ !== null && typeof window.__CC_DEBUG__ !== 'undefined'){
+      try{ localStorage.setItem('cc_debug', window.__CC_DEBUG__ === true ? '1' : '0'); }catch(_){}
+    }
+
+    // 2) Persistencia local (fuente de verdad)
+    try{
+      return localStorage.getItem('cc_debug') === '1';
+    }catch(_){}
+  }catch(_){}
+  return false;
+}
+return;
     }
     toast('PDF', `Mock: abrir PDF de ${id}`, 'ok');
     return;
@@ -1605,7 +2252,26 @@ if (entity === 'proformas' && !state.useMock){
         }
       })
       .catch((err) => toast('Error', err?.message || 'No se pudo crear la factura', 'error'));
-    return;
+    
+/* === CC DEBUG CORE (v327 PRO) ===
+   - window.__CC_DEBUG__ (server-driven): true/false fuerza ON/OFF; null = no fuerza
+   - localStorage 'cc_debug': '1'/'0' persistente
+*/
+function isDebugEnabled_(){
+  try{
+    // 1) Server-driven override (si viene)
+    if (typeof window !== 'undefined' && window.__CC_DEBUG__ !== null && typeof window.__CC_DEBUG__ !== 'undefined'){
+      try{ localStorage.setItem('cc_debug', window.__CC_DEBUG__ === true ? '1' : '0'); }catch(_){}
+    }
+
+    // 2) Persistencia local (fuente de verdad)
+    try{
+      return localStorage.getItem('cc_debug') === '1';
+    }catch(_){}
+  }catch(_){}
+  return false;
+}
+return;
   }
   if (a === 'perder_proforma'){ toast('Listo', `Proforma ${id} marcada como perdida (mock)`, 'ok'); return; }
   if (a === 'adjuntar_pdf'){ toast('Listo', `Adjuntar PDF a ${id} (mock)`, 'ok'); return; }
@@ -1907,13 +2573,25 @@ function __installGlobalErrorCatcher_(){
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  try{ __debugShow_('INIT', 'DOMContentLoaded fired · search=' + (location && location.search ? location.search : '')); }catch(_){}
-try{
-  __debugShow_('ENV', JSON.stringify({
-    search: (location && location.search) ? location.search : '',
-    env: (typeof env !== 'undefined') ? env : null,
-    useMock: (typeof state !== 'undefined') ? state.useMock : null
-  }, null, 2));
+  try{ __debugShow_('INIT', 'DOMContentLoaded fired · search=' + (location && location.search ? location.search : '')); 
+/* === CC DEBUG CORE (v327 PRO) ===
+   - window.__CC_DEBUG__ (server-driven): true/false fuerza ON/OFF; null = no fuerza
+   - localStorage 'cc_debug': '1'/'0' persistente
+*/
+function isDebugEnabled_(){
+  try{
+    // 1) Server-driven override (si viene)
+    if (typeof window !== 'undefined' && window.__CC_DEBUG__ !== null && typeof window.__CC_DEBUG__ !== 'undefined'){
+      try{ localStorage.setItem('cc_debug', window.__CC_DEBUG__ === true ? '1' : '0'); }catch(_){}
+    }
+
+    // 2) Persistencia local (fuente de verdad)
+    try{
+      return localStorage.getItem('cc_debug') === '1';
+    }catch(_){}
+  }catch(_){}
+  return false;
+}
 }catch(_){}
 try{
   __debugShow_('ENV', JSON.stringify({
@@ -1921,6 +2599,51 @@ try{
     env: (typeof env !== 'undefined') ? env : null,
     useMock: (typeof state !== 'undefined') ? state.useMock : null
   }, null, 2));
+
+/* === CC DEBUG CORE (v327 PRO) ===
+   - window.__CC_DEBUG__ (server-driven): true/false fuerza ON/OFF; null = no fuerza
+   - localStorage 'cc_debug': '1'/'0' persistente
+*/
+function isDebugEnabled_(){
+  try{
+    // 1) Server-driven override (si viene)
+    if (typeof window !== 'undefined' && window.__CC_DEBUG__ !== null && typeof window.__CC_DEBUG__ !== 'undefined'){
+      try{ localStorage.setItem('cc_debug', window.__CC_DEBUG__ === true ? '1' : '0'); }catch(_){}
+    }
+
+    // 2) Persistencia local (fuente de verdad)
+    try{
+      return localStorage.getItem('cc_debug') === '1';
+    }catch(_){}
+  }catch(_){}
+  return false;
+}
+}catch(_){}
+try{
+  __debugShow_('ENV', JSON.stringify({
+    search: (location && location.search) ? location.search : '',
+    env: (typeof env !== 'undefined') ? env : null,
+    useMock: (typeof state !== 'undefined') ? state.useMock : null
+  }, null, 2));
+
+/* === CC DEBUG CORE (v327 PRO) ===
+   - window.__CC_DEBUG__ (server-driven): true/false fuerza ON/OFF; null = no fuerza
+   - localStorage 'cc_debug': '1'/'0' persistente
+*/
+function isDebugEnabled_(){
+  try{
+    // 1) Server-driven override (si viene)
+    if (typeof window !== 'undefined' && window.__CC_DEBUG__ !== null && typeof window.__CC_DEBUG__ !== 'undefined'){
+      try{ localStorage.setItem('cc_debug', window.__CC_DEBUG__ === true ? '1' : '0'); }catch(_){}
+    }
+
+    // 2) Persistencia local (fuente de verdad)
+    try{
+      return localStorage.getItem('cc_debug') === '1';
+    }catch(_){}
+  }catch(_){}
+  return false;
+}
 }catch(_){}
   try{ toast('INIT', 'DOMContentLoaded fired', 'info'); }catch(_){}
 
@@ -1958,8 +2681,29 @@ try { loadDashboard(); } catch(e){ try{ toast('Dashboard', (e && e.message) ? e.
 function hideDevOnlyUI_(){
   if (env.dev) return;
   qsa('[data-action="toggle_quick_create"]').forEach(b => b.remove());
+
+/* === CC DEBUG CORE (v327 PRO) ===
+   - window.__CC_DEBUG__ (server-driven): true/false fuerza ON/OFF; null = no fuerza
+   - localStorage 'cc_debug': '1'/'0' persistente
+*/
+function isDebugEnabled_(){
+  try{
+    // 1) Server-driven override (si viene)
+    if (typeof window !== 'undefined' && window.__CC_DEBUG__ !== null && typeof window.__CC_DEBUG__ !== 'undefined'){
+      try{ localStorage.setItem('cc_debug', window.__CC_DEBUG__ === true ? '1' : '0'); }catch(_){}
+    }
+
+    // 2) Persistencia local (fuente de verdad)
+    try{
+      return localStorage.getItem('cc_debug') === '1';
+    }catch(_){}
+  }catch(_){}
+  return false;
+}
 }
 </script>
+
+
 
 
 
