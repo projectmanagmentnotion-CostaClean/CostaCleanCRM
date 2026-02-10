@@ -1,18 +1,5 @@
-﻿audit/**
-tools/**
-*.ps1
-creds.json
-_scripts_extracted.*
-extract.js
-
-__scripts_check.js
-__scripts_check*.js
-__*.js
-*.bak_*
-audit/
-tools-audit.ps1
-
-
-_tmp_scripts_check.js
-_diagnostics/
-
+﻿# No subir basura local a Apps Script
+_diagnostics/**
+_tmp*
+*.log
+*.backup.*
