@@ -1,5 +1,4 @@
-﻿<script>
-/* =========================
+﻿/* =========================
    ARCHIVO: scripts.html
    Lógica UI (mock) + router de acciones + listas + detalle
 ========================= */
@@ -654,66 +653,57 @@ function mapPresupuestoToView(p){
 function mapEntityListRow_(entity, row){
   if (!row) return null;
 
-  // CLIENTES / LEADS
   if (entity === 'clientes' || entity === 'leads'){
-    const email  = row.email || pickValue_(row, ['Email','Email_cliente','Lead_Email']);
-    const phone  = row.telefono || pickValue_(row, ['Telefono','Lead_Telefono','Phone']);
-    const status = row.estado || pickValue_(row, ['Estado','Status']);
+    const id = row.id || pickValue_(row, ['Cliente_ID', 'Lead_ID', 'ID']);
+    const name = row.nombre || pickValue_(row, ['Nombre', 'Cliente', 'Lead_Nombre']);
+    const email = row.email || pickValue_(row, ['Email', 'Email_cliente', 'Lead_Email']);
+    const phone = row.telefono || pickValue_(row, ['Telefono', 'Lead_Telefono', 'Phone']);
+    const status = row.estado || pickValue_(row, ['Estado', 'Status']);
     return {
+// id,
+// title: name || id,
       sub: joinParts_([
-        email ? ('Email: ' + email) : '',
-        phone ? ('Tel: ' + phone) : ''
+        email ? `Email: ${email}` : '',
+        phone ? `Tel: ${phone}` : ''
       ]),
-      right: status || ''
+// right: status || '',
+// status: status || ''
     };
   }
-
-  // FACTURAS
   if (entity === 'facturas'){
-    const nif    = String(pickValue_(row, ['NIF','nif']) || '');
-    const fecha  = pickValue_(row, ['Fecha','fecha']) || '';
+    const id = String(pickValue_(row, ['Numero_factura','Factura_ID','ID']) || '');
+    const cliente = String(pickValue_(row, ['Cliente','Cliente_nombre','Nombre']) || '');
+    const nif = String(pickValue_(row, ['NIF','nif']) || '');
+    const fecha = pickValue_(row, ['Fecha','fecha']) || '';
+    const clienteId = String(pickValue_(row, ['Cliente_ID','ClienteId','Lead_ID']) || '');
     const status = String(pickValue_(row, ['Estado','Status','estado']) || '');
 
-    const base   = toNumber_(pickValue_(row, ['Base','base','Subtotal','Base_imponible']));
-    const iva    = toNumber_(pickValue_(row, ['IVA','iva']));
-    const total  = toNumber_(pickValue_(row, ['Total','total','Total_con_IVA','Importe_total']));
-    const pdf    = String(pickValue_(row, ['PDF (link)','PDF_link','PDF','pdf']) || '');
-    const amountFactura = (total != null) ? total : base;
+    const total = toNumber_(pickValue_(row, ['Total','total','Importe_total','Total_con_IVA']));
+    const base  = toNumber_(pickValue_(row, ['Base','base','Subtotal','Base_imponible']));
+    const amount = (total != null) ? total : base;
 
     return {
       sub: joinParts_([
         nif ? ('NIF: ' + nif) : '',
         fecha ? ('Fecha: ' + formatDateText(fecha)) : ''
       ]),
-      right: amountFactura != null ? formatMoney(amountFactura) : (status || ''),
-      base: base != null ? base : null,
-      iva: iva != null ? iva : null,
-      total: total != null ? total : null,
-      amount: amountFactura != null ? amountFactura : null,
-      pdfUrl: pdf || ''
+      right: amount != null ? formatMoney(amount) : (status || ''),
     };
   }
 
-  // GASTOS
   if (entity === 'gastos'){
-    const proveedor = pickValue_(row, ['Proveedor','Empresa']);
-    const concepto  = pickValue_(row, ['Concepto','Descripcion','Detalle']);
-    const categoria = pickValue_(row, ['Categoria','Tipo']);
-    const fecha     = pickValue_(row, ['Fecha','fecha']);
-
-    const total = toNumber_(pickValue_(row, ['Total','Importe_total','Total_con_IVA','Importe']));
-    const base  = toNumber_(pickValue_(row, ['Base','Subtotal','Base_imponible']));
-    const amountGasto = (total != null) ? total : base;
+    const id = pickValue_(row, ['Gasto_ID', 'ID']);
+    const proveedor = pickValue_(row, ['Proveedor', 'Empresa']);
+    const concepto = pickValue_(row, ['Concepto', 'Descripcion', 'Detalle']);
+    const categoria = pickValue_(row, ['Categoria', 'Tipo']);
+    const total = toNumber_(pickValue_(row, ['Total', 'Importe_total', 'Total_con_IVA', 'Importe']));
+    const base  = toNumber_(pickValue_(row, ['Base', 'Subtotal', 'Base_imponible']));
+    const amount = (total != null) ? total : base;
 
     return {
-      sub: joinParts_([
-        proveedor,
-        categoria,
-        concepto,
-        fecha ? ('Fecha: ' + formatDateText(fecha)) : ''
-      ]),
-      right: amountGasto != null ? formatMoney(amountGasto) : (categoria || ''),
-      clientId: pickValue_(row, ['Cliente_ID','ClienteId']) || ''
+      sub: joinParts_([proveedor, categoria, concepto]),
+      right: amount != null ? formatMoney(amount) : (categoria || ''),
+      clientId: pickValue_(row, ['Cliente_ID', 'ClienteId']) || ''
     };
   }
 
@@ -743,6 +733,72 @@ function mapEntityDetail_(entity, row){
 // address
     };
   }
+  if (entity === 'facturas'){
+    const id = String(pickValue_(row, ['Numero_factura','Factura_ID','ID']) || '');
+    const cliente = String(pickValue_(row, ['Cliente','cliente','Cliente_nombre','Nombre']) || '');
+    const nif = String(pickValue_(row, ['NIF','nif']) || '');
+    const fecha = pickValue_(row, ['Fecha','fecha']) || '';
+    const clienteId = String(pickValue_(row, ['Cliente_ID','ClienteId','Lead_ID']) || '');
+    const status = String(pickValue_(row, ['Estado','Status','estado']) || '');
+
+    const base = toNumber_(pickValue_(row, ['Base','base','Subtotal','Base_imponible']));
+}
+
+const iva  = toNumber_(pickValue_(row, ['IVA','iva']));
+}
+
+const total = toNumber_(pickValue_(row, ['Total','total','Total_con_IVA','Importe_total']));
+
+const pdf = String(pickValue_(row, ['PDF (link)','PDF_link','PDF','pdf']) || '');
+
+    const amount = (total != null) ? total : base;
+
+    return {
+// id,
+// title: cliente || id,
+      sub: [
+// nif ? 'NIF: ' + nif : '',
+        fecha ? 'Fecha: ' + formatDateText(fecha) : ''
+      ].filter(Boolean).join(' | '),
+// status: status || '',
+// clientId: clienteId || '',
+// fecha,
+      base: base != null ? base : null,
+      iva: iva != null ? iva : null,
+      total: total != null ? total : null,
+      amount: amount != null ? amount : null,
+// pdfLink: pdf
+    };
+  }
+
+  if (entity === 'gastos'){
+    const id = pickValue_(row, ['Gasto_ID', 'ID']);
+    const proveedor = pickValue_(row, ['Proveedor', 'Empresa']);
+    const concepto = pickValue_(row, ['Concepto', 'Descripcion', 'Detalle']);
+    const categoria = pickValue_(row, ['Categoria', 'Tipo']);
+    const fecha = pickValue_(row, ['Fecha']);
+    const total = toNumber_(pickValue_(row, ['Total', 'Importe_total', 'Total_con_IVA', 'Importe']));
+}
+
+const base = toNumber_(pickValue_(row, ['Base', 'Subtotal', 'Base_imponible']));
+}
+
+const amount = total != null ? total : base;
+    return {
+// id,
+// title: concepto || proveedor || id || 'Gasto',
+// status: categoria || '',
+// amount,
+// base,
+// total,
+      clientId: pickValue_(row, ['Cliente_ID', 'ClienteId']) || '',
+// fecha
+    };
+  }
+
+  return null;
+}
+
 async function fetchEntityList(entity, search, filterClientId){
   const label = entity === 'clientes' ? 'clientes'
     : entity === 'leads' ? 'leads'
@@ -1421,30 +1477,32 @@ return;
 return;
   }
   if (a === 'abrir_pdf'){
-    // FACTURAS (real): abrir enlace PDF si existe
+    // FACTURAS (real): abrir pdfLink si existe
     if (entity === 'facturas' && !state.useMock){
       if (!id){ toast('PDF', 'Factura_ID vacío', 'info'); return; }
+
       toast('PDF', 'Buscando enlace PDF...', 'info');
       callServer('apiGet', 'facturas', id)
         .then((res) => {
-          const url = (res && (res.pdfLink || res.pdfUrl || res.PDF_link || res.url || res.link)) || '';
+          const url =
+            (res && (res.pdfLink || res.pdfUrl || res.PDF_link || res.url || res.link)) || '';
           if (url){
             toast('PDF', 'Abriendo PDF...', 'ok');
-            try{ window.open(url, '_blank'); }catch(_){ toast('PDF', url, 'info'); }
+            try { window.open(url, '_blank'); } catch (_) { toast('PDF', url, 'info'); }
           } else {
             toast('PDF', 'Esta factura no tiene PDF aún', 'info');
           }
         })
         .catch((err) => toast('Error', (err && err.message) ? err.message : 'No se pudo abrir el PDF', 'error'));
-      return;
-    }
+}
 
-    // PROFORMAS (real): abrir PDF guardado o generarlo
-    if (entity === 'proformas' && !state.useMock){
+return;
+    }
+if (entity === 'proformas' && !state.useMock){
       const detail = store.presDetalle[id];
       const saved = detail?.pdfUrl || detail?.PDF_link || '';
       if (saved){
-        try{ window.open(saved, '_blank'); }catch(_){ toast('PDF', saved, 'info'); }
+        try { window.open(saved, '_blank'); } catch (_) { toast('PDF', saved, 'info'); }
         return;
       }
       toast('PDF', 'Generando PDF porque no hay enlace guardado...', 'info');
@@ -1453,16 +1511,17 @@ return;
           const link = res && (res.pdfUrl || res.url);
           if (store.presDetalle[id]) store.presDetalle[id].pdfUrl = link || store.presDetalle[id].pdfUrl;
           if (link){
-            try{ window.open(link, '_blank'); }catch(_){ }
+            try { window.open(link, '_blank'); } catch (_) {}
           } else {
             toast('PDF', 'No se pudo obtener el PDF', 'error');
           }
         })
         .catch((err) => toast('Error', err?.message || 'No se pudo abrir el PDF', 'error'));
-      return;
-    }
+}
 
-    toast('PDF', 'Mock: abrir PDF de ' + id, 'ok');
+return;
+    }
+    toast('PDF', `Mock: abrir PDF de ${id}`, 'ok');
     return;
   }
   if (a === 'marcar_pagada'){ toast('Listo', `Factura ${id} marcada como pagada (mock)`, 'ok'); return; }
@@ -1861,7 +1920,5 @@ document.addEventListener('DOMContentLoaded', () => {
   try { loadDashboard(); } catch(e){ try{ toast('Dashboard', (e && e.message) ? e.message : String(e), 'error'); }catch(_){ } }
 });
 
-
-</script>
 
 
