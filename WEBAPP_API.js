@@ -8,7 +8,7 @@ function apiPing() {
   return { ok: true, ts: new Date().toISOString() };
 }
 
-function diagSheets_() {
+var diagSheets_ = function() {
   const ss = _ss_();
   const names = ss.getSheets().map(s => s.getName());
   const counts = {};
@@ -68,7 +68,7 @@ const HEADERS_CIERRES = [
 ];
 
 /** ========= HELPERS BASE ========= **/
-function _ss_() {
+var _ss_ = function() {
   if (typeof SS_ID === 'undefined' || !SS_ID) {
     throw new Error('SS_ID no está definido. Revisa API.js (const SS_ID=...)');
   }
@@ -79,13 +79,13 @@ function _ss_() {
   }
 }
 
-function _sh_(name) {
+var _sh_ = function(name) {
   const sh = _ss_().getSheetByName(name);
   if (!sh) throw new Error('No existe la hoja: ' + name);
   return sh;
 }
 
-function _ensureSheet_(name, headers) {
+var _ensureSheet_ = function(name, headers) {
   const ss = _ss_();
   let sh = ss.getSheetByName(name);
   if (!sh) {
@@ -104,25 +104,25 @@ function _ensureSheet_(name, headers) {
   return sh;
 }
 
-function setupSheetsIfMissing_() {
+var setupSheetsIfMissing_ = function() {
   _ensureSheet_(CC_SHEETS.GASTOS, HEADERS_GASTOS);
   _ensureSheet_(CC_SHEETS.CIERRES, HEADERS_CIERRES);
   return true;
 }
 
-function _getHeaders_(sh) {
+var _getHeaders_ = function(sh) {
   const lastCol = sh.getLastColumn();
   if (lastCol < 1) return [];
   return sh.getRange(1, 1, 1, lastCol).getValues()[0].map(String);
 }
 
-function _rowToObj_(headers, row) {
+var _rowToObj_ = function(headers, row) {
   const o = {};
   headers.forEach((h, i) => o[h] = row[i]);
   return o;
 }
 
-function _getAll_(sheetName) {
+var _getAll_ = function(sheetName) {
   const sh = _sh_(sheetName);
   const values = sh.getDataRange().getValues();
   if (values.length < 2) return [];
@@ -130,7 +130,7 @@ function _getAll_(sheetName) {
   return values.slice(1).map(r => _rowToObj_(headers, r));
 }
 
-function _getAllWithHeaders_(sheetName) {
+var _getAllWithHeaders_ = function(sheetName) {
   const sh = _sh_(sheetName);
   const values = sh.getDataRange().getValues();
   if (!values.length) return { headers: [], rows: [] };
@@ -141,7 +141,7 @@ function _getAllWithHeaders_(sheetName) {
   return { headers, rows };
 }
 
-function _findById_(sheetName, idCol, id) {
+var _findById_ = function(sheetName, idCol, id) {
   const sh = _sh_(sheetName);
   const headers = _getHeaders_(sh);
   const idIndex = headers.indexOf(idCol);
@@ -318,7 +318,7 @@ function apiListPresupuestos(params){
     throw err;
   }
 }
-function _findByIdInView_(sheetName, idCol, id) {
+var _findByIdInView_ = function(sheetName, idCol, id) {
   const data = _getViewData_(sheetName) || { headers: [], rows: [] };
   const needle = String(id || '').trim();
   if (!needle) return null;
@@ -336,11 +336,11 @@ function _findByIdInView_(sheetName, idCol, id) {
   return row ? { headers: data.headers, obj: row } : null;
 }
 
-function _ensureViews_() {
+var _ensureViews_ = function() {
   if (typeof ccEnsureViews_ === 'function') ccEnsureViews_(false);
 }
 
-function _getViewData_(viewName) {
+var _getViewData_ = function(viewName) {
   _ensureViews_();
   try {
     return _getAllWithHeaders_(viewName);
@@ -348,7 +348,7 @@ function _getViewData_(viewName) {
     return { headers: [], rows: [] };
   }
 }
-function testListPresupuestos() {
+var testListPresupuestos = function() {
   const ss = _ss_();
   try {
     const items = apiListPresupuestos({ includeHistorial: false });
@@ -642,7 +642,7 @@ function apiCloseQuarter(payload) {
 }
 
 /** ========= IMPLEMENTACIONES CREATE ========= **/
-function _createCliente_(p) {
+var _createCliente_ = function(p) {
   const sh = _sh_(CC_SHEETS.CLIENTES);
   const headers = _getHeaders_(sh);
 
@@ -667,7 +667,7 @@ function _createCliente_(p) {
   return { ok: true, id: clienteId };
 }
 
-function _createLead_(p) {
+var _createLead_ = function(p) {
   const sh = _sh_(CC_SHEETS.LEADS);
   const headers = _getHeaders_(sh);
 
@@ -688,7 +688,7 @@ function _createLead_(p) {
   return { ok: true, id: leadId };
 }
 
-function _createFactura_(p) {
+var _createFactura_ = function(p) {
   const ss = _ss_();
   const sh = ss.getSheetByName('HISTORIAL') || ss.getSheetByName('FACTURAS') || ss.getSheetByName('FACTURA');
   const headers = _getHeaders_(sh);
@@ -721,7 +721,7 @@ function _createFactura_(p) {
   return { ok: true, id: facturaId };
 }
 
-function _createProforma_(p) {
+var _createProforma_ = function(p) {
   // Reutiliza tu estructura pro de PRESUPUESTOS (headers)
   const sh = _sh_(CC_SHEETS.PRESUPUESTOS);
   const headers = _getHeaders_(sh);
@@ -752,7 +752,7 @@ function _createProforma_(p) {
   return { ok: true, id: presId };
 }
 
-function _createGasto_(p) {
+var _createGasto_ = function(p) {
   const sh = _sh_(CC_SHEETS.GASTOS);
   const headers = _getHeaders_(sh);
 
@@ -781,7 +781,7 @@ function _createGasto_(p) {
 }
 
 /** ========= ACTIONS (placeholders + hooks) ========= **/
-function _markFacturaPagada_(facturaId, payload) {
+var _markFacturaPagada_ = function(facturaId, payload) {
   // Intenta marcar por columna Estado o Pagada/Fecha_pago si existe
   const found = _findById_(CC_SHEETS.FACTURA, 'Factura_ID', facturaId);
   if (!found) throw new Error('Factura no encontrada: ' + facturaId);
@@ -798,31 +798,31 @@ function _markFacturaPagada_(facturaId, payload) {
   return { ok: true, id: facturaId };
 }
 
-function _pdfFactura_(facturaId) {
+var _pdfFactura_ = function(facturaId) {
   const url = generateFacturaPdfById(facturaId);
   return { ok: true, id: facturaId, pdfLink: url };
 }
 
-function _emailFactura_(facturaId) {
+var _emailFactura_ = function(facturaId) {
   // En PASO 2 conectamos con tu envío real (GmailApp / MailApp)
   return { ok: true, id: facturaId, sent: true };
 }
 
-function _convertProformaToFactura_(presId) {
+var _convertProformaToFactura_ = function(presId) {
   const res = createFacturaDesdePresupuesto_(presId);
   return { ok: true, presId, facturaId: res.facturaId || '', pdfUrl: res.pdfUrl || '', alreadyExisted: !!res.alreadyExisted };
 }
 
-function _pdfProforma_(presId) {
+var _pdfProforma_ = function(presId) {
   return { ok: true, presId, pdfLink: '' };
 }
 
-function _emailProforma_(presId) {
+var _emailProforma_ = function(presId) {
   return { ok: true, presId, sent: true };
 }
 
 /** ========= UTILIDADES ========= **/
-function _entityMap_() {
+var _entityMap_ = function() {
   return {
     clientes: { sheet: CC_SHEETS.CLIENTES, view: CC_VIEWS.CLIENTES, idCol: 'Cliente_ID' },
     leads: { sheet: CC_SHEETS.LEADS, view: CC_VIEWS.LEADS, idCol: 'Lead_ID' },
@@ -833,7 +833,7 @@ function _entityMap_() {
   };
 }
 
-function _presupuestoSheet_() {
+var _presupuestoSheet_ = function() {
   const ss = _ss_();
   const hist = ss.getSheetByName(CC_SHEETS.PRES_HIST);
   const pres = ss.getSheetByName(CC_SHEETS.PRESUPUESTOS);
@@ -843,7 +843,7 @@ function _presupuestoSheet_() {
 
   return null;
 }
-function _findHeader_(headers, candidates) {
+var _findHeader_ = function(headers, candidates) {
   const lower = headers.map(h => _normalizeKey_(h));
   for (let i = 0; i < candidates.length; i++) {
     const idx = lower.indexOf(_normalizeKey_(candidates[i]));
@@ -851,7 +851,7 @@ function _findHeader_(headers, candidates) {
   }
   return '';
 }
-function _pickValue_(obj, keys) {
+var _pickValue_ = function(obj, keys) {
   for (let i = 0; i < keys.length; i++) {
     const v = obj[keys[i]];
     if (v !== undefined && v !== null && String(v).trim() !== '') return v;
@@ -859,7 +859,7 @@ function _pickValue_(obj, keys) {
   return '';
 }
 
-function _safeNumber_(v) {
+var _safeNumber_ = function(v) {
   if (v === undefined || v === null) return null;
   if (v instanceof Date) return null;
 
@@ -885,7 +885,7 @@ function _safeNumber_(v) {
 }
 
 // Primer número válido (evita que un Date "truthy" gane por ||)
-function _firstNumber_() {
+var _firstNumber_ = function() {
   for (let i = 0; i < arguments.length; i++) {
     const n = _safeNumber_(arguments[i]);
     if (n !== null) return n;
@@ -893,13 +893,13 @@ function _firstNumber_() {
   return null;
 }
 
-function _formatDateIso_(v) {
+var _formatDateIso_ = function(v) {
   const d = _parseDate_(v);
   if (!d) return '';
   return Utilities.formatDate(d, Session.getScriptTimeZone(), 'yyyy-MM-dd');
 }
 
-function _getPresupuestoLineas_(presId) {
+var _getPresupuestoLineas_ = function(presId) {
   const ss = _ss_();
   const sheetNames = [CC_SHEETS.PRES_LINEAS_HIST || 'LINEAS_PRES_HIST', CC_SHEETS.PRES_LINEAS];
 
@@ -947,7 +947,7 @@ function apiPresupuestosDebug() {
     }
   };
 }
-function _compareValues_(a, b) {
+var _compareValues_ = function(a, b) {
   const da = _parseDate_(a);
   const db = _parseDate_(b);
   if (da && db) return da.getTime() - db.getTime();
@@ -957,7 +957,7 @@ function _compareValues_(a, b) {
   return String(a || '').localeCompare(String(b || ''), 'es', { sensitivity: 'base' });
 }
 
-function _applyListFilters_(rows, params) {
+var _applyListFilters_ = function(rows, params) {
   let out = rows || [];
   const q = (params?.q || '').toString().trim().toLowerCase();
   const estado = (params?.estado || params?.status || '').toString().trim().toUpperCase();
@@ -1003,7 +1003,7 @@ function _applyListFilters_(rows, params) {
   return out;
 }
 
-function _sortRows_(rows, params) {
+var _sortRows_ = function(rows, params) {
   const sortBy = (params?.sortBy || params?.orderBy || '').toString().trim();
   const dir = (params?.sortDir || params?.order || 'desc').toString().toLowerCase();
   const key = sortBy || (rows[0] && (rows[0].updated_at ? 'updated_at' : (rows[0].Fecha ? 'Fecha' : (rows[0].created_at ? 'created_at' : ''))));
@@ -1012,7 +1012,7 @@ function _sortRows_(rows, params) {
   return rows.slice().sort((a, b) => _compareValues_(a[key], b[key]) * factor);
 }
 
-function _paginateRows_(rows, params, defaultLimit) {
+var _paginateRows_ = function(rows, params, defaultLimit) {
   const pageSize = Number(params?.pageSize || params?.limit || defaultLimit || 40);
   const page = Number(params?.page || 1);
   if (params && (params.page || params.pageSize)) {
@@ -1022,14 +1022,14 @@ function _paginateRows_(rows, params, defaultLimit) {
   return rows.slice(0, pageSize);
 }
 
-function _listFromView_(viewName, params, defaultLimit) {
+var _listFromView_ = function(viewName, params, defaultLimit) {
   const data = _getViewData_(viewName);
   let rows = _applyListFilters_(data.rows || [], params);
   rows = _sortRows_(rows, params || {});
   return _paginateRows_(rows, params || {}, defaultLimit || 40);
 }
 
-function _mapListResult_(result, mapper) {
+var _mapListResult_ = function(result, mapper) {
   if (result && Array.isArray(result.items)) {
     return {
       items: result.items.map(mapper).filter(r => r && r.id),
@@ -1041,11 +1041,11 @@ function _mapListResult_(result, mapper) {
   return (result || []).map(mapper).filter(r => r && r.id);
 }
 
-function _getSheetIfExists_(name) {
+var _getSheetIfExists_ = function(name) {
   return _ss_().getSheetByName(name) || null;
 }
 
-function _getAllWithHeadersFromSheet_(sh) {
+var _getAllWithHeadersFromSheet_ = function(sh) {
   const values = sh.getDataRange().getValues();
   if (!values.length) return { headers: [], rows: [] };
   const headers = values[0].map(h => String(h).trim());
@@ -1055,7 +1055,7 @@ function _getAllWithHeadersFromSheet_(sh) {
   return { headers, rows };
 }
 
-function _normalizeKey_(value) {
+var _normalizeKey_ = function(value) {
   return String(value || '')
     .toLowerCase()
     .normalize('NFD')
@@ -1063,7 +1063,7 @@ function _normalizeKey_(value) {
     .replace(/[^a-z0-9]+/g, '');
 }
 
-function _buildHeaderMap_(headers) {
+var _buildHeaderMap_ = function(headers) {
   const map = {};
   headers.forEach(h => {
     const k = _normalizeKey_(h);
@@ -1073,7 +1073,7 @@ function _buildHeaderMap_(headers) {
   return map;
 }
 
-function _pickValueByMap_(row, headerMap, keys) {
+var _pickValueByMap_ = function(row, headerMap, keys) {
   if (!row) return '';
   for (let i = 0; i < keys.length; i++) {
     const direct = row[keys[i]];
@@ -1088,7 +1088,7 @@ function _pickValueByMap_(row, headerMap, keys) {
   return '';
 }
 
-function _findPresupuestoRow_(rows, headerMap, presId) {
+var _findPresupuestoRow_ = function(rows, headerMap, presId) {
   if (!rows || !rows.length) return null;
   const idNeedle = String(presId || '').trim();
   if (!idNeedle) return null;
@@ -1100,7 +1100,7 @@ function _findPresupuestoRow_(rows, headerMap, presId) {
   return null;
 }
 
-function _mergePresupuestoItems_(presData, histData) {
+var _mergePresupuestoItems_ = function(presData, histData) {
   const presMap = _buildHeaderMap_(presData.headers || []);
   const histMap = _buildHeaderMap_(histData.headers || []);
 
@@ -1134,7 +1134,7 @@ function _mergePresupuestoItems_(presData, histData) {
   return merged;
 }
 
-function _sheetDebug_(sh) {
+var _sheetDebug_ = function(sh) {
   if (!sh) return { exists: false, name: '', lastRow: 0, lastColumn: 0, dataRows: 0 };
   const lastRow = sh.getLastRow();
   const lastColumn = sh.getLastColumn();
@@ -1145,7 +1145,7 @@ function _sheetDebug_(sh) {
   }
   return { exists: true, name: sh.getName(), lastRow, lastColumn, dataRows };
 }
-function _toBool_(v, defaultValue) {
+var _toBool_ = function(v, defaultValue) {
   if (v === true || v === false) return v;
   if (v === '' || v === null || v === undefined) return defaultValue;
   const s = String(v).toLowerCase().trim();
@@ -1154,20 +1154,20 @@ function _toBool_(v, defaultValue) {
   return defaultValue;
 }
 
-function _parseDate_(v) {
+var _parseDate_ = function(v) {
   if (v instanceof Date) return v;
   if (!v) return null;
   const d = new Date(v);
   return isNaN(d.getTime()) ? null : d;
 }
 
-function _isInRange_(vDate, from, to) {
+var _isInRange_ = function(vDate, from, to) {
   const d = _parseDate_(vDate);
   if (!d) return false;
   return d >= from && d <= to;
 }
 
-function _sumByDateRange_(rows, dateKey, valueKey, from, to, predicateFn) {
+var _sumByDateRange_ = function(rows, dateKey, valueKey, from, to, predicateFn) {
   let sum = 0;
   rows.forEach(r => {
     if (!_isInRange_(r[dateKey], from, to)) return;
@@ -1177,34 +1177,34 @@ function _sumByDateRange_(rows, dateKey, valueKey, from, to, predicateFn) {
   return sum;
 }
 
-function _isPaidInvoice_(f) {
+var _isPaidInvoice_ = function(f) {
   const s = String(f.Estado || '').toLowerCase();
   return s.includes('pag') || s === 'cobrada';
 }
 
-function _isPendingInvoice_(f) {
+var _isPendingInvoice_ = function(f) {
   const s = String(f.Estado || '').toLowerCase();
   return ['enviada','pendiente','vencida','impagada'].some(x => s.includes(x));
 }
 
-function _monthRange_(year, month) {
+var _monthRange_ = function(year, month) {
   const from = new Date(year, month - 1, 1);
   const to = new Date(year, month, 0, 23, 59, 59, 999);
   return { from, to };
 }
 
-function _quarterRange_(year, quarter) {
+var _quarterRange_ = function(year, quarter) {
   const m1 = (quarter - 1) * 3;
   const from = new Date(year, m1, 1);
   const to = new Date(year, m1 + 3, 0, 23, 59, 59, 999);
   return { from, to };
 }
 
-function _monthLabel_(m) {
+var _monthLabel_ = function(m) {
   return ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'][m - 1] || '';
 }
 
-function _nextIdFromSheet_(sh, idCol, prefix) {
+var _nextIdFromSheet_ = function(sh, idCol, prefix) {
   const headers = _getHeaders_(sh);
   const idx = headers.indexOf(idCol);
   if (idx === -1) {
@@ -1227,7 +1227,7 @@ function _nextIdFromSheet_(sh, idCol, prefix) {
 
 
 
-function testWebappListPresupuestosDirect(){
+var testWebappListPresupuestosDirect = function(){
   const items = apiListPresupuestos({ includeHistorial: true, limit: 20 });
   console.log('[testWebappListPresupuestosDirect] items=', items && items.length);
   if (items && items.length) console.log('[sample]', JSON.stringify(items[0]));
@@ -1236,7 +1236,7 @@ function testWebappListPresupuestosDirect(){
 
 
 
-function testDiagPresFact(){
+var testDiagPresFact = function(){
   const out = {};
   out.ss = (typeof apiPresupuestosDebug==='function') ? apiPresupuestosDebug() : null;
   out.pres = (typeof apiListPresupuestos==='function') ? apiListPresupuestos({includeHistorial:true,limit:300}) : null;
@@ -1253,7 +1253,7 @@ function apiDbInfo(){
   const ss = _ss_();
   const names = ss.getSheets().map(s => s.getName());
 
-  function info_(name){
+  var info_ = function(name){
     const sh = ss.getSheetByName(name);
     if (!sh) return { exists:false, lastRow:0, lastCol:0 };
     return { exists:true, lastRow:sh.getLastRow(), lastCol:sh.getLastColumn() };
@@ -1278,6 +1278,7 @@ function apiDbInfo(){
 
   return out;
 }
+
 
 
 
