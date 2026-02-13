@@ -3,3 +3,10 @@ _diagnostics/**
 _tmp*
 *.log
 *.backup.*
+# ---- do not push to Apps Script ----
+_archive/**
+_diagnostics/**
+_tmp*
+*.bak.*
+patch-*.ps1
+tools/**

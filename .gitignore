@@ -35,3 +35,12 @@ _tmp_scripts_check.js
 _diagnostics/
 tools/fix_scripts_realdata_bugs.ps1
 tools/patch_scripts_realdata.ps1
+# ---- local noise ----
+_archive/
+_diagnostics/
+_tmp*
+*.bak.*
+
+# local tools
+tools/
+
