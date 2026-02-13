@@ -743,6 +743,8 @@ function mapEntityDetail_(entity, row){
 // address
     };
   }
+  return null;
+}
 async function fetchEntityList(entity, search, filterClientId){
   const label = entity === 'clientes' ? 'clientes'
     : entity === 'leads' ? 'leads'
@@ -1267,13 +1269,13 @@ function renderDetailLines(lines){
 // Router de acciones (ÚNICO)
 // Maneja SOLO elementos con [data-action]
 function runAction(action, entity, id, dataset){
-  const a = (action || '').toLowerCase().trim();
+  const a = String(action || '').toLowerCase().trim();
 
   // Toggle mock
   if (a === 'toggle_mock'){
     state.useMock = !state.useMock;
-    saveMockPreference_();
-    updateMockChip_();
+    try{ saveMockPreference_(); }catch(_){ }
+    try{ updateMockChip_(); }catch(_){ }
     toast('Mock', state.useMock ? 'Activado' : 'Desactivado', 'info');
     if (state.lastScreen === 'screen-listas' && state.currentEntity){
       loadList(state.currentEntity);
@@ -1294,52 +1296,46 @@ function runAction(action, entity, id, dataset){
 
   // Acciones de CLIENTE (detalle)
   if (a === 'crear_proforma'){
-    toast('Listo', `Crear proforma desde ${id} (mock)`, 'ok');
+    toast('Listo', 'Crear proforma desde ' + id + ' (mock)', 'ok');
     goToList('proformas', id);
     return;
   }
   if (a === 'crear_factura'){
-    toast('Listo', `Crear factura desde ${id} (mock)`, 'ok');
+    toast('Listo', 'Crear factura desde ' + id + ' (mock)', 'ok');
     goToList('facturas', id);
     return;
   }
+
   if (a === 'crear_presupuesto_lead'){
     if (state.useMock){
-      toast('Listo', `Crear presupuesto para ${id} (mock)`, 'ok');
+      toast('Listo', 'Crear presupuesto para ' + id + ' (mock)', 'ok');
       goToList('proformas', null);
       return;
     }
-google.script.run
+    google.script.run
       .withSuccessHandler((res) => {
-        const presId = res && res.presId ? res.presId : '(sin id)';
-        toast('Listo', `Presupuesto creado: ${presId}`, 'ok');
+        const presId = (res && res.presId) ? res.presId : '(sin id)';
+        toast('Listo', 'Presupuesto creado: ' + presId, 'ok');
         goToList('proformas', null);
       })
       .withFailureHandler((err) => {
-        toast('Error', err && err.message ? err.message : String(err), 'info');
+        toast('Error', (err && err.message) ? err.message : String(err), 'info');
       })
       .apiCrearPresupuestoLead(id);
     return;
-  }  
-  // Lead: marcar GANADO → convertir a Cliente (REAL)
-  if (a === 'lead_ganar'){
-    if (state.useMock){
-      toast('LEADS', 'Mock activo: desactiva MOCK para convertir.', 'info');
-      return;
-    }
-    if (!id){
-      toast('LEADS', 'Lead_ID vacio', 'info');
-      return;
-    }
+  }
 
+  // Lead: marcar GANADO -> convertir a Cliente (REAL)
+  if (a === 'lead_ganar'){
+    if (state.useMock){ toast('LEADS', 'Mock activo: desactiva MOCK para convertir.', 'info'); return; }
+    if (!id){ toast('LEADS', 'Lead_ID vacio', 'info'); return; }
     (async () => {
       try{
-        toast('LEADS', 'Marcando GANADO y convirtiendo…', 'info');
+        toast('LEADS', 'Marcando GANADO y convirtiendo...', 'info');
         const res = await callServer('apiLeadMarcarGanado', id);
-        safeLog_('apiLeadMarcarGanado', res);
-
+        try{ safeLog_('apiLeadMarcarGanado', res); }catch(_){ }
         if (res && res.ok && res.clienteId){
-          toast('LEADS', `✅ Convertido a cliente: ${res.clienteId}`, 'ok');
+          toast('LEADS', 'Convertido a cliente: ' + res.clienteId, 'ok');
           loadEntityDetail('clientes', res.clienteId);
         } else {
           toast('LEADS', 'No se pudo convertir (sin Cliente_ID). Revisa el lead.', 'warn');
@@ -1348,78 +1344,46 @@ google.script.run
         toast('LEADS', (err && err.message) ? err.message : String(err), 'error');
       }
     })();
-
     return;
   }
 
-  if (a === 'ver_historial'){
-    toast('Historial', `Mostrando facturas de ${id} (mock)`, 'info');
-    goToList('facturas', id);
-    return;
-  }
+  if (a === 'ver_historial'){ toast('Historial', 'Mostrando facturas de ' + id + ' (mock)', 'info'); goToList('facturas', id); return; }
+  if (a === 'ver_proformas'){ goToList('proformas', id); return; }
+  if (a === 'ver_gastos'){ goToList('gastos', id); return; }
 
-  if (a === 'ver_proformas'){
-    goToList('proformas', id);
-    return;
-  }
-  if (a === 'ver_gastos'){
-    goToList('gastos', id);
-    return;
-  }
+  // Quick actions cliente (mock)
+  if (a === 'wa_chat'){ toast('WhatsApp', 'Mock: abrir chat de ' + id, 'info'); return; }
+  if (a === 'call_phone'){ toast('Llamar', 'Mock: llamar a ' + id, 'info'); return; }
+  if (a === 'send_email'){ toast('Email', 'Mock: enviar email a ' + id, 'info'); return; }
 
-  // Quick actions cliente
-  if (a === 'wa_chat'){
-    toast('WhatsApp', `Mock: abrir chat de ${id}`, 'info');
-    return;
-  }
-  if (a === 'call_phone'){
-    toast('Llamar', `Mock: llamar a ${id}`, 'info');
-    return;
-  }
-  if (a === 'send_email'){
-    toast('Email', `Mock: enviar email a ${id}`, 'info');
-    return;
-  }
   if (a === 'copy_id'){
-    // Intento copiar
-    const d = MOCK_DETAIL?.clientes?.[id];
-    const txt = `ID: ${id}\nEmail: ${d?.email || '—'}\nTel: ${d?.phone || '—'}`;
-    navigator.clipboard?.writeText(txt).then(
-      () => toast('Copiado', 'Datos copiados al portapapeles', 'ok'),
-      // () => toast('Copiar', 'No se pudo copiar (permiso del navegador)', 'info')
-    );
-}
-
-return;
+    const d = (typeof MOCK_DETAIL !== 'undefined' && MOCK_DETAIL && MOCK_DETAIL.clientes) ? MOCK_DETAIL.clientes[id] : null;
+    const txt = 'ID: ' + id + '\\nEmail: ' + (d && d.email ? d.email : '') + '\\nTel: ' + (d && d.phone ? d.phone : '');
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(txt).then(
+        () => toast('Copiado', 'Datos copiados al portapapeles', 'ok'),
+        () => toast('Copiar', 'No se pudo copiar (permiso del navegador)', 'info')
+      );
+    }
+    return;
   }
 
   // Acciones de FACTURA / PROFORMA / GASTO (detalle)
   if (a === 'generar_pdf'){
-    if (state.useMock){
-      toast('PDF', `Mock: generar PDF de ${id}`, 'ok');
-      return;
-    }
-    if (entity !== 'proformas'){
-      toast('PDF', 'Generar PDF solo disponible en proformas desde la app', 'info');
-      return;
-    }
-    toast('Generando', `Generando PDF ${id}...`, 'info');
+    if (state.useMock){ toast('PDF', 'Mock: generar PDF de ' + id, 'ok'); return; }
+    if (entity !== 'proformas'){ toast('PDF', 'Generar PDF solo disponible en proformas desde la app', 'info'); return; }
+    toast('Generando', 'Generando PDF ' + id + '...', 'info');
     callServer('apiGeneratePresupuestoPdf', id)
       .then((res) => {
         const url = res && (res.pdfUrl || res.url);
-        if (store.presDetalle[id]) store.presDetalle[id].pdfUrl = url || store.presDetalle[id].pdfUrl;
-        if (url){
-          toast('PDF', 'PDF listo', 'ok');
-          try { window.open(url, '_blank'); } catch (_) {}
-        } else {
-          toast('PDF', 'No se recibio URL del PDF', 'info');
-        }
+        if (store && store.presDetalle && store.presDetalle[id]) store.presDetalle[id].pdfUrl = url || store.presDetalle[id].pdfUrl;
+        if (url){ toast('PDF', 'PDF listo', 'ok'); try{ window.open(url, '_blank'); }catch(_){ } }
+        else { toast('PDF', 'No se recibio URL del PDF', 'info'); }
       })
-      .catch((err) => toast('Error', err?.message || 'No se pudo generar el PDF', 'error'));
-}
-
-return;
+      .catch((err) => toast('Error', (err && err.message) ? err.message : 'No se pudo generar el PDF', 'error'));
+    return;
   }
+
   if (a === 'abrir_pdf'){
     // FACTURAS (real): abrir enlace PDF si existe
     if (entity === 'facturas' && !state.useMock){
@@ -1428,12 +1392,8 @@ return;
       callServer('apiGet', 'facturas', id)
         .then((res) => {
           const url = (res && (res.pdfLink || res.pdfUrl || res.PDF_link || res.url || res.link)) || '';
-          if (url){
-            toast('PDF', 'Abriendo PDF...', 'ok');
-            try{ window.open(url, '_blank'); }catch(_){ toast('PDF', url, 'info'); }
-          } else {
-            toast('PDF', 'Esta factura no tiene PDF aún', 'info');
-          }
+          if (url){ toast('PDF', 'Abriendo PDF...', 'ok'); try{ window.open(url, '_blank'); }catch(_){ toast('PDF', url, 'info'); } }
+          else { toast('PDF', 'Esta factura no tiene PDF aún', 'info'); }
         })
         .catch((err) => toast('Error', (err && err.message) ? err.message : 'No se pudo abrir el PDF', 'error'));
       return;
@@ -1441,82 +1401,47 @@ return;
 
     // PROFORMAS (real): abrir PDF guardado o generarlo
     if (entity === 'proformas' && !state.useMock){
-      const detail = store.presDetalle[id];
-      const saved = detail?.pdfUrl || detail?.PDF_link || '';
-      if (saved){
-        try{ window.open(saved, '_blank'); }catch(_){ toast('PDF', saved, 'info'); }
-        return;
-      }
+      const detail = (store && store.presDetalle) ? store.presDetalle[id] : null;
+      const saved = detail ? (detail.pdfUrl || detail.PDF_link || '') : '';
+      if (saved){ try{ window.open(saved, '_blank'); }catch(_){ toast('PDF', saved, 'info'); } return; }
       toast('PDF', 'Generando PDF porque no hay enlace guardado...', 'info');
       callServer('apiGeneratePresupuestoPdf', id)
         .then((res) => {
           const link = res && (res.pdfUrl || res.url);
-          if (store.presDetalle[id]) store.presDetalle[id].pdfUrl = link || store.presDetalle[id].pdfUrl;
-          if (link){
-            try{ window.open(link, '_blank'); }catch(_){ }
-          } else {
-            toast('PDF', 'No se pudo obtener el PDF', 'error');
-          }
+          if (store && store.presDetalle && store.presDetalle[id]) store.presDetalle[id].pdfUrl = link || store.presDetalle[id].pdfUrl;
+          if (link){ try{ window.open(link, '_blank'); }catch(_){ } }
+          else { toast('PDF', 'No se pudo obtener el PDF', 'error'); }
         })
-        .catch((err) => toast('Error', err?.message || 'No se pudo abrir el PDF', 'error'));
+        .catch((err) => toast('Error', (err && err.message) ? err.message : 'No se pudo abrir el PDF', 'error'));
       return;
     }
 
     toast('PDF', 'Mock: abrir PDF de ' + id, 'ok');
     return;
   }
-  if (a === 'marcar_pagada'){ toast('Listo', `Factura ${id} marcada como pagada (mock)`, 'ok'); return; }
-  if (a === 'aceptar_proforma'){ toast('Listo', `Proforma ${id} aceptada (mock)`, 'ok'); return; }
-  if (a === 'convertir_factura'){ toast('Listo', `Convertir ${id} a factura (mock)`, 'ok'); return; }
-  if (a === 'crear_factura'){
-    if (state.useMock){
-      toast('Listo', `Crear factura desde ${id} (mock)`, 'ok');
-      return;
-    }
-    if (!id){
-      toast('Error', 'Pres_ID vacio', 'info');
-      return;
-    }
-    toast('Factura', `Creando factura desde ${id}...`, 'info');
-    callServer('apiCrearFacturaDesdePresupuesto', id, { regenerarPdf: false })
-      .then((res) => {
-        const facturaId = res?.facturaId || '';
-        const pdfUrl = res?.pdfUrl || '';
-        const msg = res?.alreadyExisted ? `Factura existente: ${facturaId}` : `Factura creada: ${facturaId}`;
-        toast('Factura', msg, 'ok');
-        if (pdfUrl){
-          try { window.open(pdfUrl, '_blank'); } catch (_) {}
-        }
-      })
-      .catch((err) => toast('Error', err?.message || 'No se pudo crear la factura', 'error'));
-}
 
-return;
-  }
-  if (a === 'perder_proforma'){ toast('Listo', `Proforma ${id} marcada como perdida (mock)`, 'ok'); return; }
-  if (a === 'adjuntar_pdf'){ toast('Listo', `Adjuntar PDF a ${id} (mock)`, 'ok'); return; }
-  if (a === 'editar_gasto'){ toast('Editar', `Editar gasto ${id} (mock)`, 'info'); return; }
-  if (a === 'eliminar_gasto'){ toast('Eliminado', `Gasto ${id} eliminado (mock)`, 'ok'); return; }
+  if (a === 'marcar_pagada'){ toast('Listo', 'Factura ' + id + ' marcada como pagada (mock)', 'ok'); return; }
+  if (a === 'aceptar_proforma'){ toast('Listo', 'Proforma ' + id + ' aceptada (mock)', 'ok'); return; }
+  if (a === 'convertir_factura'){ toast('Listo', 'Convertir ' + id + ' a factura (mock)', 'ok'); return; }
+  if (a === 'perder_proforma'){ toast('Listo', 'Proforma ' + id + ' marcada como perdida (mock)', 'ok'); return; }
+  if (a === 'adjuntar_pdf'){ toast('Listo', 'Adjuntar PDF a ' + id + ' (mock)', 'ok'); return; }
+  if (a === 'editar_gasto'){ toast('Editar', 'Editar gasto ' + id + ' (mock)', 'info'); return; }
+  if (a === 'eliminar_gasto'){ toast('Eliminado', 'Gasto ' + id + ' eliminado (mock)', 'ok'); return; }
 
   // Volver a cliente (desde factura)
   if (a === 'volver_cliente'){
-    const cid = (dataset && dataset.clientid) ? dataset.clientid : state.detail.clientId;
+    const cid = (dataset && dataset.clientid) ? dataset.clientid : (state && state.detail ? state.detail.clientId : '');
     if (!cid){ toast('Cliente', 'No hay clientId', 'info'); return; }
     __setHashRoute__('clientes', cid);
     return;
   }
 
-  // Volver / cancelar / guardar form
+  // Volver / guardar form
   if (a === 'volver'){
-    // URL-first
-    if (state.lastScreen === 'screen-detalle' || state.lastScreen === 'screen-form'){
-      __setHashRoute__(state.currentEntity, null);
-    } else {
-      __setHashRoute__('home', null);
-    }
+    if (state.lastScreen === 'screen-detalle' || state.lastScreen === 'screen-form'){ __setHashRoute__(state.currentEntity, null); }
+    else { __setHashRoute__('home', null); }
     return;
   }
-
   if (a === 'guardar_form'){
     toast('Guardado', 'Mock: registro guardado', 'ok');
     showScreen('screen-home');
@@ -1524,54 +1449,33 @@ return;
     return;
   }
 
-  // fuente / pendientes etc
   if (a === 'ver_fuente'){
-    if (state.useMock){
-      toast('Fuente', 'Mock: abrir spreadsheet', 'info');
-      return;
-    }
-
+    if (state.useMock){ toast('Fuente', 'Mock: abrir spreadsheet', 'info'); return; }
     callServer('apiDbInfo')
       .then((res) => {
         const t = (res && res.targets) ? res.targets : {};
         const ssid = (res && res.spreadsheetId) ? res.spreadsheetId : '-';
-
         const f = t.FACTURA || {};
         const p = t.PRESUPUESTOS || {};
         const h = t.PRES_HIST || {};
         const g = t.GASTOS || {};
-
-        const filas = (x) => {
-          const lr = Number(x && x.lastRow ? x.lastRow : 0);
-          return Math.max(0, lr - 1); // descuenta headers
-        };
-
+        const filas = (x) => { const lr = Number(x && x.lastRow ? x.lastRow : 0); return Math.max(0, lr - 1); };
         const msg =
-          'SS: ' + ssid + '\n' +
-          'FACTURA: ' + (f.exists ? 'OK' : 'NO') + ' (' + filas(f) + ' filas)\n' +
-          'PRESUPUESTOS: ' + (p.exists ? 'OK' : 'NO') + ' (' + filas(p) + ' filas)\n' +
-          'HIST: ' + (h.exists ? 'OK' : 'NO') + ' (' + filas(h) + ' filas)\n' +
+          'SS: ' + ssid + '\\n' +
+          'FACTURA: ' + (f.exists ? 'OK' : 'NO') + ' (' + filas(f) + ' filas)\\n' +
+          'PRESUPUESTOS: ' + (p.exists ? 'OK' : 'NO') + ' (' + filas(p) + ' filas)\\n' +
+          'HIST: ' + (h.exists ? 'OK' : 'NO') + ' (' + filas(h) + ' filas)\\n' +
           'GASTOS: ' + (g.exists ? 'OK' : 'NO') + ' (' + filas(g) + ' filas)';
-
         toast('Fuente', msg, 'info');
       })
-      .catch((err) => {
-        toast('Fuente', (err && err.message) ? err.message : String(err), 'error');
-      });
-
+      .catch((err) => { toast('Fuente', (err && err.message) ? err.message : String(err), 'error'); });
     return;
   }
 
   if (a === 'ir_facturas_pendientes'){ goToList('facturas', null); return; }
 
-  // default
-  toast('Info', `Acción no implementada: ${action}`, 'info');
+  toast('Info', 'Acción no implementada: ' + action, 'info');
 }
-
-// =========================
-// Router por URL (hash)
-// #/facturas
-// #/proformas/PRO-2025-0019
 function __setHashRoute__(entity, id){
   try{
     const e = String(entity || '').trim();
@@ -1792,38 +1696,7 @@ function __installGlobalErrorCatcher_(){
   }catch(_){}
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  try{ __debugShow_('INIT', 'DOMContentLoaded fired · search=' + (location && location.search ? location.search : '')); catch(_){}
-    }
 
-  __debugShow_('ENV', JSON.stringify({
-    search: (location && location.search) ? location.search : '',
-    env: (typeof env !== 'undefined') ? env : null,
-    useMock: (typeof state !== 'undefined') ? state.useMock : null
-  }, null, 2));
-}
-
-  __debugShow_('ENV', JSON.stringify({
-    search: (location && location.search) ? location.search : '',
-    env: (typeof env !== 'undefined') ? env : null,
-    useMock: (typeof state !== 'undefined') ? state.useMock : null
-  }, null, 2));
-}
-
-  __installGlobalErrorCatcher_();
-
-  // mock/real (storage -> url -> force real)
-  try { loadMockPreference_(); } catch(e){ try{ toast('Init', 'loadMockPreference: ' + ((e&&e.message)?e.message:String(e)), 'error'); }catch(_){ } }
-  try { applyMockFromUrl_(); } catch(e){ try{ toast('Init', 'applyMockFromUrl: ' + ((e&&e.message)?e.message:String(e)), 'error'); }catch(_){ } }
-  try { __forceRealFromUrl_(); } catch(e){ try{ toast('Init', '__forceRealFromUrl: ' + ((e&&e.message)?e.message:String(e)), 'error'); }catch(_){ } }
-
-  // UI primero (blindado)
-  try { initNav(); } catch(e){ try{ toast('Init', 'initNav: ' + ((e&&e.message)?e.message:String(e)), 'error'); }catch(_){ } }
-  try { initListTabs(); } catch(e){ try{ toast('Init', 'initListTabs: ' + ((e&&e.message)?e.message:String(e)), 'error'); }catch(_){ } }
-  try { updateMockChip_(); } catch(e){}
-
-  // estado inicial
-  try { showScreen('screen-home'); } catch(e){}
 document.addEventListener('DOMContentLoaded', () => {
   // señal debug (no rompe si debug panel no existe)
   try{ __debugShow_('INIT', 'DOMContentLoaded fired · search=' + (location && location.search ? location.search : '')); }catch(_){ }
@@ -1863,5 +1736,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 </script>
+
 
 
