@@ -1,3 +1,4 @@
+﻿var __CC_PDF = (function(){
 const PRESUPUESTO_TEMPLATE_ID = CC_DEFAULT_IDS.PRESUPUESTO_TEMPLATE_ID;
 const FACTURA_TEMPLATE_ID = CC_DEFAULT_IDS.FACTURA_TEMPLATE_ID;
 const PRESUPUESTO_FOLDER_ID = CC_DEFAULT_IDS.PRESUPUESTOS_FOLDER_ID;
@@ -10,8 +11,7 @@ const PDF_PROP_FACT_TEMPLATE_ID = 'FACT_Template_DocId';
 
 const PDF_PRES_FOLDER_NAME = 'Costa Clean - Presupuestos PDF';
 const PDF_FACT_FOLDER_NAME = 'Costa Clean - Facturas PDF';
-
-function generatePresupuestoPdfById(presId) {
+function __genPresPdf(presId) {
   const lock = LockService.getDocumentLock();
   if (!lock.tryLock(30000)) throw new Error('No se pudo obtener el bloqueo para generar el PDF.');
 
@@ -134,8 +134,7 @@ function regenerarPdfPresupuesto_(presId) {
   if (!id) throw new Error('Pres_ID requerido');
   return generatePresupuestoPdfById(id);
 }
-
-function generateFacturaPdfById(factId) {
+function __genFactPdf(factId) {
   const lock = LockService.getDocumentLock();
   if (!lock.tryLock(30000)) throw new Error('No se pudo obtener el bloqueo para generar el PDF.');
 
@@ -629,4 +628,19 @@ function pdfCaseInsensitiveKeyPattern_(key) {
 
 function pdfEscapeRegex_(s) {
   return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+
+  return {
+    generatePresupuestoPdfById: __genPresPdf,
+    generateFacturaPdfById: __genFactPdf
+  };
+})();
+
+// Entry-points visibles (solo estos deben quedar como 'function' top-level)
+function generatePresupuestoPdfById(presId){
+  return __CC_PDF.generatePresupuestoPdfById(presId);
+}
+function generateFacturaPdfById(factId){
+  return __CC_PDF.generateFacturaPdfById(factId);
 }
