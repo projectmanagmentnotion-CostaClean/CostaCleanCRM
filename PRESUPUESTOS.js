@@ -56,7 +56,7 @@ const PRES_LINEAS_HIST_HEADERS = ['Pres_ID','Linea_n','Concepto','Cantidad','Pre
 /** =========================
  * MENÚ PRESUPUESTOS
  * ========================= */
-function menuPresupuestos_() {
+var menuPresupuestos_ = function() {
   SpreadsheetApp.getUi()
     .createMenu('Presupuestos')
     .addItem('➕ Crear presupuesto (nuevo)', 'crearPresupuesto')
@@ -80,7 +80,7 @@ function menuPresupuestos_() {
 /** =========================
  * UTIL: asegurar hojas / cabeceras / validaciones
  * ========================= */
-function presAsegurarEstructura_() {
+var presAsegurarEstructura_ = function() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
 
   // PRESUPUESTOS
@@ -108,7 +108,7 @@ function presAsegurarEstructura_() {
   presApplyValidations_();
 }
 
-function presAsegurarHeaders_(sh, headers) {
+var presAsegurarHeaders_ = function(sh, headers) {
   const first = sh.getRange(1,1,1,headers.length).getValues()[0];
   const empty = first.every(v => String(v || '').trim() === '');
   if (empty) {
@@ -120,7 +120,7 @@ function presAsegurarHeaders_(sh, headers) {
   }
 }
 
-function presAsegurarLeadColumns_(sh) {
+var presAsegurarLeadColumns_ = function(sh) {
   const leadHeaders = ['Tipo_destinatario','Lead_ID','Lead_RowKey','Lead_Nombre','Lead_Email','Lead_NIF','Lead_Telefono','Lead_Direccion'];
   const headers = presGetHeaders_(sh);
   const missing = leadHeaders.filter((h) => headers.indexOf(h) === -1);
@@ -131,7 +131,7 @@ function presAsegurarLeadColumns_(sh) {
   sh.getRange(1, lastCol + 1, 1, missing.length).setValues([missing]);
 }
 
-function presAsegurarValidacionEstado_(sh, col) {
+var presAsegurarValidacionEstado_ = function(sh, col) {
   const rule = SpreadsheetApp.newDataValidation()
     .requireValueInList(PRES_ESTADOS, true)
     .setAllowInvalid(true)
@@ -141,7 +141,7 @@ function presAsegurarValidacionEstado_(sh, col) {
   sh.getRange(2, col, Math.max(1, sh.getMaxRows()-1), 1).setDataValidation(rule);
 }
 
-function presApplyValidations_() {
+var presApplyValidations_ = function() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const shPres = ss.getSheetByName(SH_PRES);
   const shHist = ss.getSheetByName(SH_PRES_HIST);
@@ -177,7 +177,7 @@ function presApplyValidations_() {
   });
 }
 
-function presBuildValidationRuleFromSheet_(sheet, headerName) {
+var presBuildValidationRuleFromSheet_ = function(sheet, headerName) {
   if (!sheet) return null;
   const { map } = presGetHeaderMap_(sheet);
   const col = map[headerName] || 0;
@@ -190,17 +190,17 @@ function presBuildValidationRuleFromSheet_(sheet, headerName) {
     .build();
 }
 
-function setupValidationsPresupuestos() {
+var setupValidationsPresupuestos = function() {
   presAsegurarEstructura_();
   presApplyValidations_();
 }
 
-function presGetHeaders_(sh) {
+var presGetHeaders_ = function(sh) {
   const lastCol = Math.max(1, sh.getLastColumn());
   return sh.getRange(1, 1, 1, lastCol).getValues()[0].map(String);
 }
 
-function presGetHeaderMap_(sh) {
+var presGetHeaderMap_ = function(sh) {
   const headers = presGetHeaders_(sh);
   const map = {};
   headers.forEach((h, i) => {
@@ -209,7 +209,7 @@ function presGetHeaderMap_(sh) {
   return { headers, map };
 }
 
-function presBuildSheetCache_(sh, keyHeader, extraKeys) {
+var presBuildSheetCache_ = function(sh, keyHeader, extraKeys) {
   if (!sh) return { headers: [], headerMap: {}, byId: {}, extra: {} };
 
   const { headers, map } = presGetHeaderMap_(sh);
@@ -241,12 +241,12 @@ function presBuildSheetCache_(sh, keyHeader, extraKeys) {
   return { headers, headerMap: map, byId, extra };
 }
 
-function presBuildClientesCache_(ss) {
+var presBuildClientesCache_ = function(ss) {
   const shCli = ss.getSheetByName('CLIENTES');
   return presBuildSheetCache_(shCli, 'Cliente_ID', []);
 }
 
-function presBuildLeadsCache_(ss) {
+var presBuildLeadsCache_ = function(ss) {
   const shLeads = ss.getSheetByName('LEADS');
   const cache = presBuildSheetCache_(shLeads, 'Lead_ID', ['RowKey']);
   return {
@@ -257,7 +257,7 @@ function presBuildLeadsCache_(ss) {
   };
 }
 
-function presExtractClienteFromCache_(entry, headerMap) {
+var presExtractClienteFromCache_ = function(entry, headerMap) {
   if (!entry || !headerMap) return null;
   const row = entry.values;
   return {
@@ -272,7 +272,7 @@ function presExtractClienteFromCache_(entry, headerMap) {
   };
 }
 
-function presExtractLeadFromCache_(entry, headerMap) {
+var presExtractLeadFromCache_ = function(entry, headerMap) {
   if (!entry || !headerMap) return null;
   const row = entry.values;
   const get = (h, defIdx) => String(row[(headerMap[h] || defIdx) - 1] || '').trim();
@@ -291,7 +291,7 @@ function presExtractLeadFromCache_(entry, headerMap) {
   };
 }
 
-function presSetValuesByHeaders_(sh, row, headerMap, values) {
+var presSetValuesByHeaders_ = function(sh, row, headerMap, values) {
   if (!sh || !headerMap || !values) return;
   Object.keys(values).forEach((header) => {
     const col = headerMap[header];
@@ -300,7 +300,7 @@ function presSetValuesByHeaders_(sh, row, headerMap, values) {
   });
 }
 
-function presClearByHeaders_(sh, row, headerMap, headers) {
+var presClearByHeaders_ = function(sh, row, headerMap, headers) {
   if (!sh || !headerMap || !headers || !headers.length) return;
   headers.forEach((h) => {
     const col = headerMap[h];
@@ -309,11 +309,11 @@ function presClearByHeaders_(sh, row, headerMap, headers) {
   });
 }
 
-function presBuildRow_(headers, values) {
+var presBuildRow_ = function(headers, values) {
   return headers.map((h) => (Object.prototype.hasOwnProperty.call(values, h) ? values[h] : ''));
 }
 
-function presPickValue_(obj, candidates) {
+var presPickValue_ = function(obj, candidates) {
   if (!obj) return '';
   const keys = Object.keys(obj);
   for (let i = 0; i < candidates.length; i++) {
@@ -324,13 +324,13 @@ function presPickValue_(obj, candidates) {
   return '';
 }
 
-function presToDate_(v) {
+var presToDate_ = function(v) {
   if (v instanceof Date && !isNaN(v.getTime())) return v;
   const d = new Date(v);
   return isNaN(d.getTime()) ? null : d;
 }
 
-function presGetLeadSelection_(ss) {
+var presGetLeadSelection_ = function(ss) {
   const sh = ss.getActiveSheet();
   if (sh.getName() !== 'LEADS') return null;
   const row = ss.getActiveRange().getRow();
@@ -355,7 +355,7 @@ function presGetLeadSelection_(ss) {
   };
 }
 
-function presFindLeadRowByRowKey_(shLeads, rowKey) {
+var presFindLeadRowByRowKey_ = function(shLeads, rowKey) {
   const lastRow = shLeads.getLastRow();
   if (lastRow < 2) return 0;
 
@@ -368,7 +368,7 @@ function presFindLeadRowByRowKey_(shLeads, rowKey) {
   return 0;
 }
 
-function presFindLeadRowById_(shLeads, leadId) {
+var presFindLeadRowById_ = function(shLeads, leadId) {
   const lastRow = shLeads.getLastRow();
   if (lastRow < 2) return 0;
 
@@ -381,7 +381,7 @@ function presFindLeadRowById_(shLeads, leadId) {
   return 0;
 }
 
-function presGetLeadData_(shLeads, leadRow) {
+var presGetLeadData_ = function(shLeads, leadRow) {
   const data = shLeads.getRange(leadRow, 1, 1, 26).getValues()[0];
   return {
     leadId: String(data[0] || '').trim(),
@@ -399,7 +399,7 @@ function presGetLeadData_(shLeads, leadRow) {
 /** =========================
  * CONFIG (lee tu CONFIG por headers como ya tenías)
  * ========================= */
-function getCfg_(header) {
+var getCfg_ = function(header) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const cfg = ss.getSheetByName('CONFIG');
   if (!cfg) throw new Error('No existe hoja CONFIG');
@@ -411,12 +411,12 @@ function getCfg_(header) {
   return String(cfg.getRange(2, col).getDisplayValue()).trim();
 }
 
-function getCfgNum_(header, fallback) {
+var getCfgNum_ = function(header, fallback) {
   const v = Number(getCfg_(header).replace(',', '.'));
   return isNaN(v) ? fallback : v;
 }
 
-function getCfgOptional_(header) {
+var getCfgOptional_ = function(header) {
   try {
     return getCfg_(header);
   } catch (_) {
@@ -424,7 +424,7 @@ function getCfgOptional_(header) {
   }
 }
 
-function getCfgAny_(headers) {
+var getCfgAny_ = function(headers) {
   for (let i = 0; i < headers.length; i++) {
     const v = getCfgOptional_(headers[i]);
     if (String(v || '').trim()) return v;
@@ -432,7 +432,7 @@ function getCfgAny_(headers) {
   return '';
 }
 
-function getCfgFromSheet_(header) {
+var getCfgFromSheet_ = function(header) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const cfg = ss.getSheetByName('CONFIG');
   if (!cfg) return '';
@@ -443,7 +443,7 @@ function getCfgFromSheet_(header) {
   return String(cfg.getRange(2, col).getDisplayValue()).trim();
 }
 
-function setCfgValueIfSheet_(header, value) {
+var setCfgValueIfSheet_ = function(header, value) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const cfg = ss.getSheetByName('CONFIG');
   if (!cfg) return false;
@@ -461,7 +461,7 @@ function setCfgValueIfSheet_(header, value) {
   return true;
 }
 
-function presFindHeaderIndex_(headers, candidates) {
+var presFindHeaderIndex_ = function(headers, candidates) {
   const lower = (headers || []).map((h) => String(h || '').toLowerCase());
   for (let i = 0; i < candidates.length; i++) {
     const idx = lower.indexOf(String(candidates[i] || '').toLowerCase());
@@ -470,7 +470,7 @@ function presFindHeaderIndex_(headers, candidates) {
   return 0;
 }
 
-function presPickHeaderName_(headers, candidates) {
+var presPickHeaderName_ = function(headers, candidates) {
   const lower = (headers || []).map((h) => String(h || '').toLowerCase());
   for (let i = 0; i < candidates.length; i++) {
     const idx = lower.indexOf(String(candidates[i] || '').toLowerCase());
@@ -479,7 +479,7 @@ function presPickHeaderName_(headers, candidates) {
   return '';
 }
 
-function getPdfConfig_() {
+var getPdfConfig_ = function() {
   const props = PropertiesService.getScriptProperties();
   const folderId = getCfgAny_(['PRES_Pdf_Folder_Id']) || props.getProperty(PROP_PRES_PDF_FOLDER_ID) || '';
   const templateId = getCfgAny_(['PRES_Template_DocId']) || props.getProperty(PROP_PRES_TEMPLATE_ID) || CC_DEFAULT_IDS.PRESUPUESTO_TEMPLATE_ID || '';
@@ -488,7 +488,7 @@ function getPdfConfig_() {
   return { folderId: resolvedFolderId, templateId: templateId || '' };
 }
 
-function savePdfConfigIds_(folderId, templateId) {
+var savePdfConfigIds_ = function(folderId, templateId) {
   const props = PropertiesService.getScriptProperties();
   if (folderId) props.setProperty(PROP_PRES_PDF_FOLDER_ID, folderId);
   if (templateId) props.setProperty(PROP_PRES_TEMPLATE_ID, templateId);
@@ -497,7 +497,7 @@ function savePdfConfigIds_(folderId, templateId) {
   setCfgValueIfSheet_('PRES_Template_DocId', templateId || '');
 }
 
-function createDefaultPresTemplate_(folder) {
+var createDefaultPresTemplate_ = function(folder) {
   const doc = DocumentApp.create(DEFAULT_PRES_TEMPLATE_NAME);
   const body = doc.getBody();
 
@@ -529,7 +529,7 @@ function createDefaultPresTemplate_(folder) {
   return doc.getId();
 }
 
-function setupPdfSystem() {
+var setupPdfSystem = function() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const log = (resultado, mensaje, data) => {
     if (typeof logEvent_ === 'function') {
@@ -571,7 +571,7 @@ function setupPdfSystem() {
   }
 }
 
-function getConfigPres_() {
+var getConfigPres_ = function() {
   const validezRaw = getCfgAny_(['PRES_Validez_default']);
   const validezDefault = Number(String(validezRaw || '').replace(',', '.')) || 15;
   return {
@@ -582,7 +582,7 @@ function getConfigPres_() {
   };
 }
 
-function consumirSiguientePresId_() {
+var consumirSiguientePresId_ = function() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const cfg = ss.getSheetByName('CONFIG');
 
@@ -603,7 +603,7 @@ function consumirSiguientePresId_() {
 /** =========================
  * CREAR PRESUPUESTO
  * ========================= */
-function crearPresupuestoParaLead_(leadRowOrId) {
+var crearPresupuestoParaLead_ = function(leadRowOrId) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const shLeads = ss.getSheetByName('LEADS');
   if (!shLeads) throw new Error('No existe hoja LEADS');
@@ -758,7 +758,7 @@ function crearPresupuesto() {
 /** =========================
  * RESERVAR LÍNEAS (sin insertar filas)
  * ========================= */
-function reservarLineasPres_(presId, n) {
+var reservarLineasPres_ = function(presId, n) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sh = ss.getSheetByName(SH_PRES_LINEAS);
   if (!sh) throw new Error('No existe ' + SH_PRES_LINEAS);
@@ -797,7 +797,7 @@ function reservarLineasPres_(presId, n) {
 /** =========================
  * AUTORELLENO CLIENTE (cuando editas Cliente_ID en col F)
  * ========================= */
-function onEditPresupuestos_(e) {
+var onEditPresupuestos_ = function(e) {
   if (!e || !e.range) return;
 
   const sh = e.range.getSheet();
@@ -849,7 +849,7 @@ function onEditPresupuestos_(e) {
   }
 }
 
-function presHandleClienteSelection_(shPres, row, cliId, clientesCache, headerMapPres) {
+var presHandleClienteSelection_ = function(shPres, row, cliId, clientesCache, headerMapPres) {
   const targetHeaders = ['Cliente', 'Email_cliente', 'NIF', 'Direccion', 'CP', 'Ciudad'];
   const clearHeaders = targetHeaders.concat(['Tipo_destinatario']);
   const normalizedId = String(cliId || '').trim();
@@ -886,7 +886,7 @@ function presHandleClienteSelection_(shPres, row, cliId, clientesCache, headerMa
   }
 }
 
-function presHandleLeadSelection_(shPres, row, leadId, leadCache, clientesCache, headerMapPres) {
+var presHandleLeadSelection_ = function(shPres, row, leadId, leadCache, clientesCache, headerMapPres) {
   const leadFields = ['Lead_RowKey', 'Lead_Nombre', 'Lead_Email', 'Lead_NIF', 'Lead_Telefono', 'Lead_Direccion'];
   const normalizedId = String(leadId || '').trim();
 
@@ -944,7 +944,7 @@ function presHandleLeadSelection_(shPres, row, leadId, leadCache, clientesCache,
   }
 }
 
-function presHandleEstadoChange_(shPres, row, estadoRaw, headerMapPres, leadCache, clientesCache, e) {
+var presHandleEstadoChange_ = function(shPres, row, estadoRaw, headerMapPres, leadCache, clientesCache, e) {
   const estadoInput = String(estadoRaw || '').trim();
   const estadoUpper = estadoInput.toUpperCase();
 
@@ -967,7 +967,7 @@ function presHandleEstadoChange_(shPres, row, estadoRaw, headerMapPres, leadCach
   }
 }
 
-function presAutoConvertLeadOnAccept_(shPres, rowPres, leadCache, clientesCache) {
+var presAutoConvertLeadOnAccept_ = function(shPres, rowPres, leadCache, clientesCache) {
   const ss = shPres.getParent ? shPres.getParent() : SpreadsheetApp.getActiveSpreadsheet();
   const headerInfo = presGetHeaderMap_(shPres);
   const colTipo = headerInfo.map['Tipo_destinatario'];
@@ -1045,14 +1045,14 @@ function presAutoConvertLeadOnAccept_(shPres, rowPres, leadCache, clientesCache)
   }
 }
 
-function presGetClienteDataById_(ss, clienteId, clientesCache) {
+var presGetClienteDataById_ = function(ss, clienteId, clientesCache) {
   const cache = clientesCache || presBuildClientesCache_(ss);
   const entry = cache.byId[String(clienteId || '').trim()];
   if (!entry) return null;
   return presExtractClienteFromCache_(entry, cache.headerMap);
 }
 
-function presVincularPresupuestosPorLead_(ss, leadId, clienteId, clientesCache) {
+var presVincularPresupuestosPorLead_ = function(ss, leadId, clienteId, clientesCache) {
   if (!leadId || !clienteId) return 0;
   try {
     const shPres = ss.getSheetByName(SH_PRES);
@@ -1124,7 +1124,7 @@ function presVincularPresupuestosPorLead_(ss, leadId, clienteId, clientesCache) 
   }
 }
 
-function rellenarClienteEnPresupuesto_(shPres, rowPres, cliId, clientesCache) {
+var rellenarClienteEnPresupuesto_ = function(shPres, rowPres, cliId, clientesCache) {
   const ss = shPres.getParent ? shPres.getParent() : SpreadsheetApp.getActiveSpreadsheet();
   const cache = clientesCache || presBuildClientesCache_(ss);
   const headerInfo = presGetHeaderMap_(shPres);
@@ -1155,7 +1155,7 @@ function rellenarClienteEnPresupuesto_(shPres, rowPres, cliId, clientesCache) {
 /** =========================
  * UI: obtener fila seleccionada (PRESUPUESTOS o HISTORIAL)
  * ========================= */
-function presGetSelectedRow_(sheetName) {
+var presGetSelectedRow_ = function(sheetName) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sh = ss.getActiveSheet();
   if (sh.getName() !== sheetName) throw new Error('Ve a la hoja ' + sheetName + ' y selecciona una celda de su fila.');
@@ -1164,7 +1164,7 @@ function presGetSelectedRow_(sheetName) {
   return { ss, sh, row };
 }
 
-function presGetRowData_(sh, row) {
+var presGetRowData_ = function(sh, row) {
   // lee A..U (21)
   const vals = sh.getRange(row, 1, 1, 21).getValues()[0];
   const obj = {};
@@ -1172,7 +1172,7 @@ function presGetRowData_(sh, row) {
   return obj;
 }
 
-function presFindPresRow_(shPres, presId) {
+var presFindPresRow_ = function(shPres, presId) {
   const headerInfo = presGetHeaderMap_(shPres);
   const idHeader = presPickHeaderName_(headerInfo.headers, ['Pres_ID']);
   if (!idHeader) throw new Error('No existe columna Pres_ID en ' + shPres.getName());
@@ -1192,7 +1192,7 @@ function presFindPresRow_(shPres, presId) {
   throw new Error('No existe Pres_ID: ' + presId);
 }
 
-function presReadLineasPorPresId_(shLin, presId) {
+var presReadLineasPorPresId_ = function(shLin, presId) {
   const { headers, map } = presGetHeaderMap_(shLin);
   const idHeader = presPickHeaderName_(headers, ['Pres_ID']);
   if (!idHeader) throw new Error('No existe columna Pres_ID en ' + shLin.getName());
@@ -1214,7 +1214,7 @@ function presReadLineasPorPresId_(shLin, presId) {
   return { headers, lineas };
 }
 
-function presInsertLineasTable_(doc, lineas) {
+var presInsertLineasTable_ = function(doc, lineas) {
   const tokens = ['LINEA_CONCEPTO', 'LINEA_CANTIDAD', 'LINEA_PRECIO', 'LINEA_SUBTOTAL'];
   const body = doc.getBody();
   if (!body) throw new Error('Documento sin body.');
@@ -1257,7 +1257,7 @@ function presInsertLineasTable_(doc, lineas) {
   });
 }
 
-function presReplaceTokensInRow_(row, map) {
+var presReplaceTokensInRow_ = function(row, map) {
   const cells = row.getNumCells();
   for (let c = 0; c < cells; c++) {
     const cell = row.getCell(c);
@@ -1269,13 +1269,13 @@ function presReplaceTokensInRow_(row, map) {
   }
 }
 
-function presMoney2_(n) {
+var presMoney2_ = function(n) {
   const num = Number(String(n).replace(',', '.'));
   if (isNaN(num)) return '';
   return Utilities.formatString('%.2f', num).replace('.', ',');
 }
 
-function presFormatCantidad_(value) {
+var presFormatCantidad_ = function(value) {
   if (value === null || value === undefined || value === '') return '';
   const raw = String(value).replace(',', '.');
   const num = Number(raw);
@@ -1301,7 +1301,7 @@ function uiGenerarPdfPresupuesto() {
 /** =========================
  * NOMBRE SEGURO
  * ========================= */
-function sanitizeFileName_(name) {
+var sanitizeFileName_ = function(name) {
   return String(name || '')
     .replace(/[\\\/:*?"<>|#]+/g, ' ')
     .replace(/\s+/g, ' ')
@@ -1312,7 +1312,7 @@ function sanitizeFileName_(name) {
 /** =========================
  * EMISOR desde hoja FACTURA (mismo origen de tu sistema de facturas)
  * ========================= */
-function getEmisorDesdeFactura_() {
+var getEmisorDesdeFactura_ = function() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sh = ss.getSheetByName('FACTURA');
   if (!sh) return { nombre:'', nif:'', direccion:'', cp:'', ciudad:'' };
@@ -1329,7 +1329,7 @@ function getEmisorDesdeFactura_() {
 /** =========================
  * REPLACE TOKENS (body + header + footer si existen)
  * ========================= */
-function replaceTokensEverywhere_(doc, map) {
+var replaceTokensEverywhere_ = function(doc, map) {
   const containers = [];
   const body = doc.getBody();
   if (body) containers.push(body);
@@ -1349,11 +1349,11 @@ function replaceTokensEverywhere_(doc, map) {
   });
 }
 
-function presBuildTokenPattern_(key) {
+var presBuildTokenPattern_ = function(key) {
   return `\\{\\{\\s*${presCaseInsensitiveKeyPattern_(key)}\\s*\\}\\}`;
 }
 
-function presCaseInsensitiveKeyPattern_(key) {
+var presCaseInsensitiveKeyPattern_ = function(key) {
   const raw = String(key || '');
   let out = '';
   for (let i = 0; i < raw.length; i++) {
@@ -1369,14 +1369,14 @@ function presCaseInsensitiveKeyPattern_(key) {
   return out;
 }
 
-function escapeRegex_(s) {
+var escapeRegex_ = function(s) {
   return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 /** =========================
  * ARCHIVAR LÍNEAS: PRES_LINEAS -> LINEAS_PRES_HIST + limpiar
  * ========================= */
-function archivarYLimpiarLineasPres_(presId) {
+var archivarYLimpiarLineasPres_ = function(presId) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const shLin = ss.getSheetByName(SH_PRES_LINEAS);
   const hist = ss.getSheetByName(SH_PRES_LINEAS_HIS);
@@ -1417,7 +1417,7 @@ function archivarYLimpiarLineasPres_(presId) {
  * ARCHIVAR PRESUPUESTO: PRESUPUESTOS -> HISTORIAL_PRESUPUESTOS
  * (no borra tu fila si no quieres; la marcamos como Archivado y set Archivado_el)
  * ========================= */
-function archivarPresupuestoEnHistorial_(presId, pdfUrl) {
+var archivarPresupuestoEnHistorial_ = function(presId, pdfUrl) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sh = ss.getSheetByName(SH_PRES);
   const hist = ss.getSheetByName(SH_PRES_HIST);
@@ -1461,7 +1461,7 @@ function archivarPresupuestoEnHistorial_(presId, pdfUrl) {
  * GENERAR PDF (principal)
  * options: { archivar: true|false }
  * ========================= */
-function generarPDFPresupuesto(presId, options) {
+var generarPDFPresupuesto = function(presId, options) {
   presAsegurarEstructura_();
   const opts = options || {};
   const archivar = opts.archivar !== false;
@@ -1615,7 +1615,7 @@ function generarPDFPresupuesto(presId, options) {
 /** =========================
  * UI: estados rápidos
  * ========================= */
-function presGetSelectedRowAny_(allowedSheets) {
+var presGetSelectedRowAny_ = function(allowedSheets) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sh = ss.getActiveSheet();
   const name = sh.getName();
@@ -1656,7 +1656,7 @@ function uiMarcarPresupuestoAceptado() {
   SpreadsheetApp.getUi().alert('✅ Marcado como ACEPTADO.');
 }
 
-function uiMarcarPresupuestoRechazado() {
+var uiMarcarPresupuestoRechazado = function() {
   return uiMarcarPresupuestoPerdido();
 }
 
@@ -1773,7 +1773,7 @@ function uiWhatsAppPresupuesto() {
   sh.getRange(row, 19).setValue(new Date());
 }
 
-function escapeHtml_(s) {
+var escapeHtml_ = function(s) {
   return String(s || '')
     .replace(/&/g, '&amp;').replace(/</g, '&lt;')
     .replace(/>/g, '&gt;').replace(/"/g, '&quot;')
@@ -1785,7 +1785,7 @@ function escapeHtml_(s) {
  * SOLUCIONA tu error: ya NO busca en PRES_LINEAS,
  * usa LINEAS_PRES_HIST.
  * ========================= */
-function uiConvertirPresupuestoAFactura() {
+var uiConvertirPresupuestoAFactura = function() {
   presAsegurarEstructura_();
 
   const { ss, sh, row } = presGetSelectedRow_(SH_PRES_HIST);
@@ -1812,7 +1812,7 @@ function uiConvertirPresupuestoAFactura() {
   SpreadsheetApp.getUi().alert('✅ Convertido a factura: ' + facturaId);
 }
 
-function convertirPresupuestoAFactura_(presObj) {
+var convertirPresupuestoAFactura_ = function(presObj) {
   // Requiere tus hojas FACTURA y LINEAS + tu workflowGenerarFactura funcionando
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const shFactura = ss.getSheetByName('FACTURA');
@@ -1889,7 +1889,7 @@ function convertirPresupuestoAFactura_(presObj) {
   return numeroFactura;
 }
 
-function findNextFreeRow_(sh, startRow, cols) {
+var findNextFreeRow_ = function(sh, startRow, cols) {
   const lastRow = Math.max(sh.getLastRow(), startRow);
   let nextRow = startRow;
 
@@ -2004,7 +2004,7 @@ Estilo: castellano Barcelona, profesional, persuasivo sin agresividad, claro, co
  * Llamada a OpenAI Responses API (/v1/responses)
  * Docs: https://api.openai.com/v1/responses  (según OpenAI) :contentReference[oaicite:1]{index=1}
  */
-function openaiResponsesText_(inputText) {
+var openaiResponsesText_ = function(inputText) {
   const key = PropertiesService.getScriptProperties().getProperty(PROP_OPENAI_KEY);
   if (!key) throw new Error('No hay API Key. Menú Presupuestos → 🧠 AI: Configurar API Key');
 
@@ -2086,7 +2086,7 @@ return text || '(Sin texto devuelto por el modelo)';
 }
 
 
-function aiLog_(accion, presId, resultado, error, payloadResumen) {
+var aiLog_ = function(accion, presId, resultado, error, payloadResumen) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sh = ss.getSheetByName(SH_AI_LOG);
   if (!sh) {
@@ -2133,7 +2133,7 @@ const FORM_MAP = {
 /**
  * Trigger instalado: From spreadsheet -> On form submit
  */
-function onFormSubmitPresupuesto(e)
+var onFormSubmitPresupuesto = function(e)
  {
   try {
     presAsegurarEstructura_();
@@ -2198,7 +2198,7 @@ function onFormSubmitPresupuesto(e)
  * Convierte el event e a objeto {Header: Value}
  * Funciona tanto con e.namedValues como con e.values.
  */
-function formEventToObject_(e) {
+var formEventToObject_ = function(e) {
   if (e && e.namedValues) {
     const out = {};
     Object.keys(e.namedValues).forEach(k => out[k] = e.namedValues[k][0]);
@@ -2219,7 +2219,7 @@ function formEventToObject_(e) {
  * Crea líneas automáticas en PRES_LINEAS para ese Pres_ID
  * Ajusta esta lógica a tus servicios reales.
  */
-function crearLineasDesdeForm_(presId, obj) {
+var crearLineasDesdeForm_ = function(presId, obj) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const shLin = ss.getSheetByName(SH_PRES_LINEAS);
   if (!shLin) throw new Error('No existe ' + SH_PRES_LINEAS);
@@ -2265,5 +2265,6 @@ function crearLineasDesdeForm_(presId, obj) {
     // shLin.getRange(r, 5).setValue(lineas[i].precio);
   }
 }
+
 
 
