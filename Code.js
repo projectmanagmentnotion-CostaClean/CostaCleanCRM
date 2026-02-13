@@ -16,7 +16,7 @@
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 // ✅ necesario para incluir styles.html dentro de app.html
-function include(filename) {
+var include = function(filename) {
   return HtmlService.createHtmlOutputFromFile(filename).getContent();
 }
 
@@ -28,5 +28,6 @@ function include(filename) {
 function onOpenRouter_(){
   console.log('onOpenRouter_ STUB called');
 }
+
 
 
