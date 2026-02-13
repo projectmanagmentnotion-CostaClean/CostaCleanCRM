@@ -410,7 +410,7 @@ function apiGeneratePresupuestoPdf(presId) {
   }
 }
 
-function apiGenerateFacturaPdf(factId) {
+var apiGenerateFacturaPdf = function(factId) {
   const ss = _ss_();
   const id = String(factId || '').trim();
   if (!id) throw new Error('Factura_ID requerido');
@@ -425,7 +425,7 @@ function apiGenerateFacturaPdf(factId) {
   }
 }
 
-function apiCrearFacturaDesdePresupuesto(presId, options) {
+var apiCrearFacturaDesdePresupuesto = function(presId, options) {
   const ss = _ss_();
   const id = String(presId || '').trim();
   if (!id) throw new Error('Pres_ID requerido');
@@ -479,7 +479,7 @@ function apiListLeads(params) {
 }
 
 /** ========= CREATE / UPDATE ========= **/
-function apiCreate(entity, payload) {
+var apiCreate = function(entity, payload) {
   setupSheetsIfMissing_();
   const map = _entityMap_();
   const cfg = map[entity];
@@ -494,7 +494,7 @@ function apiCreate(entity, payload) {
   throw new Error('Create no implementado para: ' + entity);
 }
 
-function apiCrearPresupuestoLead(leadId) {
+var apiCrearPresupuestoLead = function(leadId) {
   const id = String(leadId || '').trim();
   if (!id) throw new Error('Lead_ID requerido');
   if (typeof crearPresupuestoParaLead_ !== 'function') {
@@ -537,7 +537,7 @@ function apiLeadMarcarGanado(leadId){
 
 
 
-function apiUpdate(entity, id, payload) {
+var apiUpdate = function(entity, id, payload) {
   const map = _entityMap_();
   const cfg = map[entity];
   if (!cfg) throw new Error('Entidad no soportada: ' + entity);
@@ -559,7 +559,7 @@ function apiUpdate(entity, id, payload) {
 }
 
 /** ========= ACTIONS (PDF / EMAIL / PAGADA / CONVERTIR) ========= **/
-function apiAction(entity, id, action, payload) {
+var apiAction = function(entity, id, action, payload) {
   if (entity === 'facturas') {
     if (action === 'markPaid') return _markFacturaPagada_(id, payload);
     if (action === 'pdf') return _pdfFactura_(id);          // placeholder
@@ -577,7 +577,7 @@ function apiAction(entity, id, action, payload) {
 }
 
 /** ========= CIERRE TRIMESTRAL ========= **/
-function apiCloseQuarter(payload) {
+var apiCloseQuarter = function(payload) {
   setupSheetsIfMissing_();
 
   const now = new Date();
@@ -933,7 +933,7 @@ var _getPresupuestoLineas_ = function(presId) {
 }
 
 
-function apiPresupuestosDebug() {
+var apiPresupuestosDebug = function() {
   const ss = _ss_();
   const pres = _getSheetIfExists_(CC_SHEETS.PRESUPUESTOS);
   const hist = _getSheetIfExists_(CC_SHEETS.PRES_HIST);
@@ -1278,6 +1278,7 @@ function apiDbInfo(){
 
   return out;
 }
+
 
 
 
