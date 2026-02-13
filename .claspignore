@@ -10,3 +10,7 @@ _tmp*
 *.bak.*
 patch-*.ps1
 tools/**
+
+# ---- dev only ----
+dev/**
+
