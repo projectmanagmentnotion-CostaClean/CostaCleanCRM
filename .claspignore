@@ -14,3 +14,9 @@ tools/**
 # ---- dev only ----
 dev/**
 
+
+creds.json
+
+_params.json
+
+.clasp.json
