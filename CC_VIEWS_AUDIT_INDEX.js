@@ -15,7 +15,7 @@ const CC_INDEX_KEY = 'cc_index_v1';
 const CC_VIEWS_DIRTY_KEY = 'cc_views_dirty';
 const CC_VIEWS_LAST_BUILD_KEY = 'cc_views_last_build';
 
-function ccSetupWebAppLayer_() {
+const ccSetupWebAppLayer_ = function() {
   ccEnsureViews_(true);
   ccBuildIndex_();
   if (typeof setupValidationsPresupuestos === 'function') setupValidationsPresupuestos();
@@ -28,7 +28,7 @@ function ccSetupAndAudit() {
   return runSpreadsheetAudit();
 }
 
-function ccEnsureViews_(force) {
+const ccEnsureViews_ = function(force) {
   const props = PropertiesService.getScriptProperties();
   const dirty = props.getProperty(CC_VIEWS_DIRTY_KEY) === '1';
   const lastBuild = props.getProperty(CC_VIEWS_LAST_BUILD_KEY);
@@ -64,15 +64,15 @@ try {
   return true;
 }
 
-function ccMarkViewsDirty_() {
+const ccMarkViewsDirty_ = function() {
   PropertiesService.getScriptProperties().setProperty(CC_VIEWS_DIRTY_KEY, '1');
 }
 
-function ccInvalidateIndex_() {
+const ccInvalidateIndex_ = function() {
   CacheService.getScriptCache().remove(CC_INDEX_KEY);
 }
 
-function ccBuildIndex_() {
+const ccBuildIndex_ = function() {
   const lock = LockService.getDocumentLock();
   if (!lock.tryLock(15000)) return null;
   try {
@@ -117,7 +117,7 @@ function ccBuildIndex_() {
   }
 }
 
-function ccGetIndex_() {
+const ccGetIndex_ = function() {
   const cache = CacheService.getScriptCache();
   const raw = cache.get(CC_INDEX_KEY);
   if (raw) {
@@ -126,7 +126,7 @@ function ccGetIndex_() {
   return ccBuildIndex_();
 }
 
-function ccNormalizeEstadoOnEdit_(e) {
+const ccNormalizeEstadoOnEdit_ = function(e) {
   if (!e || !e.range) return;
   const sh = e.range.getSheet();
   const row = e.range.getRow();
@@ -154,7 +154,7 @@ function ccNormalizeEstadoOnEdit_(e) {
   }
 }
 
-function ccBuildViews_() {
+const ccBuildViews_ = function() {
   const ss = (typeof _ss_ === 'function') ? _ss_() : SpreadsheetApp.getActiveSpreadsheet();
 
   ccBuildClientesView_(ss);
@@ -166,7 +166,7 @@ function ccBuildViews_() {
   return true;
 }
 
-function ccBuildClientesView_(ss) {
+const ccBuildClientesView_ = function(ss) {
   const source = ss.getSheetByName('CLIENTES');
   const view = ccGetSheet_(CC_VIEW_NAMES.CLIENTES, true);
   const headers = [
@@ -203,7 +203,7 @@ function ccBuildClientesView_(ss) {
   ccWriteView_(view, headers, rows);
 }
 
-function ccBuildLeadsView_(ss) {
+const ccBuildLeadsView_ = function(ss) {
   const source = ss.getSheetByName('LEADS');
   const view = ccGetSheet_(CC_VIEW_NAMES.LEADS, true);
   const headers = [
@@ -242,7 +242,7 @@ function ccBuildLeadsView_(ss) {
   ccWriteView_(view, headers, rows);
 }
 
-function ccBuildPresupuestosView_(ss) {
+const ccBuildPresupuestosView_ = function(ss) {
   const shPres = ss.getSheetByName('PRESUPUESTOS');
   const shHist = ss.getSheetByName('HISTORIAL_PRESUPUESTOS');
   const view = ccGetSheet_(CC_VIEW_NAMES.PRESUPUESTOS, true);
@@ -300,7 +300,7 @@ function ccBuildPresupuestosView_(ss) {
   }
 }
 
-function ccBuildFacturasView_(ss) {
+const ccBuildFacturasView_ = function(ss) {
   // SOURCE OF TRUTH (reales): HISTORIAL (segun tu captura)
   // Fallbacks: FACTURAS / FACTURA (por compatibilidad)
   const shFact =
@@ -376,7 +376,7 @@ function ccBuildFacturasView_(ss) {
   }
 }
 
-function ccBuildGastosView_(ss) {
+const ccBuildGastosView_ = function(ss) {
   const sh = ss.getSheetByName('GASTOS');
   const view = ccGetSheet_(CC_VIEW_NAMES.GASTOS, true);
 
@@ -411,7 +411,7 @@ function ccBuildGastosView_(ss) {
   }
 }
 
-function ccMergePresupuestoSources_(shPres, shHist) {
+const ccMergePresupuestoSources_ = function(shPres, shHist) {
   const presData = shPres ? ccGetSheetData_(shPres) : { headers: [], rows: [] };
   const histData = shHist ? ccGetSheetData_(shHist) : { headers: [], rows: [] };
   if (!presData.rows.length) return histData;
@@ -434,7 +434,7 @@ function ccMergePresupuestoSources_(shPres, shHist) {
   return { headers: presData.headers, rows: mergedRows };
 }
 
-function ccWriteView_(sh, headers, rows) {
+const ccWriteView_ = function(sh, headers, rows) {
   if (!sh) return;
   sh.clearContents();
   if (headers && headers.length) {
@@ -491,7 +491,7 @@ function runSpreadsheetAudit() {
   return { ok: true, rows: rows.length };
 }
 
-function ccAuditRelationships_(ss, add) {
+const ccAuditRelationships_ = function(ss, add) {
   const presIds = ccCollectIds_(ss, ['PRESUPUESTOS', 'HISTORIAL_PRESUPUESTOS'], 'Pres_ID');
   const factIds = ccCollectIds_(ss, ['HISTORIAL','FACTURAS','FACTURA'], 'Factura_ID');
 
@@ -510,7 +510,7 @@ function ccAuditRelationships_(ss, add) {
   }
 }
 
-function ccAuditEstados_(ss, add) {
+const ccAuditEstados_ = function(ss, add) {
   ccAuditEstadoSheet_(ss, 'PRESUPUESTOS', CC_PRES_ESTADOS, ['Fecha_envio','Fecha_aceptacion'], add);
   ccAuditEstadoSheet_(ss, 'HISTORIAL_PRESUPUESTOS', CC_PRES_ESTADOS, ['Fecha_envio','Fecha_aceptacion'], add);
   ccAuditEstadoSheet_(ss, 'FACTURAS', CC_FACT_ESTADOS, ['Fecha_envio','Fecha_pago'], add);
@@ -518,7 +518,7 @@ function ccAuditEstados_(ss, add) {
   ccAuditEstadoSheet_(ss, 'LEADS', CC_LEAD_ESTADOS, [], add);
 }
 
-function ccAuditEstadoSheet_(ss, sheetName, allowed, dateFields, add) {
+const ccAuditEstadoSheet_ = function(ss, sheetName, allowed, dateFields, add) {
   const sh = ss.getSheetByName(sheetName);
   if (!sh) return;
   const data = ccGetSheetData_(sh);
@@ -558,7 +558,7 @@ function ccAuditEstadoSheet_(ss, sheetName, allowed, dateFields, add) {
   });
 }
 
-function ccAuditPdfLinks_(ss, add) {
+const ccAuditPdfLinks_ = function(ss, add) {
   const check = (sheetName, estados) => {
     const sh = ss.getSheetByName(sheetName);
     if (!sh) return;
@@ -583,7 +583,7 @@ function ccAuditPdfLinks_(ss, add) {
   check('FACTURA', ['EMITIDA','ENVIADA','PAGADA']);
 }
 
-function ccWriteAudit_(ss, rows) {
+const ccWriteAudit_ = function(ss, rows) {
   const sh = ss.getSheetByName('AI_AUDIT') || ss.getSheetByName('AI_LOG') || ss.insertSheet('AI_AUDIT');
   const headers = ['Timestamp','Section','Sheet','Issue','Details'];
 
@@ -597,20 +597,20 @@ function ccWriteAudit_(ss, rows) {
   }
 }
 
-function ccGetSheet_(name, createIfMissing) {
+const ccGetSheet_ = function(name, createIfMissing) {
   const ss = (typeof _ss_ === 'function') ? _ss_() : SpreadsheetApp.getActiveSpreadsheet();
   let sh = ss.getSheetByName(name);
   if (!sh && createIfMissing) sh = ss.insertSheet(name);
   return sh;
 }
 
-function ccGetHeaders_(sh) {
+const ccGetHeaders_ = function(sh) {
   const lastCol = sh.getLastColumn();
   if (lastCol < 1) return [];
   return sh.getRange(1, 1, 1, lastCol).getValues()[0].map(String);
 }
 
-function ccGetSheetData_(sh) {
+const ccGetSheetData_ = function(sh) {
   const lastRow = sh.getLastRow();
   const lastCol = sh.getLastColumn();
   if (lastRow < 1 || lastCol < 1) return { headerRow: 1, headers: [], rows: [] };
@@ -668,7 +668,7 @@ function ccGetSheetData_(sh) {
   return { headerRow, headers, rows };
 }
 
-function ccFindEmptyColumns_(data) {
+const ccFindEmptyColumns_ = function(data) {
   const empty = [];
   data.headers.forEach((h) => {
     const has = data.rows.some(r => String(r[h] || '').trim() !== '');
@@ -677,7 +677,7 @@ function ccFindEmptyColumns_(data) {
   return empty;
 }
 
-function ccDetectColumnTypes_(data) {
+const ccDetectColumnTypes_ = function(data) {
   const out = {};
   data.headers.forEach((h) => {
     let date = 0;
@@ -699,7 +699,7 @@ function ccDetectColumnTypes_(data) {
   return out;
 }
 
-function ccDetectDuplicates_(data, header) {
+const ccDetectDuplicates_ = function(data, header) {
   const key = ccFindHeader_(data.headers, [header]);
   if (!key) return { count: 0, values: [] };
 
@@ -715,7 +715,7 @@ function ccDetectDuplicates_(data, header) {
   return { count: values.length, values };
 }
 
-function ccCollectIds_(ss, sheetNames, header, returnArray) {
+const ccCollectIds_ = function(ss, sheetNames, header, returnArray) {
   const set = new Set();
   const arr = [];
   sheetNames.forEach((name) => {
@@ -734,7 +734,7 @@ function ccCollectIds_(ss, sheetNames, header, returnArray) {
   return returnArray ? arr : set;
 }
 
-function ccFindHeader_(headers, candidates) {
+const ccFindHeader_ = function(headers, candidates) {
   const map = {};
   headers.forEach((h) => {
     const k = ccNormalizeKey_(h);
@@ -747,7 +747,7 @@ function ccFindHeader_(headers, candidates) {
   return '';
 }
 
-function ccPick_(row, headers, candidates) {
+const ccPick_ = function(row, headers, candidates) {
   for (let i = 0; i < candidates.length; i++) {
     const direct = row[candidates[i]];
     if (direct !== undefined && direct !== null && String(direct).trim() !== '') return direct;
@@ -759,7 +759,7 @@ function ccPick_(row, headers, candidates) {
   return '';
 }
 
-function ccNormalizeKey_(value) {
+const ccNormalizeKey_ = function(value) {
   return String(value || '')
     .toLowerCase()
     .normalize('NFD')
@@ -767,24 +767,24 @@ function ccNormalizeKey_(value) {
     .replace(/[^a-z0-9]+/g, '');
 }
 
-function ccNormalizeEstado_(value) {
+const ccNormalizeEstado_ = function(value) {
   return String(value || '').trim().toUpperCase();
 }
 
-function ccFormatDateIso_(value) {
+const ccFormatDateIso_ = function(value) {
   const d = ccParseDate_(value);
   if (!d) return '';
   return Utilities.formatDate(d, Session.getScriptTimeZone(), 'yyyy-MM-dd');
 }
 
-function ccParseDate_(value) {
+const ccParseDate_ = function(value) {
   if (value instanceof Date && !isNaN(value.getTime())) return value;
   if (!value) return null;
   const d = new Date(value);
   return isNaN(d.getTime()) ? null : d;
 }
 
-function ccLatestDate_(values) {
+const ccLatestDate_ = function(values) {
   const dates = (values || [])
     .map(v => ccParseDate_(v))
     .filter(d => d);
@@ -793,12 +793,12 @@ function ccLatestDate_(values) {
   return dates[0];
 }
 
-function ccToNumber_(value) {
+const ccToNumber_ = function(value) {
   const n = Number(value);
   return isNaN(n) ? null : n;
 }
 
-function ccBuildSearchText_(parts) {
+const ccBuildSearchText_ = function(parts) {
   return (parts || [])
     .map(p => String(p || '').trim())
     .filter(Boolean)
@@ -817,5 +817,6 @@ function ccRebuildViews() {
   // fuerza rebuild completo
   return ccEnsureViews_(true);
 }
+
 
 
