@@ -5,18 +5,12 @@ _tmp*
 *.backup.*
 # ---- do not push to Apps Script ----
 _archive/**
-_diagnostics/**
-_tmp*
 *.bak.*
 patch-*.ps1
 tools/**
 
 # ---- dev only ----
 dev/**
-
-
 creds.json
-
 _params.json
-
 .clasp.json
