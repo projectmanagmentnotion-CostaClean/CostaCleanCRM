@@ -1,4 +1,5 @@
-﻿const SH_FACTURAS = 'FACTURAS';
+﻿var __CC_FACT = (function(){
+const SH_FACTURAS = 'FACTURAS';
 const SH_FACT_LINEAS = 'FACT_LINEAS';
 
 const FACT_HEADERS = [
@@ -613,4 +614,24 @@ function seedInsertPresLineas_(shLineas, presId, lineas) {
     shLineas.getRange(start, 1, rows.length, headerInfo.headers.length).setValues(rows);
   }
 }
+
+
+
+  return {
+    createFacturaDesdePresupuesto_: createFacturaDesdePresupuesto_,
+    factApplyValidations_: factApplyValidations_,
+    uiCrearFacturaDesdePresupuestoActivo_: uiCrearFacturaDesdePresupuestoActivo_,
+    uiGenerarPdfPresupuestoActivo_: uiGenerarPdfPresupuestoActivo_,
+    uiGenerarPdfFacturaActiva_: uiGenerarPdfFacturaActiva_,
+    seedSampleData_: seedSampleData_
+  };
+})();
+
+// Entry-points visibles (solo estos deben quedar como 'function' top-level)
+function createFacturaDesdePresupuesto_(presId, options){ return __CC_FACT.createFacturaDesdePresupuesto_(presId, options); }
+function factApplyValidations_(){ return __CC_FACT.factApplyValidations_(); }
+function uiCrearFacturaDesdePresupuestoActivo_(){ return __CC_FACT.uiCrearFacturaDesdePresupuestoActivo_(); }
+function uiGenerarPdfPresupuestoActivo_(){ return __CC_FACT.uiGenerarPdfPresupuestoActivo_(); }
+function uiGenerarPdfFacturaActiva_(){ return __CC_FACT.uiGenerarPdfFacturaActiva_(); }
+function seedSampleData_(){ return __CC_FACT.seedSampleData_(); }
 
