@@ -1,4 +1,4 @@
-function logEvent_(ss, modulo, accion, entidad, id, resultado, mensaje, data) {
+﻿var logEvent_ = function(ss, modulo, accion, entidad, id, resultado, mensaje, data) {
   try {
     if (!ss) return;
     const sheetName = 'LOG';
@@ -34,3 +34,4 @@ function logEvent_(ss, modulo, accion, entidad, id, resultado, mensaje, data) {
     console.error('logEvent_ error', err);
   }
 }
+
