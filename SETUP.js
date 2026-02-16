@@ -1,3 +1,4 @@
+﻿var __CC_SETUP = (function(){
 function setupAll() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const log = (accion, resultado, mensaje, data) => {
@@ -189,4 +190,14 @@ function installTriggers_(ss) {
 
 
 
+
+
+
+  return {
+    setupAll: setupAll
+  };
+})();
+
+// Entry-point visible (solo este debe quedar como 'function' top-level)
+function setupAll(){ return __CC_SETUP.setupAll(); }
 
