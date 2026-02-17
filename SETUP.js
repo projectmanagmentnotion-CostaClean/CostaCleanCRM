@@ -1,5 +1,5 @@
 ﻿var __CC_SETUP = (function(){
-function setupAll() {
+var setupAll_ = function() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const log = (accion, resultado, mensaje, data) => {
     if (typeof logEvent_ === 'function') {
@@ -79,18 +79,15 @@ function setupAll() {
     throw err;
   }
 }
-
-function setupAll_() {
-  return setupAll();
+var setupAll__legacy_ = function() {
+  return setupAll_();
 }
-
-function ensureSheet_(ss, name) {
+var ensureSheet_ = function(ss, name) {
   let sh = ss.getSheetByName(name);
   if (!sh) sh = ss.insertSheet(name);
   return sh;
 }
-
-function ensureHeaders_(sh, headers) {
+var ensureHeaders_ = function(sh, headers) {
   const lastRow = sh.getLastRow();
   if (lastRow === 0) {
     sh.getRange(1, 1, 1, headers.length).setValues([headers]);
@@ -105,8 +102,7 @@ function ensureHeaders_(sh, headers) {
     sh.setFrozenRows(1);
   }
 }
-
-function ensureConfigDefaults_(sh) {
+var ensureConfigDefaults_ = function(sh) {
   if (!sh) return;
   const lastCol = Math.max(sh.getLastColumn(), 1);
   const headers = sh.getRange(1, 1, 1, lastCol).getDisplayValues()[0];
@@ -135,7 +131,7 @@ function ensureConfigDefaults_(sh) {
   setIfEmpty('PRES_Template_DocId', CC_DEFAULT_IDS.PRESUPUESTO_TEMPLATE_ID);
   setIfEmpty('FACT_Template_DocId', CC_DEFAULT_IDS.FACTURA_TEMPLATE_ID);
 }
-function ensurePresupuestoLeadColumns_(sh, headers) {
+var ensurePresupuestoLeadColumns_ = function(sh, headers) {
   const lastCol = Math.max(sh.getLastColumn(), 1);
   const existing = sh.getRange(1, 1, 1, lastCol).getValues()[0].map(String);
   const missing = headers.filter((h) => existing.indexOf(h) === -1);
@@ -145,8 +141,7 @@ function ensurePresupuestoLeadColumns_(sh, headers) {
   sh.insertColumnsAfter(lastCol, missing.length);
   sh.getRange(1, startCol, 1, missing.length).setValues([missing]);
 }
-
-function applyListValidation_(sh, col, values) {
+var applyListValidation_ = function(sh, col, values) {
   if (!sh) return;
   const rule = SpreadsheetApp.newDataValidation()
     .requireValueInList(values, true)
@@ -155,8 +150,7 @@ function applyListValidation_(sh, col, values) {
   const rows = Math.max(1, sh.getMaxRows() - 1);
   sh.getRange(2, col, rows, 1).setDataValidation(rule);
 }
-
-function setupTriggers_(ss) {
+var setupTriggers_ = function(ss) {
   const targets = {
     onEdit: { handler: 'onEdit', type: ScriptApp.EventType.ON_EDIT },
     onOpen: { handler: 'onOpen', type: ScriptApp.EventType.ON_OPEN },
@@ -179,7 +173,7 @@ function setupTriggers_(ss) {
   ScriptApp.newTrigger(targets.onOpen.handler).forSpreadsheet(ss).onOpen().create();
   ScriptApp.newTrigger(targets.onFormSubmit.handler).forSpreadsheet(ss).onFormSubmit().create();
 }
-function installTriggers_(ss) {
+var installTriggers_ = function(ss) {
   setupTriggers_(ss);
 }
 
@@ -194,10 +188,11 @@ function installTriggers_(ss) {
 
 
   return {
-    setupAll: setupAll
+    setupAll: setupAll_
   };
 })();
 
 // Entry-point visible (solo este debe quedar como 'function' top-level)
 function setupAll(){ return __CC_SETUP.setupAll(); }
+
 
