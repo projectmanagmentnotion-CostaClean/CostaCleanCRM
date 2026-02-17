@@ -1,3 +1,4 @@
+﻿var __CC_CLIENTES_ID = (function(){
 /*************************************************
  * CLIENTES: ID AUTOGENERADO + INICIALIZADOR
  * Formato: CLI-AAAA-0001
@@ -6,7 +7,7 @@
  *  E2 = CLI_Ultimo_numero
  *************************************************/
 
-function onEdit__CLIENTES(e) {
+var onEdit__CLIENTES = function(e) {
   // 🔒 Evita el error si lo ejecutas desde el editor
   if (!e || !e.range) return;
 
@@ -44,7 +45,7 @@ function onEdit__CLIENTES(e) {
  * - Asigna IDs solo a filas sin ID pero con datos
  * - Actualiza CONFIG (CLI_Ultimo_numero)
  */
-function inicializarClientesIDs() {
+var inicializarClientesIDs = function() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sh = ss.getSheetByName('CLIENTES');
   const cfg = ss.getSheetByName('CONFIG');
@@ -112,7 +113,7 @@ function inicializarClientesIDs() {
 /**
  * Genera el siguiente Cliente_ID y actualiza CONFIG
  */
-function generarSiguienteClienteId_() {
+var generarSiguienteClienteId_ = function() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const cfg = ss.getSheetByName('CONFIG');
   if (!cfg) throw new Error("No existe CONFIG.");
@@ -126,3 +127,15 @@ function generarSiguienteClienteId_() {
 
   return `CLI-${cliYear}-${String(ultimo).padStart(4, '0')}`;
 }
+  // Exports (solo lo que se usa fuera)
+  return {
+    onEdit__CLIENTES: onEdit__CLIENTES,
+    generarSiguienteClienteId_: generarSiguienteClienteId_
+  };
+})();
+
+
+// Entry-points visibles (solo estos deben quedar como 'function' top-level)
+function onEdit__CLIENTES(e){ return __CC_CLIENTES_ID.onEdit__CLIENTES(e); }
+function generarSiguienteClienteId_(){ return __CC_CLIENTES_ID.generarSiguienteClienteId_(); }
+
