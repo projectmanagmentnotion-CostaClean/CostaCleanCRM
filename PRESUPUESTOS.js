@@ -1,4 +1,5 @@
-﻿/*************************************************
+﻿var __CC_PRES = (function(){
+/*************************************************
  * PRESUPUESTOS / PROFORMAS - Costa Clean (PRO)
  * Archivo: PRESUPUESTOS.gs
  *
@@ -686,8 +687,7 @@ var crearPresupuestoParaLead_ = function(leadRowOrId) {
     throw err;
   }
 }
-
-function crearPresupuesto() {
+var crearPresupuesto = function() {
   presAsegurarEstructura_();
 
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -1287,7 +1287,7 @@ var presFormatCantidad_ = function(value) {
 /** =========================
  * UI: generar PDF + archivar
  * ========================= */
-function uiGenerarPdfPresupuesto() {
+var uiGenerarPdfPresupuesto = function() {
   presAsegurarEstructura_();
 
   const { sh, row } = presGetSelectedRow_(SH_PRES);
@@ -1629,8 +1629,7 @@ var presGetSelectedRowAny_ = function(allowedSheets) {
 
   return { ss, sh, row, name };
 }
-
-function uiMarcarPresupuestoEnviado() {
+var uiMarcarPresupuestoEnviado = function() {
   presAsegurarEstructura_();
 
   const { sh, row } = presGetSelectedRowAny_([SH_PRES, SH_PRES_HIST]);
@@ -1642,8 +1641,7 @@ function uiMarcarPresupuestoEnviado() {
   if (colFechaEnvio) sh.getRange(row, colFechaEnvio).setValue(new Date());
   SpreadsheetApp.getUi().alert('✅ Marcado como ENVIADO.');
 }
-
-function uiMarcarPresupuestoAceptado() {
+var uiMarcarPresupuestoAceptado = function() {
   presAsegurarEstructura_();
 
   const { sh, row } = presGetSelectedRowAny_([SH_PRES, SH_PRES_HIST]);
@@ -1659,8 +1657,7 @@ function uiMarcarPresupuestoAceptado() {
 var uiMarcarPresupuestoRechazado = function() {
   return uiMarcarPresupuestoPerdido();
 }
-
-function uiMarcarPresupuestoPerdido() {
+var uiMarcarPresupuestoPerdido = function() {
   presAsegurarEstructura_();
 
   const { sh, row } = presGetSelectedRowAny_([SH_PRES, SH_PRES_HIST]);
@@ -1673,7 +1670,7 @@ function uiMarcarPresupuestoPerdido() {
 /** =========================
  * EMAIL (desde fila seleccionada en PRESUPUESTOS o HISTORIAL)
  * ========================= */
-function uiEnviarPresupuestoEmail() {
+var uiEnviarPresupuestoEmail = function() {
   presAsegurarEstructura_();
 
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -1728,7 +1725,7 @@ Costa Clean`;
 /** =========================
  * WHATSAPP (modal + enlace wa.me)
  * ========================= */
-function uiWhatsAppPresupuesto() {
+var uiWhatsAppPresupuesto = function() {
   presAsegurarEstructura_();
 
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -1906,8 +1903,7 @@ var findNextFreeRow_ = function(sh, startRow, cols) {
 /** =========================
  * ===== AI: Página + API =====
  * ========================= */
-
-function aiCrearPagina_() {
+var aiCrearPagina_ = function() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
 
   let shCfg = ss.getSheetByName(SH_AI_CONFIG);
@@ -1934,8 +1930,7 @@ function aiCrearPagina_() {
 
   SpreadsheetApp.getUi().alert('✅ Página AI creada: AI_CONFIG y AI_LOG');
 }
-
-function aiConfigurarApiKey_() {
+var aiConfigurarApiKey_ = function() {
   const ui = SpreadsheetApp.getUi();
   const r = ui.prompt('Configurar OpenAI API Key', 'Pega tu OPENAI_API_KEY (se guarda de forma segura en el Script)', ui.ButtonSet.OK_CANCEL);
   if (r.getSelectedButton() !== ui.Button.OK) return;
@@ -1954,7 +1949,7 @@ function aiConfigurarApiKey_() {
  * Genera texto comercial (email + whatsapp) con AI para la fila seleccionada
  * en PRESUPUESTOS o HISTORIAL_PRESUPUESTOS.
  */
-function aiGenerarTextoComercial_() {
+var aiGenerarTextoComercial_ = function() {
   presAsegurarEstructura_();
 
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -2100,7 +2095,7 @@ var aiLog_ = function(accion, presId, resultado, error, payloadResumen) {
 /** =========================
  * Trigger router (tu TRIGGERS.gs lo llama, pero por si acaso)
  * ========================= */
-function onEdit(e) {
+var onEdit = function(e) {
   try { if (typeof onEditPresupuestos_ === 'function') onEditPresupuestos_(e); } catch(err) {}
 }
 
@@ -2267,4 +2262,84 @@ var crearLineasDesdeForm_ = function(presId, obj) {
 }
 
 
+
+
+  // Exports (solo lo que se usa fuera + acciones de menú)
+  return {
+    // externals detectados por scan
+    crearPresupuestoParaLead_: crearPresupuestoParaLead_,
+    generarPDFPresupuesto: generarPDFPresupuesto,
+    getCfgAny_: getCfgAny_,
+    getEmisorDesdeFactura_: getEmisorDesdeFactura_,
+    menuPresupuestos_: menuPresupuestos_,
+    onEditPresupuestos_: onEditPresupuestos_,
+    onFormSubmitPresupuesto: onFormSubmitPresupuesto,
+    presAsegurarEstructura_: presAsegurarEstructura_,
+    presBuildRow_: presBuildRow_,
+    presBuildValidationRuleFromSheet_: presBuildValidationRuleFromSheet_,
+    presFindPresRow_: presFindPresRow_,
+    presGetHeaderMap_: presGetHeaderMap_,
+    presGetRowData_: presGetRowData_,
+    presReadLineasPorPresId_: presReadLineasPorPresId_,
+    presVincularPresupuestosPorLead_: presVincularPresupuestosPorLead_,
+    replaceTokensEverywhere_: replaceTokensEverywhere_,
+    setCfgValueIfSheet_: setCfgValueIfSheet_,
+    setupValidationsPresupuestos: setupValidationsPresupuestos,
+
+    // acciones de menú (se llaman por string)
+    crearPresupuesto: crearPresupuesto,
+    uiGenerarPdfPresupuesto: uiGenerarPdfPresupuesto,
+    uiEnviarPresupuestoEmail: uiEnviarPresupuestoEmail,
+    uiWhatsAppPresupuesto: uiWhatsAppPresupuesto,
+    uiMarcarPresupuestoEnviado: uiMarcarPresupuestoEnviado,
+    uiMarcarPresupuestoAceptado: uiMarcarPresupuestoAceptado,
+    uiMarcarPresupuestoPerdido: uiMarcarPresupuestoPerdido,
+    uiMarcarPresupuestoRechazado: uiMarcarPresupuestoRechazado,
+    uiConvertirPresupuestoAFactura: uiConvertirPresupuestoAFactura,
+    aiCrearPagina_: aiCrearPagina_,
+    aiConfigurarApiKey_: aiConfigurarApiKey_,
+    aiGenerarTextoComercial_: aiGenerarTextoComercial_
+  };
+})();
+
+
+
+// Entry-points visibles (solo estos deben quedar como 'function' top-level)
+function menuPresupuestos_(){ return __CC_PRES.menuPresupuestos_(); }
+function onEditPresupuestos_(e){ return __CC_PRES.onEditPresupuestos_(e); }
+function onFormSubmitPresupuesto(e){ return __CC_PRES.onFormSubmitPresupuesto(e); }
+
+function crearPresupuesto(){ return __CC_PRES.crearPresupuesto(); }
+function uiGenerarPdfPresupuesto(){ return __CC_PRES.uiGenerarPdfPresupuesto(); }
+function uiEnviarPresupuestoEmail(){ return __CC_PRES.uiEnviarPresupuestoEmail(); }
+function uiWhatsAppPresupuesto(){ return __CC_PRES.uiWhatsAppPresupuesto(); }
+function uiMarcarPresupuestoEnviado(){ return __CC_PRES.uiMarcarPresupuestoEnviado(); }
+function uiMarcarPresupuestoAceptado(){ return __CC_PRES.uiMarcarPresupuestoAceptado(); }
+function uiMarcarPresupuestoPerdido(){ return __CC_PRES.uiMarcarPresupuestoPerdido(); }
+function uiMarcarPresupuestoRechazado(){ return __CC_PRES.uiMarcarPresupuestoRechazado(); }
+function uiConvertirPresupuestoAFactura(){ return __CC_PRES.uiConvertirPresupuestoAFactura(); }
+
+function aiCrearPagina_(){ return __CC_PRES.aiCrearPagina_(); }
+function aiConfigurarApiKey_(){ return __CC_PRES.aiConfigurarApiKey_(); }
+function aiGenerarTextoComercial_(){ return __CC_PRES.aiGenerarTextoComercial_(); }
+
+function crearPresupuestoParaLead_(leadId){ return __CC_PRES.crearPresupuestoParaLead_(leadId); }
+function generarPDFPresupuesto(presId, options){ return __CC_PRES.generarPDFPresupuesto(presId, options); }
+
+function getCfgAny_(headers){ return __CC_PRES.getCfgAny_(headers); }
+function getEmisorDesdeFactura_(){ return __CC_PRES.getEmisorDesdeFactura_(); }
+
+function presAsegurarEstructura_(){ return __CC_PRES.presAsegurarEstructura_(); }
+function presBuildRow_(headers, obj){ return __CC_PRES.presBuildRow_(headers, obj); }
+function presBuildValidationRuleFromSheet_(sh, idHeader){ return __CC_PRES.presBuildValidationRuleFromSheet_(sh, idHeader); }
+function presFindPresRow_(shPres, id){ return __CC_PRES.presFindPresRow_(shPres, id); }
+function presGetHeaderMap_(sh){ return __CC_PRES.presGetHeaderMap_(sh); }
+function presGetRowData_(sh, rowNumber){ return __CC_PRES.presGetRowData_(sh, rowNumber); }
+function presReadLineasPorPresId_(shLineas, presId){ return __CC_PRES.presReadLineasPorPresId_(shLineas, presId); }
+function presVincularPresupuestosPorLead_(ss, leadId, clienteId){ return __CC_PRES.presVincularPresupuestosPorLead_(ss, leadId, clienteId); }
+
+function replaceTokensEverywhere_(doc, map){ return __CC_PRES.replaceTokensEverywhere_(doc, map); }
+function setCfgValueIfSheet_(header, value){ return __CC_PRES.setCfgValueIfSheet_(header, value); }
+
+function setupValidationsPresupuestos(){ return __CC_PRES.setupValidationsPresupuestos(); }
 
