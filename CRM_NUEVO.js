@@ -1,3 +1,4 @@
+﻿var __CC_CRM_NUEVO = (function(){
 /***************
  * COSTA CLEAN - SISTEMA FACTURAS (DEFINITIVO) + MENÚ CRM
  * HOJAS:
@@ -14,7 +15,7 @@ const ID_CARPETA_PDF  = '1l11q4NpNNT_W_jZ8Mgw0AVv2VN_PFsGp';
 const LINEAS_PRECREADAS = 5; // cuántas filas crea el botón "AÑADIR LÍNEA(S)"
 
 // === Formato dinero (España) a 2 decimales ===
-function ccMoney2_(n) {
+var ccMoney2_ = function(n) {
   const num = Number(n);
   if (isNaN(num)) return '';
   // 1234.5 -> "1234,50"
@@ -25,7 +26,7 @@ function ccMoney2_(n) {
 /***************
  * MENU (ÚNICO)
  ***************/
-function onOpenMain_() {
+var onOpenMain_ = function() {
   SpreadsheetApp.getUi()
     .createMenu('Costa Clean')
     .addItem('➕ Añadir líneas (siguiente factura)', 'workflowAnadirLineasSiguiente')
@@ -47,7 +48,7 @@ function onOpenMain_() {
 /***************
  * CONFIG
  ***************/
-function getConfig_() {
+var getConfig_ = function() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const cfg = ss.getSheetByName('CONFIG');
   if (!cfg) throw new Error("No existe la hoja 'CONFIG'.");
@@ -62,14 +63,14 @@ function getConfig_() {
 }
 
 // Ver siguiente sin consumir
-function peekSiguienteNumero_() {
+var peekSiguienteNumero_ = function() {
   const { anio, ultimo } = getConfig_();
   const siguiente = ultimo + 1;
   return anio + '-' + String(siguiente).padStart(3, '0');
 }
 
 // Consumir siguiente (incrementa CONFIG)
-function consumirSiguienteNumero_() {
+var consumirSiguienteNumero_ = function() {
   const { cfg, anio, ultimo } = getConfig_();
   const siguiente = ultimo + 1;
   cfg.getRange('B2').setValue(siguiente);
@@ -79,7 +80,7 @@ function consumirSiguienteNumero_() {
 /***************
  * BOTÓN 1: AÑADIR LÍNEAS
  ***************/
-function workflowAnadirLineasSiguiente() {
+var workflowAnadirLineasSiguiente = function() {
   asegurarFormulaSubtotal_();
   const ui = SpreadsheetApp.getUi();
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -130,7 +131,7 @@ function workflowAnadirLineasSiguiente() {
 /***************
  * LEER LINEAS DE UNA FACTURA
  ***************/
-function obtenerLineasFactura_(sheetLineas, numeroFactura) {
+var obtenerLineasFactura_ = function(sheetLineas, numeroFactura) {
   const lastRow = sheetLineas.getLastRow();
   if (lastRow < 2) return [];
 
@@ -139,8 +140,7 @@ function obtenerLineasFactura_(sheetLineas, numeroFactura) {
     .map((r, idx) => ({ row: idx + 2, vals: r }))
     .filter(o => String(o.vals[0]).trim() === String(numeroFactura).trim());
 }
-
-function lineasReales_(objs) {
+var lineasReales_ = function(objs) {
   return objs.filter(o => {
     const r = o.vals;
     return String(r[1]).trim() || String(r[2]).trim() || String(r[3]).trim();
@@ -150,7 +150,7 @@ function lineasReales_(objs) {
 /***************
  * ARCHIVAR Y BORRAR LINEAS
  ***************/
-function archivarYLimpiarLineas_(numeroFactura) {
+var archivarYLimpiarLineas_ = function(numeroFactura) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const lineas = ss.getSheetByName('LINEAS');
   if (!lineas) throw new Error("No existe la hoja LINEAS.");
@@ -190,7 +190,7 @@ function archivarYLimpiarLineas_(numeroFactura) {
 /***************
  * BOTÓN 2: GENERAR FACTURA PDF
  ***************/
-function workflowGenerarFactura() {
+var workflowGenerarFactura = function() {
   const ui = SpreadsheetApp.getUi();
   const ss = SpreadsheetApp.getActiveSpreadsheet();
 
@@ -321,8 +321,7 @@ hist.appendRow([
 
   ui.alert('✅ Factura emitida: ' + datos.Numero_factura + '\n📄 PDF: ' + pdfUrl);
 }
-
-function asegurarFormulaSubtotal_() {
+var asegurarFormulaSubtotal_ = function() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sh = ss.getSheetByName('LINEAS');
   if (!sh) throw new Error("No existe la hoja LINEAS.");
@@ -335,4 +334,21 @@ function asegurarFormulaSubtotal_() {
   }
 }
 
+
+
+  // Exports (solo lo que se usa fuera)
+  return {
+    onOpenMain_: onOpenMain_,
+    consumirSiguienteNumero_: consumirSiguienteNumero_,
+    workflowAnadirLineasSiguiente: workflowAnadirLineasSiguiente,
+    workflowGenerarFactura: workflowGenerarFactura
+  };
+})();
+
+
+// Entry-points visibles (solo estos deben quedar como 'function' top-level)
+function onOpenMain_(e){ return __CC_CRM_NUEVO.onOpenMain_(e); }
+function consumirSiguienteNumero_(){ return __CC_CRM_NUEVO.consumirSiguienteNumero_(); }
+function workflowAnadirLineasSiguiente(){ return __CC_CRM_NUEVO.workflowAnadirLineasSiguiente(); }
+function workflowGenerarFactura(){ return __CC_CRM_NUEVO.workflowGenerarFactura(); }
 
