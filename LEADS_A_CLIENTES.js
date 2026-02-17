@@ -6,8 +6,7 @@
  *   - escribe el Cliente_ID en LEADS col W
  *   - registra Fecha_alta y Origen
  *************************************************/
-
-function onEdit_leads(e) {
+var onEdit_leads = function(e) {
   if (!e || !e.range) return;
 
   const sh = e.range.getSheet();
@@ -31,8 +30,7 @@ function onEdit_leads(e) {
     throw err;
   }
 }
-
-function convertirLeadEnCliente_(ss, row) {
+var convertirLeadEnCliente_ = function(ss, row) {
   // ss viene del trigger (e.source) => SIEMPRE es el spreadsheet correcto
   const shLeads = ss.getSheetByName('LEADS');
   const shCli = ss.getSheetByName('CLIENTES');
@@ -111,8 +109,7 @@ shCli.getRange(targetRow, 1, 1, 11).setValues([[
   }
   _safeToast_(`✅ Lead convertido: ${leadId} → ${clienteId}`, 'LEADS → CLIENTE', 6);
 }
-
-function buscarClienteExistente_(shCli, nif, email) {
+var buscarClienteExistente_ = function(shCli, nif, email) {
   const lastRow = shCli.getLastRow();
   if (lastRow < 2) return '';
 
@@ -131,8 +128,7 @@ function buscarClienteExistente_(shCli, nif, email) {
   }
   return '';
 }
-
-function nextEmptyRow_(sh, keyCol = 1, startRow = 2) {
+var nextEmptyRow_ = function(sh, keyCol = 1, startRow = 2) {
   const last = Math.max(sh.getLastRow(), startRow);
   const values = sh.getRange(startRow, keyCol, last - startRow + 1, 1).getValues();
 
@@ -142,13 +138,7 @@ function nextEmptyRow_(sh, keyCol = 1, startRow = 2) {
   }
   return last + 1; // si no encontró huecos, continúa al final lógico
 }
-
-
-
-
-
-
-function _safeToast_(msg, title, secs){
+var _safeToast_ = function(msg, title, secs){
   try { SpreadsheetApp.getActive().toast(msg, title || 'INFO', secs || 4); } catch(e) { console.log(String(title||'INFO')+': '+String(msg)); }
 }
 
@@ -164,5 +154,6 @@ function _safeToast_(msg, title, secs){
 // Entry-points visibles (solo estos deben quedar como 'function' top-level)
 function onEdit_leads(e){ return __CC_LEADS2CLI.onEdit_leads(e); }
 function convertirLeadEnCliente_(ss, row){ return __CC_LEADS2CLI.convertirLeadEnCliente_(ss, row); }
+
 
 
