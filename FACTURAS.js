@@ -15,8 +15,7 @@ const FACT_FOLDER_ID_DEFAULT = '111q4NpNNT_W_jZ8Mgw0AVv2VN_PFsGp';
 const FACT_TEMPLATE_ID_DEFAULT = '1OU_1CxZBEc46OP5W1d98al1ylIO0UV7Tln7qShH6as';
 const PRES_FOLDER_ID_DEFAULT = '1b4R5P30DULl-Fp_PY8dmuVLg6UfuJjo9';
 const PRES_TEMPLATE_ID_DEFAULT = '1M2tpK-Iq6_WuVmHxahkHbtJrmOtLmPu502-TjnqkQ8';
-
-function factAsegurarEstructura_() {
+var factAsegurarEstructura_ = function() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sh = ss.getSheetByName(SH_FACTURAS);
   if (!sh) sh = ss.insertSheet(SH_FACTURAS);
@@ -28,8 +27,7 @@ function factAsegurarEstructura_() {
 
   factEnsurePdfConfig_();
 }
-
-function factEnsureHeaders_(sh, headers) {
+var factEnsureHeaders_ = function(sh, headers) {
   const lastRow = sh.getLastRow();
   if (lastRow === 0) {
     sh.getRange(1, 1, 1, headers.length).setValues([headers]);
@@ -45,8 +43,7 @@ function factEnsureHeaders_(sh, headers) {
     sh.insertColumnsAfter(sh.getLastColumn(), headers.length - sh.getLastColumn());
   }
 }
-
-function factEnsurePdfConfig_() {
+var factEnsurePdfConfig_ = function() {
   const props = PropertiesService.getScriptProperties();
   if (!props.getProperty('FACT_Pdf_Folder_Id')) {
     props.setProperty('FACT_Pdf_Folder_Id', FACT_FOLDER_ID_DEFAULT);
@@ -68,8 +65,7 @@ function factEnsurePdfConfig_() {
     setCfgValueIfSheet_('PRES_Template_DocId', props.getProperty('PRES_Template_DocId'));
   }
 }
-
-function factApplyValidations_() {
+var factApplyValidations_ = function() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const shFact = ss.getSheetByName(SH_FACTURAS);
   const shFactSingle = ss.getSheetByName('FACTURA');
@@ -104,8 +100,7 @@ function factApplyValidations_() {
     }
   });
 }
-
-function createFacturaDesdePresupuesto_(presId, options) {
+var createFacturaDesdePresupuesto_ = function(presId, options) {
   const opts = options || {};
   const lock = LockService.getDocumentLock();
   if (!lock.tryLock(30000)) throw new Error('No se pudo obtener el bloqueo para crear la factura.');
@@ -202,8 +197,7 @@ function createFacturaDesdePresupuesto_(presId, options) {
     lock.releaseLock();
   }
 }
-
-function aceptarYFacturarPresupuesto_(presId) {
+var aceptarYFacturarPresupuesto_ = function(presId) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const id = String(presId || '').trim();
   if (!id) throw new Error('Pres_ID requerido');
@@ -220,8 +214,7 @@ function aceptarYFacturarPresupuesto_(presId) {
 
   return createFacturaDesdePresupuesto_(id);
 }
-
-function uiCrearFacturaDesdePresupuestoActivo_() {
+var uiCrearFacturaDesdePresupuestoActivo_ = function() {
   presAsegurarEstructura_();
   factAsegurarEstructura_();
 
@@ -244,8 +237,7 @@ function uiCrearFacturaDesdePresupuestoActivo_() {
     : 'Factura creada: ' + res.facturaId;
   SpreadsheetApp.getUi().alert(msg);
 }
-
-function uiGenerarPdfPresupuestoActivo_() {
+var uiGenerarPdfPresupuestoActivo_ = function() {
   presAsegurarEstructura_();
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sh = ss.getActiveSheet();
@@ -265,8 +257,7 @@ function uiGenerarPdfPresupuestoActivo_() {
     : generarPDFPresupuesto(presId, { archivar: true });
   SpreadsheetApp.getUi().alert('PDF generado:\n' + url);
 }
-
-function uiGenerarPdfFacturaActiva_() {
+var uiGenerarPdfFacturaActiva_ = function() {
   factAsegurarEstructura_();
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sh = ss.getActiveSheet();
@@ -285,8 +276,7 @@ function uiGenerarPdfFacturaActiva_() {
   const url = generateFacturaPdfById(facturaId);
   SpreadsheetApp.getUi().alert('PDF generado:\n' + url);
 }
-
-function factFindFacturaByPresId_(shFact, presId) {
+var factFindFacturaByPresId_ = function(shFact, presId) {
   const headerInfo = presGetHeaderMap_(shFact);
   const colPres = headerInfo.map['Pres_ID'];
   const colFact = headerInfo.map['Factura_ID'];
@@ -307,8 +297,7 @@ function factFindFacturaByPresId_(shFact, presId) {
   }
   return null;
 }
-
-function factGetLineasFromPresupuesto_(ss, presId) {
+var factGetLineasFromPresupuesto_ = function(ss, presId) {
   const shLin = ss.getSheetByName(SH_PRES_LINEAS);
   if (shLin) {
     const data = presReadLineasPorPresId_(shLin, presId);
@@ -318,8 +307,7 @@ function factGetLineasFromPresupuesto_(ss, presId) {
   if (shHist) return presReadLineasPorPresId_(shHist, presId);
   return { headers: [], lineas: [] };
 }
-
-function factComputeTotals_(lineas) {
+var factComputeTotals_ = function(lineas) {
   let base = 0;
   let ivaTotal = 0;
   lineas.forEach((l) => {
@@ -335,15 +323,13 @@ function factComputeTotals_(lineas) {
   const ivaRound = Math.round(ivaTotal * 100) / 100;
   return { base: baseRound, ivaTotal: ivaRound, total: Math.round((baseRound + ivaRound) * 100) / 100 };
 }
-
-function factParseNumber_(v) {
+var factParseNumber_ = function(v) {
   if (v === null || v === undefined || v === '') return 0;
   const raw = String(v).replace(',', '.');
   const num = Number(raw);
   return isNaN(num) ? 0 : num;
 }
-
-function factInsertLineas_(ss, facturaId, lineas) {
+var factInsertLineas_ = function(ss, facturaId, lineas) {
   const sh = ss.getSheetByName(SH_FACT_LINEAS);
   if (!sh) throw new Error('No existe hoja ' + SH_FACT_LINEAS);
 
@@ -364,8 +350,7 @@ function factInsertLineas_(ss, facturaId, lineas) {
     sh.getRange(baseRow, 1, rows.length, headerInfo.headers.length).setValues(rows);
   }
 }
-
-function factUpdatePdfLink_(shFact, facturaId, pdfUrl) {
+var factUpdatePdfLink_ = function(shFact, facturaId, pdfUrl) {
   const headerInfo = presGetHeaderMap_(shFact);
   const colId = headerInfo.map['Factura_ID'];
   const colPdf = headerInfo.map['PDF_link'];
@@ -381,14 +366,12 @@ function factUpdatePdfLink_(shFact, facturaId, pdfUrl) {
     }
   }
 }
-
-function presUpdateFacturaLink_(shPres, presRow, facturaId, pdfUrl) {
+var presUpdateFacturaLink_ = function(shPres, presRow, facturaId, pdfUrl) {
   const map = presRow.headerInfo.map;
   if (map['Factura_ID']) shPres.getRange(presRow.rowNumber, map['Factura_ID']).setValue(facturaId);
   if (map['PDF_link_factura']) shPres.getRange(presRow.rowNumber, map['PDF_link_factura']).setValue(pdfUrl || '');
 }
-
-function factFallbackNextId_(shFact) {
+var factFallbackNextId_ = function(shFact) {
   const year = new Date().getFullYear();
   const lastRow = shFact.getLastRow();
   if (lastRow < 2) return year + '-001';
@@ -400,8 +383,7 @@ function factFallbackNextId_(shFact) {
   const next = isNaN(n) ? 1 : n + 1;
   return year + '-' + String(next).padStart(3, '0');
 }
-
-function seedSampleData_() {
+var seedSampleData_ = function() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   presAsegurarEstructura_();
   factAsegurarEstructura_();
@@ -560,8 +542,7 @@ function seedSampleData_() {
 
   SpreadsheetApp.getUi().alert('Datos de prueba cargados (seed).');
 }
-
-function seedUpsertById_(sh, idHeader, rows) {
+var seedUpsertById_ = function(sh, idHeader, rows) {
   const headerInfo = presGetHeaderMap_(sh);
   const headers = headerInfo.headers;
   const idCol = headerInfo.map[idHeader];
@@ -582,8 +563,7 @@ function seedUpsertById_(sh, idHeader, rows) {
     sh.getRange(lastRow + 1, 1, newRows.length, headers.length).setValues(newRows);
   }
 }
-
-function seedRowExists_(sh, idHeader, idValue) {
+var seedRowExists_ = function(sh, idHeader, idValue) {
   const headerInfo = presGetHeaderMap_(sh);
   const col = headerInfo.map[idHeader];
   if (!col) return false;
@@ -592,8 +572,7 @@ function seedRowExists_(sh, idHeader, idValue) {
   const ids = sh.getRange(2, col, lastRow - 1, 1).getValues();
   return ids.some(r => String(r[0] || '').trim() === String(idValue).trim());
 }
-
-function seedInsertPresLineas_(shLineas, presId, lineas) {
+var seedInsertPresLineas_ = function(shLineas, presId, lineas) {
   const headerInfo = presGetHeaderMap_(shLineas);
   const existing = seedRowExists_(shLineas, 'Pres_ID', presId);
   if (existing) return;
@@ -634,4 +613,5 @@ function uiCrearFacturaDesdePresupuestoActivo_(){ return __CC_FACT.uiCrearFactur
 function uiGenerarPdfPresupuestoActivo_(){ return __CC_FACT.uiGenerarPdfPresupuestoActivo_(); }
 function uiGenerarPdfFacturaActiva_(){ return __CC_FACT.uiGenerarPdfFacturaActiva_(); }
 function seedSampleData_(){ return __CC_FACT.seedSampleData_(); }
+
 
