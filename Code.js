@@ -25,9 +25,10 @@ var include = function(filename) {
 
 
 // STUB para evitar errores por triggers antiguos
-function onOpenRouter_(){
+var onOpenRouter_ = function(){
   console.log('onOpenRouter_ STUB called');
 }
+
 
 
 
