@@ -1,10 +1,10 @@
-﻿/*************************************************
+﻿var __CC_WEBAPP_API = (function(){
+/*************************************************
  * WEBAPP_API.gs — Backend para la App móvil (Costa Clean CRM)
  * - APIs para Dashboard, Listas, Detalles, Create/Update y Acciones
  * - Setup de hojas faltantes (GASTOS / CIERRES_TRIMESTRE)
  *************************************************/
-
-function apiPing() {
+var apiPing = function() {
   return { ok: true, ts: new Date().toISOString() };
 }
 
@@ -156,7 +156,7 @@ var _findById_ = function(sheetName, idCol, id) {
 }
 
 /** ========= DASHBOARD / KPIs ========= **/
-function apiDashboard(period) {
+var apiDashboard = function(period) {
   setupSheetsIfMissing_();
 
   // period: { year: 2025, month: 12 } o { year: 2025, quarter: 4 }
@@ -252,7 +252,7 @@ function apiDashboard(period) {
 }
 
 /** ========= LISTAS / DETALLES ========= **/
-function apiList(entity, params) {
+var apiList = function(entity, params) {
   _ensureViews_();
   const map = _entityMap_();
   const cfg = map[entity];
@@ -262,8 +262,7 @@ function apiList(entity, params) {
   const out = _listFromView_(viewName, params || {}, Number(params?.limit || 40));
   return (out === undefined || out === null) ? [] : out;
 }
-
-function apiGet(entity, id) {
+var apiGet = function(entity, id) {
   _ensureViews_();
   const map = _entityMap_();
   const cfg = map[entity];
@@ -276,7 +275,7 @@ function apiGet(entity, id) {
 }
 
 /** ========= API UI: PRESUPUESTOS ========= **/
-function apiListPresupuestos(params){
+var apiListPresupuestos = function(params){
   params = params || {};
   if (params.includeHistorial === undefined) params.includeHistorial = true;
   const ss = _ss_();
@@ -360,7 +359,7 @@ var testListPresupuestos = function() {
     throw err;
   }
 }
-function apiGetPresupuesto(id) {
+var apiGetPresupuesto = function(id) {
   const ss = _ss_();
   const presId = String(id || '').trim();
   if (!presId) throw new Error('Pres_ID requerido');
@@ -395,7 +394,7 @@ function apiGetPresupuesto(id) {
     throw err;
   }
 }
-function apiGeneratePresupuestoPdf(presId) {
+var apiGeneratePresupuestoPdf = function(presId) {
   const ss = _ss_();
   const id = String(presId || '').trim();
   if (!id) throw new Error('Pres_ID requerido');
@@ -439,8 +438,7 @@ var apiCrearFacturaDesdePresupuesto = function(presId, options) {
     throw err;
   }
 }
-
-function apiListClientes(params) {
+var apiListClientes = function(params) {
   const ss = _ss_();
   try {
     _ensureViews_();
@@ -458,8 +456,7 @@ function apiListClientes(params) {
     throw err;
   }
 }
-
-function apiListLeads(params) {
+var apiListLeads = function(params) {
   const ss = _ss_();
   try {
     _ensureViews_();
@@ -503,8 +500,7 @@ var apiCrearPresupuestoLead = function(leadId) {
   const res = crearPresupuestoParaLead_(id);
   return { ok: true, leadId: id, presId: res && res.presId ? res.presId : '' };
 }
-
-function apiLeadMarcarGanado(leadId){
+var apiLeadMarcarGanado = function(leadId){
   const ss = _ss_();
   const id = String(leadId || '').trim();
   if (!id) throw new Error('Lead_ID requerido');
@@ -1244,12 +1240,7 @@ var testDiagPresFact = function(){
   console.log(JSON.stringify({TEST:'testDiagPresFact', sample:{pres: out.pres && out.pres[0], fact: out.fact && out.fact[0]}, counts:{pres: out.pres && out.pres.length, fact: out.fact && out.fact.length}}, null, 2));
   return out;
 }
-
-
-
-
-
-function apiDbInfo(){
+var apiDbInfo = function(){
   const ss = _ss_();
   const names = ss.getSheets().map(s => s.getName());
 
@@ -1281,5 +1272,58 @@ function apiDbInfo(){
 
 
 
+
+
+
+  // Exports (api* + funciones usadas fuera)
+  return {
+    _ss_: _ss_,
+    apiAction: apiAction,
+    apiCloseQuarter: apiCloseQuarter,
+    apiCrearFacturaDesdePresupuesto: apiCrearFacturaDesdePresupuesto,
+    apiCrearPresupuestoLead: apiCrearPresupuestoLead,
+    apiCreate: apiCreate,
+    apiDashboard: apiDashboard,
+    apiDbInfo: apiDbInfo,
+    apiGenerateFacturaPdf: apiGenerateFacturaPdf,
+    apiGeneratePresupuestoPdf: apiGeneratePresupuestoPdf,
+    apiGet: apiGet,
+    apiGetPresupuesto: apiGetPresupuesto,
+    apiLeadMarcarGanado: apiLeadMarcarGanado,
+    apiList: apiList,
+    apiListClientes: apiListClientes,
+    apiListLeads: apiListLeads,
+    apiListPresupuestos: apiListPresupuestos,
+    apiPing: apiPing,
+    apiPresupuestosDebug: apiPresupuestosDebug,
+    apiUpdate: apiUpdate,
+    diagSheets_: diagSheets_
+  
+
+  };
+})();
+
+// Entry-points visibles (solo estos deben quedar como 'function' top-level)
+function _ss_(){ return __CC_WEBAPP_API._ss_.apply(null, arguments); }
+function apiAction(){ return __CC_WEBAPP_API.apiAction.apply(null, arguments); }
+function apiCloseQuarter(){ return __CC_WEBAPP_API.apiCloseQuarter.apply(null, arguments); }
+function apiCrearFacturaDesdePresupuesto(){ return __CC_WEBAPP_API.apiCrearFacturaDesdePresupuesto.apply(null, arguments); }
+function apiCrearPresupuestoLead(){ return __CC_WEBAPP_API.apiCrearPresupuestoLead.apply(null, arguments); }
+function apiCreate(){ return __CC_WEBAPP_API.apiCreate.apply(null, arguments); }
+function apiDashboard(){ return __CC_WEBAPP_API.apiDashboard.apply(null, arguments); }
+function apiDbInfo(){ return __CC_WEBAPP_API.apiDbInfo.apply(null, arguments); }
+function apiGenerateFacturaPdf(){ return __CC_WEBAPP_API.apiGenerateFacturaPdf.apply(null, arguments); }
+function apiGeneratePresupuestoPdf(){ return __CC_WEBAPP_API.apiGeneratePresupuestoPdf.apply(null, arguments); }
+function apiGet(){ return __CC_WEBAPP_API.apiGet.apply(null, arguments); }
+function apiGetPresupuesto(){ return __CC_WEBAPP_API.apiGetPresupuesto.apply(null, arguments); }
+function apiLeadMarcarGanado(){ return __CC_WEBAPP_API.apiLeadMarcarGanado.apply(null, arguments); }
+function apiList(){ return __CC_WEBAPP_API.apiList.apply(null, arguments); }
+function apiListClientes(){ return __CC_WEBAPP_API.apiListClientes.apply(null, arguments); }
+function apiListLeads(){ return __CC_WEBAPP_API.apiListLeads.apply(null, arguments); }
+function apiListPresupuestos(){ return __CC_WEBAPP_API.apiListPresupuestos.apply(null, arguments); }
+function apiPing(){ return __CC_WEBAPP_API.apiPing.apply(null, arguments); }
+function apiPresupuestosDebug(){ return __CC_WEBAPP_API.apiPresupuestosDebug.apply(null, arguments); }
+function apiUpdate(){ return __CC_WEBAPP_API.apiUpdate.apply(null, arguments); }
+function diagSheets_(){ return __CC_WEBAPP_API.diagSheets_.apply(null, arguments); }
 
 
