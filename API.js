@@ -1,4 +1,5 @@
-﻿/***************
+﻿var __CC_API = (function(){
+/***************
  * API — CostaClean CRM (Sheets)
  * Basado en tus pestañas reales:
  *  - CLIENTES
@@ -22,11 +23,11 @@ const SHEETS = {
   gastos: 'GASTOS' // si no existe, déjalo pero no lo uses o cámbialo
 };
 
-function _ss() {
+var _ss = function() {
   return SpreadsheetApp.openById(SS_ID);
 }
 
-function _sh(name) {
+var _sh = function(name) {
   const sh = _ss().getSheetByName(name);
   if (!sh) throw new Error('No existe la hoja: ' + name);
   return sh;
@@ -38,7 +39,7 @@ function _sh(name) {
  * - Resto = rows
  * - Convierte fechas a string ISO simple si hace falta (opcional)
  */
-function _getDataWithHeaders(sheetName) {
+var _getDataWithHeaders = function(sheetName) {
   const sh = _sh(sheetName);
   const values = sh.getDataRange().getValues();
   if (!values || values.length < 2) return [];
@@ -65,13 +66,13 @@ function _getDataWithHeaders(sheetName) {
 }
 
 /** Helpers de búsqueda */
-function _includesQuery(rowObj, qLower) {
+var _includesQuery = function(rowObj, qLower) {
   // búsqueda simple full-text
   return JSON.stringify(rowObj).toLowerCase().includes(qLower);
 }
 
 /** ====== 1) Dashboard KPIs (por ahora placeholder REALISTA, luego lo calculamos) ====== */
-function apiDashboardLegacy_() {
+var apiDashboardLegacy_ = function() {
   const tz = Session.getScriptTimeZone();
 
   const shFact = _sh(SHEETS.facturas); // HISTORIAL
@@ -129,11 +130,11 @@ function apiDashboardLegacy_() {
   };
 }
 
-function round2(n){ return Math.round((Number(n)||0)*100)/100; }
+var round2 = function(n){ return Math.round((Number(n)||0)*100)/100; }
 
 
 /** ====== 2) Listas ====== */
-function legacy_apiList(entity, params) {
+var legacy_apiList = function(entity, params) {
   const sheetName = SHEETS[entity];
   if (!sheetName) throw new Error('Entidad no soportada: ' + entity);
 
@@ -155,7 +156,7 @@ function legacy_apiList(entity, params) {
  * - HISTORIAL_PRESUPUESTOS (proformas): Pres_ID
  * - GASTOS: Gasto_ID (si lo tienes)
  */
-function legacy_apiGet(entity, id) {
+var legacy_apiGet = function(entity, id) {
   const sheetName = SHEETS[entity];
   if (!sheetName) throw new Error('Entidad no soportada: ' + entity);
 
@@ -180,7 +181,7 @@ function legacy_apiGet(entity, id) {
 /** ====== 4) Healthcheck / debug rápido (opcional) ======
  * Útil para confirmar que el Spreadsheet ID y hojas existen.
  */
-function apiHealth() {
+var apiHealth = function() {
   const ss = _ss();
   const sheets = ss.getSheets().map(s => s.getName());
   return {
@@ -190,4 +191,15 @@ function apiHealth() {
     mapped: SHEETS
   };
 }
+
+
+  // Exports (solo lo que se usa fuera)
+  return {
+    apiHealth: apiHealth
+  };
+})();
+
+
+// Entry-point visible (único top-level permitido)
+function apiHealth(){ return __CC_API.apiHealth(); }
 
