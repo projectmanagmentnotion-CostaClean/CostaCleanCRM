@@ -1,4 +1,4 @@
-function onEdit(e) {
+﻿function onEdit(e) {
   try {
     if (typeof ccNormalizeEstadoOnEdit_ === 'function') ccNormalizeEstadoOnEdit_(e);
   } catch (err) {
@@ -53,8 +53,7 @@ function onFormSubmit(e) {
     logTriggerError_('ccMarkViewsDirty_', err, e);
   }
 }
-
-function logTriggerError_(where, err, e) {
+var logTriggerError_ = function(where, err, e) {
   console.error(where, err);
 
   // toast visible cuando editas tú mismo en el sheet
@@ -63,3 +62,4 @@ function logTriggerError_(where, err, e) {
     ss.toast(`ERROR ${where}: ${err.message}`, 'TRIGGER', 8);
   } catch (_) {}
 }
+
