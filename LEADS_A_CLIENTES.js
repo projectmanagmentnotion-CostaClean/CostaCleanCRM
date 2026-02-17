@@ -1,4 +1,5 @@
-﻿/*************************************************
+﻿var __CC_LEADS2CLI = (function(){
+/*************************************************
  * LEADS -> CLIENTES automático
  * Regla: si LEADS!Estado (col V) pasa a "Ganado"
  *   - crea cliente en CLIENTES si no existe por NIF o Email
@@ -150,5 +151,18 @@ function nextEmptyRow_(sh, keyCol = 1, startRow = 2) {
 function _safeToast_(msg, title, secs){
   try { SpreadsheetApp.getActive().toast(msg, title || 'INFO', secs || 4); } catch(e) { console.log(String(title||'INFO')+': '+String(msg)); }
 }
+
+
+
+
+  return {
+    onEdit_leads: onEdit_leads,
+    convertirLeadEnCliente_: convertirLeadEnCliente_
+  };
+})();
+
+// Entry-points visibles (solo estos deben quedar como 'function' top-level)
+function onEdit_leads(e){ return __CC_LEADS2CLI.onEdit_leads(e); }
+function convertirLeadEnCliente_(ss, row){ return __CC_LEADS2CLI.convertirLeadEnCliente_(ss, row); }
 
 
