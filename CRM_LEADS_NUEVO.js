@@ -1,3 +1,4 @@
+﻿var __CC_CRM_LEADS = (function(){
 /***************
  * CRM - LEADS (COSTA CLEAN) - DEFINITIVO
  * Importa nuevas respuestas del Google Form hacia la hoja LEADS del CRM
@@ -11,14 +12,14 @@
  *  B6 = Nombre hoja destino en CRM (ej: "LEADS")
  ***************/
 
-function menuCRM_() {
+var menuCRM_ = function() {
   SpreadsheetApp.getUi()
     .createMenu('CRM')
     .addItem('📥 Importar nuevos leads (Form → LEADS)', 'importarNuevosLeads_')
     .addToUi();
 }
 
-function importarNuevosLeads_() {
+var importarNuevosLeads_ = function() {
   const ui = SpreadsheetApp.getUi();
   const ssCRM = SpreadsheetApp.getActiveSpreadsheet();
   const cfg = ssCRM.getSheetByName('CONFIG');
@@ -171,7 +172,7 @@ function importarNuevosLeads_() {
 /***************
  * Helpers
  ***************/
-function asegurarCabeceraLeads_(shLeads) {
+var asegurarCabeceraLeads_ = function(shLeads) {
   const headers = [
     'Lead_ID','Fecha_entrada','Nombre','Email','Teléfono','NIF/CIF','Dirección','CP','Población',
     'Tipo_servicio','Tipo_propiedad','m2','Habitaciones','Baños','Terraza','Mascotas',
@@ -183,7 +184,7 @@ function asegurarCabeceraLeads_(shLeads) {
   if (empty) shLeads.getRange(1,1,1,26).setValues([headers]);
 }
 
-function pick_(row, idx, names, fallback) {
+var pick_ = function(row, idx, names, fallback) {
   for (const n of names) {
     if (Object.prototype.hasOwnProperty.call(idx, n)) {
       return row[idx[n]];
@@ -194,20 +195,20 @@ function pick_(row, idx, names, fallback) {
   return fallback;
 }
 
-function normalizarTelefono_(tel) {
+var normalizarTelefono_ = function(tel) {
   const t = String(tel || '').trim();
   if (!t) return '';
   return t.replace(/[^\d+]/g, '');
 }
 
-function construirRowKey_(ts, email, tel) {
+var construirRowKey_ = function(ts, email, tel) {
   const tsStr = (ts instanceof Date)
     ? Utilities.formatDate(ts, Session.getScriptTimeZone(), "yyyy-MM-dd'T'HH:mm:ss")
     : String(ts || '');
   return [tsStr, email || '', tel || ''].join('|').trim();
 }
 
-function generarLeadId_(shLeads) {
+var generarLeadId_ = function(shLeads) {
   const lastRow = shLeads.getLastRow();
   if (lastRow < 2) return 'L0001';
 
@@ -216,3 +217,19 @@ function generarLeadId_(shLeads) {
   const next = (isNaN(n) ? 1 : n + 1);
   return 'L' + String(next).padStart(4, '0');
 }
+
+  // Exports (solo lo que se usa fuera)
+  return {
+    menuCRM_: menuCRM_,
+    importarNuevosLeads_: importarNuevosLeads_,
+    generarLeadId_: generarLeadId_
+  };
+})();
+
+
+// Entry-points visibles (solo estos deben quedar como 'function' top-level)
+function menuCRM_(){ return __CC_CRM_LEADS.menuCRM_(); }
+function importarNuevosLeads_(){ return __CC_CRM_LEADS.importarNuevosLeads_(); }
+function generarLeadId_(shLeads){ return __CC_CRM_LEADS.generarLeadId_(shLeads); }
+
+
