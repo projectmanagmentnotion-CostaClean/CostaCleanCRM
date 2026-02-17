@@ -11,7 +11,7 @@ const PDF_PROP_FACT_TEMPLATE_ID = 'FACT_Template_DocId';
 
 const PDF_PRES_FOLDER_NAME = 'Costa Clean - Presupuestos PDF';
 const PDF_FACT_FOLDER_NAME = 'Costa Clean - Facturas PDF';
-function __genPresPdf(presId) {
+var __genPresPdf = function(presId) {
   const lock = LockService.getDocumentLock();
   if (!lock.tryLock(30000)) throw new Error('No se pudo obtener el bloqueo para generar el PDF.');
 
@@ -128,13 +128,12 @@ function __genPresPdf(presId) {
     lock.releaseLock();
   }
 }
-
-function regenerarPdfPresupuesto_(presId) {
+var regenerarPdfPresupuesto_ = function(presId) {
   const id = String(presId || '').trim();
   if (!id) throw new Error('Pres_ID requerido');
   return generatePresupuestoPdfById(id);
 }
-function __genFactPdf(factId) {
+var __genFactPdf = function(factId) {
   const lock = LockService.getDocumentLock();
   if (!lock.tryLock(30000)) throw new Error('No se pudo obtener el bloqueo para generar el PDF.');
 
@@ -240,24 +239,21 @@ function __genFactPdf(factId) {
     lock.releaseLock();
   }
 }
-
-function pdfGetSheetByNames_(ss, names) {
+var pdfGetSheetByNames_ = function(ss, names) {
   for (let i = 0; i < names.length; i++) {
     const sh = ss.getSheetByName(names[i]);
     if (sh) return sh;
   }
   return null;
 }
-
-function pdfGetHeaderMap_(sh) {
+var pdfGetHeaderMap_ = function(sh) {
   const lastCol = Math.max(1, sh.getLastColumn());
   const headers = sh.getRange(1, 1, 1, lastCol).getValues()[0].map(String);
   const map = {};
   headers.forEach((h, i) => { map[h] = i + 1; });
   return { headers, map };
 }
-
-function pdfFindHeader_(headers, candidates) {
+var pdfFindHeader_ = function(headers, candidates) {
   const lower = (headers || []).map((h) => String(h || '').toLowerCase());
   for (let i = 0; i < candidates.length; i++) {
     const idx = lower.indexOf(String(candidates[i] || '').toLowerCase());
@@ -265,8 +261,7 @@ function pdfFindHeader_(headers, candidates) {
   }
   return '';
 }
-
-function pdfFindRowById_(sh, idCandidates, id) {
+var pdfFindRowById_ = function(sh, idCandidates, id) {
   const headerInfo = pdfGetHeaderMap_(sh);
   const idHeader = pdfFindHeader_(headerInfo.headers, idCandidates);
   if (!idHeader) throw new Error('No existe columna ID en ' + sh.getName());
@@ -285,8 +280,7 @@ function pdfFindRowById_(sh, idCandidates, id) {
   }
   return null;
 }
-
-function pdfPickValue_(obj, candidates) {
+var pdfPickValue_ = function(obj, candidates) {
   if (!obj) return '';
   const keys = Object.keys(obj);
   for (let i = 0; i < candidates.length; i++) {
@@ -296,8 +290,7 @@ function pdfPickValue_(obj, candidates) {
   }
   return '';
 }
-
-function pdfGetPresupuestoLineas_(ss, presId) {
+var pdfGetPresupuestoLineas_ = function(ss, presId) {
   const sheetNames = ['PRES_LINEAS', 'LINEAS_PRES_HIST'];
   for (let i = 0; i < sheetNames.length; i++) {
     const sh = ss.getSheetByName(sheetNames[i]);
@@ -307,8 +300,7 @@ function pdfGetPresupuestoLineas_(ss, presId) {
   }
   return [];
 }
-
-function pdfGetFacturaLineas_(ss, factRowObj, factId) {
+var pdfGetFacturaLineas_ = function(ss, factRowObj, factId) {
   const sheetNames = ['FACT_LINEAS', 'LINEAS'];
   const numeroFactura = pdfPickValue_(factRowObj, ['Numero_factura', 'Factura_ID', 'ID']) || factId;
   for (let i = 0; i < sheetNames.length; i++) {
@@ -319,8 +311,7 @@ function pdfGetFacturaLineas_(ss, factRowObj, factId) {
   }
   return [];
 }
-
-function pdfGetLineasById_(sh, idCandidates, idValue) {
+var pdfGetLineasById_ = function(sh, idCandidates, idValue) {
   const headerInfo = pdfGetHeaderMap_(sh);
   const idHeader = pdfFindHeader_(headerInfo.headers, idCandidates);
   if (!idHeader) return [];
@@ -350,8 +341,7 @@ function pdfGetLineasById_(sh, idCandidates, idValue) {
   });
   return lines;
 }
-
-function pdfComputeLineTotals_(lineas) {
+var pdfComputeLineTotals_ = function(lineas) {
   let base = 0;
   let ivaTotal = 0;
   let ivaPorc = 0;
@@ -375,31 +365,27 @@ function pdfComputeLineTotals_(lineas) {
     ivaPorc: ivaPorc || 0
   };
 }
-
-function pdfResolveIvaTotal_(factRowObj, base) {
+var pdfResolveIvaTotal_ = function(factRowObj, base) {
   const ivaTotal = pdfNumber_(pdfPickValue_(factRowObj, ['IVA_total', 'IVA_EUR', 'IVA'])) || 0;
   if (ivaTotal) return pdfRound2_(ivaTotal);
   const ivaPorc = pdfResolveIvaPorc_(factRowObj, base, 0);
   if (!base || !ivaPorc) return 0;
   return pdfRound2_(base * (ivaPorc / 100));
 }
-
-function pdfResolveIvaPorc_(factRowObj, base, ivaTotal) {
+var pdfResolveIvaPorc_ = function(factRowObj, base, ivaTotal) {
   const ivaPorc = pdfNumber_(pdfPickValue_(factRowObj, ['IVA_PORC', 'IVA_%'])) || 0;
   if (ivaPorc) return ivaPorc;
   if (!base || !ivaTotal) return 0;
   return pdfRound2_((ivaTotal / base) * 100);
 }
-
-function pdfReplaceTokens_(doc, map) {
+var pdfReplaceTokens_ = function(doc, map) {
   if (typeof replaceTokensEverywhere_ === 'function') {
     replaceTokensEverywhere_(doc, map);
     return;
   }
   pdfReplaceTokensEverywhere_(doc, map);
 }
-
-function pdfReplaceTokensEverywhere_(doc, map) {
+var pdfReplaceTokensEverywhere_ = function(doc, map) {
   const containers = [];
   const body = doc.getBody();
   if (body) containers.push(body);
@@ -415,8 +401,7 @@ function pdfReplaceTokensEverywhere_(doc, map) {
     });
   });
 }
-
-function pdfFillLineTable_(doc, lineas, fieldMap) {
+var pdfFillLineTable_ = function(doc, lineas, fieldMap) {
   const tokens = Object.keys(fieldMap || {});
   const body = doc.getBody();
   if (!body) throw new Error('Documento sin body.');
@@ -458,8 +443,7 @@ function pdfFillLineTable_(doc, lineas, fieldMap) {
     table.insertTableRow(rowIndex + idx, row);
   });
 }
-
-function pdfReplaceTokensInRow_(row, map) {
+var pdfReplaceTokensInRow_ = function(row, map) {
   const cells = row.getNumCells();
   for (let c = 0; c < cells; c++) {
     const cell = row.getCell(c);
@@ -470,8 +454,7 @@ function pdfReplaceTokensInRow_(row, map) {
     });
   }
 }
-
-function pdfEnsurePdfConfig_(folderName, folderProp, templateProp, defaultTemplateId, cfgFolderHeader, cfgTemplateHeader, defaultFolderId) {
+var pdfEnsurePdfConfig_ = function(folderName, folderProp, templateProp, defaultTemplateId, cfgFolderHeader, cfgTemplateHeader, defaultFolderId) {
   const props = PropertiesService.getScriptProperties();
   const configFolderId = pdfGetConfigValue_([cfgFolderHeader]);
   const configTemplateId = pdfGetConfigValue_([cfgTemplateHeader]);
@@ -499,8 +482,7 @@ function pdfEnsurePdfConfig_(folderName, folderProp, templateProp, defaultTempla
 
   return { folderId, templateId };
 }
-
-function pdfGetConfigValue_(headers) {
+var pdfGetConfigValue_ = function(headers) {
   if (typeof getCfgAny_ === 'function') return getCfgAny_(headers);
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const cfg = ss.getSheetByName('CONFIG');
@@ -512,8 +494,7 @@ function pdfGetConfigValue_(headers) {
   }
   return '';
 }
-
-function pdfSetConfigValue_(header, value) {
+var pdfSetConfigValue_ = function(header, value) {
   if (typeof setCfgValueIfSheet_ === 'function') {
     setCfgValueIfSheet_(header, value);
     return;
@@ -531,8 +512,7 @@ function pdfSetConfigValue_(header, value) {
   }
   cfg.getRange(2, col).setValue(value || '');
 }
-
-function pdfUpdateRowValues_(sh, rowInfo, values) {
+var pdfUpdateRowValues_ = function(sh, rowInfo, values) {
   const headerMap = rowInfo.headerMap;
   Object.keys(values || {}).forEach((key) => {
     const col = headerMap[key];
@@ -540,29 +520,25 @@ function pdfUpdateRowValues_(sh, rowInfo, values) {
     sh.getRange(rowInfo.rowNumber, col).setValue(values[key]);
   });
 }
-
-function pdfShouldAppendNoIvaNote_(notas, doc, notasHeader) {
+var pdfShouldAppendNoIvaNote_ = function(notas, doc, notasHeader) {
   const lower = String(notas || '').toLowerCase();
   if (lower.includes('precios no incluyen iva')) return false;
   if (notasHeader) return true;
   return pdfDocHasPlaceholder_(doc, 'NOTAS');
 }
-
-function pdfDocHasPlaceholder_(doc, key) {
+var pdfDocHasPlaceholder_ = function(doc, key) {
   const body = doc.getBody();
   if (!body) return false;
   const pattern = pdfBuildTokenPattern_(key);
   return !!body.findText(pattern);
 }
-
-function pdfAppendNote_(notas, note) {
+var pdfAppendNote_ = function(notas, note) {
   if (!notas) return note;
   const trimmed = String(notas).trim();
   if (!trimmed) return note;
   return trimmed + ' ' + note;
 }
-
-function pdfFormatDate_(v) {
+var pdfFormatDate_ = function(v) {
   if (v instanceof Date && !isNaN(v.getTime())) {
     return Utilities.formatDate(v, Session.getScriptTimeZone(), 'dd/MM/yyyy');
   }
@@ -571,14 +547,12 @@ function pdfFormatDate_(v) {
   if (isNaN(d.getTime())) return String(v);
   return Utilities.formatDate(d, Session.getScriptTimeZone(), 'dd/MM/yyyy');
 }
-
-function pdfMoney2_(n) {
+var pdfMoney2_ = function(n) {
   const num = Number(n);
   if (isNaN(num)) return '';
   return Utilities.formatString('%.2f', num).replace('.', ',');
 }
-
-function pdfFormatCantidad_(value) {
+var pdfFormatCantidad_ = function(value) {
   if (value === null || value === undefined || value === '') return '';
   const raw = String(value).replace(',', '.');
   const num = Number(raw);
@@ -586,31 +560,26 @@ function pdfFormatCantidad_(value) {
   if (Math.floor(num) === num) return String(num);
   return Utilities.formatString('%.2f', num).replace('.', ',');
 }
-
-function pdfNumber_(n) {
+var pdfNumber_ = function(n) {
   if (n === null || n === undefined || n === '') return 0;
   const raw = String(n).replace(',', '.');
   const num = Number(raw);
   return isNaN(num) ? 0 : num;
 }
-
-function pdfRound2_(n) {
+var pdfRound2_ = function(n) {
   return Math.round((Number(n) || 0) * 100) / 100;
 }
-
-function pdfSafeFileName_(name) {
+var pdfSafeFileName_ = function(name) {
   return String(name || '')
     .replace(/[\\\/:*?"<>|#]+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
     .slice(0, 120) || 'Documento';
 }
-
-function pdfBuildTokenPattern_(key) {
+var pdfBuildTokenPattern_ = function(key) {
   return '\\{\\{\\s*' + pdfCaseInsensitiveKeyPattern_(key) + '\\s*\\}\\}';
 }
-
-function pdfCaseInsensitiveKeyPattern_(key) {
+var pdfCaseInsensitiveKeyPattern_ = function(key) {
   const raw = String(key || '');
   let out = '';
   for (let i = 0; i < raw.length; i++) {
@@ -625,8 +594,7 @@ function pdfCaseInsensitiveKeyPattern_(key) {
   }
   return out;
 }
-
-function pdfEscapeRegex_(s) {
+var pdfEscapeRegex_ = function(s) {
   return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
@@ -644,3 +612,4 @@ function generatePresupuestoPdfById(presId){
 function generateFacturaPdfById(factId){
   return __CC_PDF.generateFacturaPdfById(factId);
 }
+
