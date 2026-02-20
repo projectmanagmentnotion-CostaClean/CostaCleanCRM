@@ -48,3 +48,8 @@ tools/
 creds.json
 
 *.fixexports_*
+
+# Local backups (never commit)
+BACKUPS/
+*.zip
+*.sha256.txt
