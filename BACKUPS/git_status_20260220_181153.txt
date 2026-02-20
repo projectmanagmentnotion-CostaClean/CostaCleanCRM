@@ -1,0 +1,19 @@
+﻿On branch wip/ios-ui-20260121
+Your branch is up to date with 'origin/wip/ios-ui-20260121'.
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   API.js
+	modified:   Code.js
+	modified:   SETUP.js
+	modified:   appsscript.json
+	modified:   scripts.html
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	BACKUPS/
+	RUN_WEBAPP_API_LOGS.js
+	dev/RUN_WEBAPP_API_LOGS.js
+
+no changes added to commit (use "git add" and/or "git commit -a")
