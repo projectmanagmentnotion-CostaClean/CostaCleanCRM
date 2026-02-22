@@ -1,4 +1,4 @@
-﻿# Enforce LF for source code (avoid CRLF noise with core.autocrlf=true)
+# Enforce LF for source code (avoid CRLF noise with core.autocrlf=true)
 *.js   text eol=lf
 *.html text eol=lf
 *.json text eol=lf
