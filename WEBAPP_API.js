@@ -266,8 +266,8 @@ var apiGet = function(entity, id) {
   _ensureViews_();
   const map = _entityMap_();
   const cfg = map[entity];
+  if (!entity) return [];
   if (!cfg) throw new Error('Entidad no soportada: ' + entity);
-
   const viewName = cfg.view || cfg.sheet;
   const found = _findByIdInView_(viewName, cfg.idCol, id);
   if (!found) throw new Error('No encontrado: ' + entity + ' ' + id);
@@ -1325,5 +1325,4 @@ function apiPing(){ return __CC_WEBAPP_API.apiPing.apply(null, arguments); }
 function apiPresupuestosDebug(){ return __CC_WEBAPP_API.apiPresupuestosDebug.apply(null, arguments); }
 function apiUpdate(){ return __CC_WEBAPP_API.apiUpdate.apply(null, arguments); }
 function diagSheets_(){ return __CC_WEBAPP_API.diagSheets_.apply(null, arguments); }
-
 
