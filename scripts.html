@@ -421,11 +421,14 @@ function callServer(fnName, ...args){
     };
 
     try { if (env && env.debug) toast('API', fnName + ' enviando...', 'info'); } catch(_){ }
+
     try {
-      runner
-        .withSuccessHandler(onOk)
-        .withFailureHandler(onErr)[fnName]
-        .apply(runner, args || []);
+      const call = runner.withSuccessHandler(onOk).withFailureHandler(onErr);
+      const fn = call && call[fnName];
+      if (typeof fn !== 'function') {
+        throw new Error('API no expone la función: ' + fnName);
+      }
+      fn.apply(call, args || []);
     } catch (e) {
       onErr(e);
     }
@@ -1704,8 +1707,14 @@ function __forceRealFromUrl_(){
     const mock0 = (mockv === '0' || mockv === 'false');
 
     // En producción: SIEMPRE forzar real (aunque el storage diga mock)
+    // PRO-FIX: si estamos dentro del WebApp real (google.script.run existe), forzar REAL salvo que mock=1.
     let prodForce = false;
     try { prodForce = (typeof env !== 'undefined' && env && env.dev === false); } catch(_){}
+    try {
+      const hasRunner = (typeof google !== 'undefined' && google && google.script && google.script.run);
+      const mock1 = (sp.get('mock') === '1' || sp.get('mock') === 'true');
+      if (hasRunner && !mock1) prodForce = true;
+    } catch(_){}
 
     if (real1 || mock0 || prodForce){
       state.useMock = false;
@@ -1794,6 +1803,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 </script>
+
+
 
 
 
