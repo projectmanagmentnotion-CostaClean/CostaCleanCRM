@@ -1,9 +1,2 @@
-# Enforce LF for source code (avoid CRLF noise with core.autocrlf=true)
-*.js   text eol=lf
 *.html text eol=lf
-*.json text eol=lf
-*.md   text eol=lf
-*.css  text eol=lf
-
-# Windows scripts can stay CRLF (optional)
-*.ps1  text eol=crlf
+*.js   text eol=lf
