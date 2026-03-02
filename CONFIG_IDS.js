@@ -60,3 +60,11 @@ function ccGetDbSpreadsheet_(){
   return SpreadsheetApp.openById(ssid);
 }
 
+
+function __debug_get_db_property__(){
+  const props = PropertiesService.getScriptProperties();
+  return {
+    CC_DB_SPREADSHEET_ID: props.getProperty("CC_DB_SPREADSHEET_ID") || null
+  };
+}
+
