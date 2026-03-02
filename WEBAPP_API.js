@@ -69,14 +69,27 @@ const HEADERS_CIERRES = [
 
 /** ========= HELPERS BASE ========= **/
 var _ss_ = function() {
-  if (typeof SS_ID === 'undefined' || !SS_ID) {
-    throw new Error('SS_ID no está definido. Revisa API.js (const SS_ID=...)');
-  }
+  // PRO: WebApp debe abrir la DB por ScriptProperties (CONFIG_IDS.js) y NO depender de SS_ID.
+  // 1) Preferido: CC_DB_SPREADSHEET_ID via ccGetDbSpreadsheet_()
   try {
-    return SpreadsheetApp.openById(SS_ID);
-  } catch (err) {
-    throw new Error('No pude abrir el Spreadsheet por SS_ID. ID=' + SS_ID + ' | ' + (err && err.message ? err.message : String(err)));
+    if (typeof ccGetDbSpreadsheet_ === 'function') {
+      return ccGetDbSpreadsheet_();
+    }
+  } catch (e) {
+    // sigue con fallback
   }
+
+  // 2) Fallback legacy: SS_ID global (si existe)
+  if (typeof SS_ID !== 'undefined' && SS_ID) {
+    try {
+      return SpreadsheetApp.openById(SS_ID);
+    } catch (err) {
+      throw new Error('No pude abrir el Spreadsheet por SS_ID. ID=' + SS_ID + ' | ' + (err && err.message ? err.message : String(err)));
+    }
+  }
+
+  // 3) Error claro
+  throw new Error('DB Spreadsheet ID no configurado. Ejecuta ccSetDbSpreadsheetId("TU_SPREADSHEET_ID") y vuelve a intentar.');
 }
 
 var _sh_ = function(name) {
@@ -1325,4 +1338,5 @@ function apiPing(){ return __CC_WEBAPP_API.apiPing.apply(null, arguments); }
 function apiPresupuestosDebug(){ return __CC_WEBAPP_API.apiPresupuestosDebug.apply(null, arguments); }
 function apiUpdate(){ return __CC_WEBAPP_API.apiUpdate.apply(null, arguments); }
 function diagSheets_(){ return __CC_WEBAPP_API.diagSheets_.apply(null, arguments); }
+
 
