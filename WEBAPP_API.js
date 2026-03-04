@@ -1333,10 +1333,17 @@ function apiLeadMarcarGanado(){ return __CC_WEBAPP_API.apiLeadMarcarGanado.apply
 function apiList(){ return __CC_WEBAPP_API.apiList.apply(null, arguments); }
 function apiListClientes(){ return __CC_WEBAPP_API.apiListClientes.apply(null, arguments); }
 function apiListLeads(){ return __CC_WEBAPP_API.apiListLeads.apply(null, arguments); }
-function apiListPresupuestos(){ return __CC_WEBAPP_API.apiListPresupuestos.apply(null, arguments); }
+function apiListPresupuestos(){
+  // Entry-point REAL llamado por google.script.run
+  // Blindaje: jamás devolver null/undefined al frontend.
+  const out = __CC_WEBAPP_API.apiListPresupuestos.apply(null, arguments);
+  if (out === undefined || out === null) return [];
+  return out;
+}
 function apiPing(){ return __CC_WEBAPP_API.apiPing.apply(null, arguments); }
 function apiPresupuestosDebug(){ return __CC_WEBAPP_API.apiPresupuestosDebug.apply(null, arguments); }
 function apiUpdate(){ return __CC_WEBAPP_API.apiUpdate.apply(null, arguments); }
 function diagSheets_(){ return __CC_WEBAPP_API.diagSheets_.apply(null, arguments); }
+
 
 
