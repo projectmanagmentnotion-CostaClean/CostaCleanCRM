@@ -130,6 +130,58 @@ var include = function(filename) {
   return HtmlService.createHtmlOutputFromFile(filename).getContent();
 }
 
+// =========================
+// RUNNERS VISIBLES (dropdown)
+// =========================
+function run_verifyRunnableFunctions_(){
+  var names = [];
+  try {
+    var g = (typeof globalThis !== 'undefined') ? globalThis : this;
+    for (var k in g){
+      try{ if (typeof g[k] === 'function') names.push(k); }catch(_){}
+    }
+  } catch (e){
+    names = [];
+  }
+  names.sort();
+
+  var must = [
+    'run_verifyRunnableFunctions_',
+    'run_setDbSpreadsheetId_',
+    'run_getDbSpreadsheetId_',
+    'ccSetDbSpreadsheetId',
+    'ccGetDbSpreadsheetId_',
+    'ccGetDbSpreadsheet_',
+    'ccDiagInitToken_',
+    'ccDiagGetToken_'
+  ];
+
+  var present = {};
+  must.forEach(function(n){ present[n] = (names.indexOf(n) >= 0); });
+
+  console.log('[RUNNABLE VERIFY] present=', JSON.stringify(present, null, 2));
+  console.log('[RUNNABLE VERIFY] sample globals (first 120)=', names.slice(0,120).join(', '));
+  return { ok:true, present:present, count:names.length, sample:names.slice(0,120) };
+}
+
+function run_setDbSpreadsheetId_(){
+  var id = '1m62QB04_aDrxeXjSiK6QHRdAztGPqTAhx5zA9cKa8kk';
+  if (typeof ccSetDbSpreadsheetId !== 'function') {
+    throw new Error('ccSetDbSpreadsheetId NO existe en runtime. Revisa CONFIG_IDS.js: debe ser function ccSetDbSpreadsheetId(...) top-level');
+  }
+  var out = ccSetDbSpreadsheetId(id);
+  console.log('[DB SET] out=', JSON.stringify(out));
+  return out;
+}
+
+function run_getDbSpreadsheetId_(){
+  var props = PropertiesService.getScriptProperties();
+  var v = props.getProperty('CC_DB_SPREADSHEET_ID') || '';
+  console.log('[DB GET] CC_DB_SPREADSHEET_ID=', v);
+  return { ok:true, CC_DB_SPREADSHEET_ID: v || null };
+}
+
+
 
 
 
@@ -138,6 +190,7 @@ var include = function(filename) {
 var onOpenRouter_ = function(){
   console.log('onOpenRouter_ STUB called');
 }
+
 
 
 
