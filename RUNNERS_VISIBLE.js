@@ -1,4 +1,5 @@
-﻿// RUNNERS_VISIBLE.js
+﻿// CC_RUNNERS_VERSION=20260304-1
+// RUNNERS_VISIBLE.js
 // Runners 100% visibles en el desplegable (function top-level)
 // Objetivo: verificar qué funciones están realmente disponibles y setear/ver DB Spreadsheet ID.
 
@@ -58,3 +59,5 @@ function run_getDbSpreadsheetId_(){
   console.log('[DB GET] CC_DB_SPREADSHEET_ID=', v);
   return { ok:true, CC_DB_SPREADSHEET_ID: v || null };
 }
+
+
