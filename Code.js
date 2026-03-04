@@ -124,16 +124,7 @@ var __ccDiagHandleGet_ = function(e){
 };
 
 // Ejecuta 1 vez en el editor de Apps Script (Run) para generar token
-function ccDiagInitToken_(){
-  const props = PropertiesService.getScriptProperties();
-  let t = String(props.getProperty('CC_DIAG_TOKEN') || '').trim();
-  if (!t) {
-    t = Utilities.getUuid().replace(/-/g,'');
-    props.setProperty('CC_DIAG_TOKEN', t);
-  }
-  console.log("[ccDiagInitToken_] CC_DIAG_TOKEN=", t);
-  return { ok:true, token: t };
-}
+
 // ✅ necesario para incluir styles.html dentro de app.html
 var include = function(filename) {
   return HtmlService.createHtmlOutputFromFile(filename).getContent();
@@ -147,6 +138,7 @@ var include = function(filename) {
 var onOpenRouter_ = function(){
   console.log('onOpenRouter_ STUB called');
 }
+
 
 
 
